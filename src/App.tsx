@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 
 // --- API & FIREBASE CONFIGURATION ---
-const apiKey = "AIzaSyBom4kXpkpVQSMLS5k8RYKgh8PDLqfwEm0"; // <-- COLlez VOTRE CLÉ GEMINI ICI (ex: "AIzaSy...")
+const apiKey = "AIzaSyBaCJH1zRBatryeqflYeb4UQyVv5FWIdPU"; // <-- COLlez VOTRE CLÉ GEMINI ICI (ex: "AIzaSy...")
 
 // VOTRE CONFIGURATION FIREBASE
 const firebaseConfig = { 
