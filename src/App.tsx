@@ -66,8 +66,8 @@ class ErrorBoundary extends React.Component {
 // MOTEUR IA INTELLIGENT (Avec Diagnostic d'Erreur Clair)
 // =========================================================================
 const callGemini = async (prompt, b64Data = null) => {
-  // FIX : Utilisation du modèle le plus récent et universellement supporté
-  const model = 'gemini-2.5-flash-preview-09-2025';
+  // FIX : Utilisation de la version Gemini 2.5 Flash
+  const model = 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const parts = [{ text: prompt }];
   if (b64Data) parts.push({ inlineData: { mimeType: "image/jpeg", data: b64Data } });
