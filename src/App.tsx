@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 
 // --- API & FIREBASE CONFIGURATION ---
-const apiKey = "AIzaSyBom4kXpkpVQSMLS5k8RYKgh8PDLqfwEm0"; // <-- COLlez VOTRE NOUVELLE CLÉ GEMINI ICI (ex: "AIzaSy...")
+const apiKey = "AIzaSyBom4kXpkpVQSMLS5k8RYKgh8PDLqfwEm0"; // <-- COLlez VOTRE CLÉ GEMINI ICI (ex: "AIzaSy...")
 
 // VOTRE CONFIGURATION FIREBASE
 const firebaseConfig = { 
@@ -62,21 +62,31 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// --- UTILS AVANCÉS POUR L'IA ---
-const fetchWithRetry = async (url, options, maxRetries = 3) => {
+// =========================================================================
+// MOTEUR IA INTELLIGENT (Avec Diagnostic d'Erreur)
+// =========================================================================
+const fetchWithRetry = async (url, options, maxRetries = 2) => {
   let retries = 0;
-  const delays = [1000, 2000, 4000];
+  const delays = [1000, 2000];
   while (retries < maxRetries) {
     try {
       const response = await fetch(url, options);
       if (!response.ok) {
-        throw new Error("HTTP error! status: " + response.status);
+        let errMsg = `Erreur ${response.status}`;
+        try {
+          const errData = await response.json();
+          // Extrait la vraie raison du blocage depuis les serveurs de Google
+          if (errData.error && errData.error.message) {
+            errMsg += ` : ${errData.error.message}`;
+          }
+        } catch (e) {}
+        throw new Error(errMsg);
       }
       return await response.json();
     } catch (error) {
       const errStr = String(error.message || error);
-      // On ne réessaie pas pour les erreurs définitives liées à la clé
-      if (errStr.includes('400') || errStr.includes('403') || errStr.includes('404')) {
+      // On ne réessaie pas pour les erreurs bloquantes de Google (Clé invalide, modèle absent, etc.)
+      if (errStr.includes('Erreur 400') || errStr.includes('Erreur 403') || errStr.includes('Erreur 404')) {
         throw error;
       }
       retries++;
@@ -87,9 +97,9 @@ const fetchWithRetry = async (url, options, maxRetries = 3) => {
 };
 
 const callGemini = async (prompt, b64Data = null) => {
-  // Le Moteur Intelligent : Il teste plusieurs modèles pour contourner l'erreur 404
-  const models = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
-  let lastError = null;
+  // On teste les versions explicites les plus récentes et stables
+  const models = ['gemini-1.5-flash', 'gemini-1.5-flash-002', 'gemini-1.5-flash-001', 'gemini-1.5-pro'];
+  let lastErrorMsg = "";
 
   for (const model of models) {
     try {
@@ -102,27 +112,26 @@ const callGemini = async (prompt, b64Data = null) => {
         generationConfig: { responseMimeType: "application/json" }
       };
 
-      const response = await fetchWithRetry(url, {
+      return await fetchWithRetry(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
-      return response;
     } catch (err) {
-      lastError = err;
-      const errStr = String(err.message || err);
+      lastErrorMsg = err.message || String(err);
       
-      if (errStr.includes('403')) {
-        throw new Error("Erreur 403 : Accès Refusé. Créez une nouvelle clé API sans restriction sur Google AI Studio.");
+      // Si l'erreur mentionne un problème grave, on arrête tout de suite pour l'afficher à l'utilisateur
+      if (lastErrorMsg.includes('API key not valid') || lastErrorMsg.includes('API_KEY_INVALID') || lastErrorMsg.includes('Erreur 400')) {
+        throw new Error("Clé API Google invalide ou manquante. Vérifiez la ligne 17 du code. Détail exact : " + lastErrorMsg);
       }
-      if (errStr.includes('400')) {
-        throw new Error("Erreur 400 : Clé API invalide ou manquante.");
+      if (lastErrorMsg.includes('Erreur 403')) {
+        throw new Error("Accès refusé par Google. La clé est peut-être restreinte. Détail exact : " + lastErrorMsg);
       }
-      // Si 404, la boucle continue et essaie le modèle suivant !
+      // Si c'est une 404 (Modèle non trouvé), la boucle continue et essaie le modèle suivant
     }
   }
-  throw new Error("Erreur de connexion aux serveurs de l'IA. " + (lastError?.message || ''));
+  // Si TOUS les modèles ont échoué
+  throw new Error("Refus de connexion aux serveurs de l'IA. Cause exacte envoyée par Google : " + lastErrorMsg);
 };
 
 const extractJSON = (text) => {
@@ -449,7 +458,7 @@ export default function App() {
     setCurrentScanId(tempId);
     setView('results');
 
-    if (auth.currentUser) { // Fonctionne même si anonyme ! Firebase gérera selon vos règles
+    if (auth.currentUser && !auth.currentUser.isAnonymous) {
       try {
         const scansRef = collection(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans');
         const docRef = await addDoc(scansRef, newScanObj);
@@ -522,7 +531,7 @@ export default function App() {
 
   const genericUpdate = async (id, fields) => {
     setScanHistory(prev => prev.map(item => item.id === id ? { ...item, ...fields } : item));
-    if (auth.currentUser && !id.startsWith('temp_')) {
+    if (auth.currentUser && !auth.currentUser.isAnonymous && !id.startsWith('temp_')) {
       try {
         const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans', id);
         await updateDoc(docRef, fields);
@@ -537,7 +546,7 @@ export default function App() {
 
     setScanHistory(prev => prev.map(item => item.id === id ? { ...item, data: newData } : item));
 
-    if (auth.currentUser && !id.startsWith('temp_')) {
+    if (auth.currentUser && !auth.currentUser.isAnonymous && !id.startsWith('temp_')) {
       try {
         const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans', id);
         await updateDoc(docRef, { [`data.${fieldName}`]: value });
@@ -586,7 +595,7 @@ export default function App() {
     }
     setScanAction(null);
 
-    if (auth.currentUser && !id.startsWith('temp_')) {
+    if (auth.currentUser && !auth.currentUser.isAnonymous && !id.startsWith('temp_')) {
       try {
         const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans', id);
         if (newStock === 0 && !newInHistory && !currentScanObj.wishlist) await deleteDoc(docRef);
@@ -599,7 +608,7 @@ export default function App() {
     const newStock = Math.max(0, parseInt(currentStock) + change);
     setScanHistory(prev => prev.map(item => item.id === scanId ? { ...item, stock: newStock } : item));
 
-    if (auth.currentUser && !scanId.startsWith('temp_')) {
+    if (auth.currentUser && !auth.currentUser.isAnonymous && !scanId.startsWith('temp_')) {
       try {
         const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans', scanId);
         const currentScanObj = scanHistory.find(s => s.id === scanId);
@@ -621,7 +630,7 @@ export default function App() {
 
     setScanHistory(prev => prev.map(item => item.id === scanId ? { ...item, stock: newStock } : item));
 
-    if (val !== '' && auth.currentUser && !scanId.startsWith('temp_')) {
+    if (val !== '' && auth.currentUser && !auth.currentUser.isAnonymous && !scanId.startsWith('temp_')) {
       try {
         const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans', scanId);
         const currentScanObj = scanHistory.find(s => s.id === scanId);
