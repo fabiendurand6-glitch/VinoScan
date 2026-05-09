@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 
 // --- API & FIREBASE CONFIGURATION ---
-const apiKey = "AIzaSyBom4kXpkpVQSMLS5k8RYKgh8PDLqfwEm0"; // <-- COLlez VOTRE CLÉ GEMINI ICI (ex: "AIzaSy...")
+const apiKey = "AIzaSyClDDsccuRWaxBMQpMUNgII81AxlOxYclc"; // <-- COLlez VOTRE CLÉ GEMINI ICI (ex: "AIzaSy...")
 
 // VOTRE CONFIGURATION FIREBASE
 const firebaseConfig = { 
@@ -66,6 +66,7 @@ class ErrorBoundary extends React.Component {
 // MOTEUR IA INTELLIGENT (Avec Diagnostic d'Erreur Clair)
 // =========================================================================
 const callGemini = async (prompt, b64Data = null) => {
+  // FIX : Utilisation du modèle le plus récent et universellement supporté
   const model = 'gemini-2.5-flash-preview-09-2025';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const parts = [{ text: prompt }];
@@ -91,7 +92,7 @@ const callGemini = async (prompt, b64Data = null) => {
         throw new Error("Clé API Google invalide. Assurez-vous d'avoir bien collé la clé de Google AI Studio.");
       }
       if (exactError.includes('not found') || response.status === 404) {
-        throw new Error("Modèle IA introuvable. 🚨 PIÈGE CLASSIQUE : Avez-vous collé votre clé 'Firebase' au lieu de votre clé 'Google AI Studio' à la ligne 17 ? Elles se ressemblent beaucoup !");
+        throw new Error(`Modèle IA introuvable. Google a refusé le nom du modèle : ${model}`);
       }
       if (response.status === 403) {
         throw new Error("Accès refusé par Google. Créez une nouvelle clé sans restriction sur Google AI Studio.");
