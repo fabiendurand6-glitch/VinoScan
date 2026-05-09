@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 
 // --- API & FIREBASE CONFIGURATION ---
-const apiKey = "AIzaSyClDDsccuRWaxBMQpMUNgII81AxlOxYclc"; // <-- COLlez VOTRE NOUVELLE CLÉ ICI (ex: "AIzaSy...")
+const apiKey = "AIzaSyBom4kXpkpVQSMLS5k8RYKgh8PDLqfwEm0"; // <-- COLlez VOTRE NOUVELLE CLÉ GEMINI ICI (ex: "AIzaSy...")
 
 // VOTRE CONFIGURATION FIREBASE
 const firebaseConfig = { 
@@ -62,21 +62,67 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// --- UTILS ---
+// --- UTILS AVANCÉS POUR L'IA ---
 const fetchWithRetry = async (url, options, maxRetries = 3) => {
   let retries = 0;
   const delays = [1000, 2000, 4000];
   while (retries < maxRetries) {
     try {
       const response = await fetch(url, options);
-      if (!response.ok) throw new Error("HTTP error! status: " + response.status);
+      if (!response.ok) {
+        throw new Error("HTTP error! status: " + response.status);
+      }
       return await response.json();
     } catch (error) {
+      const errStr = String(error.message || error);
+      // On ne réessaie pas pour les erreurs définitives liées à la clé
+      if (errStr.includes('400') || errStr.includes('403') || errStr.includes('404')) {
+        throw error;
+      }
       retries++;
       if (retries >= maxRetries) throw error;
       await new Promise(resolve => setTimeout(resolve, delays[retries - 1]));
     }
   }
+};
+
+const callGemini = async (prompt, b64Data = null) => {
+  // Le Moteur Intelligent : Il teste plusieurs modèles pour contourner l'erreur 404
+  const models = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
+  let lastError = null;
+
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const parts = [{ text: prompt }];
+      if (b64Data) parts.push({ inlineData: { mimeType: "image/jpeg", data: b64Data } });
+      
+      const payload = {
+        contents: [{ role: "user", parts }],
+        generationConfig: { responseMimeType: "application/json" }
+      };
+
+      const response = await fetchWithRetry(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      return response;
+    } catch (err) {
+      lastError = err;
+      const errStr = String(err.message || err);
+      
+      if (errStr.includes('403')) {
+        throw new Error("Erreur 403 : Accès Refusé. Créez une nouvelle clé API sans restriction sur Google AI Studio.");
+      }
+      if (errStr.includes('400')) {
+        throw new Error("Erreur 400 : Clé API invalide ou manquante.");
+      }
+      // Si 404, la boucle continue et essaie le modèle suivant !
+    }
+  }
+  throw new Error("Erreur de connexion aux serveurs de l'IA. " + (lastError?.message || ''));
 };
 
 const extractJSON = (text) => {
@@ -403,7 +449,7 @@ export default function App() {
     setCurrentScanId(tempId);
     setView('results');
 
-    if (auth.currentUser && !auth.currentUser.isAnonymous) {
+    if (auth.currentUser) { // Fonctionne même si anonyme ! Firebase gérera selon vos règles
       try {
         const scansRef = collection(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans');
         const docRef = await addDoc(scansRef, newScanObj);
@@ -419,13 +465,10 @@ export default function App() {
     try {
       const b64Data = base64Img.split(',')[1];
       const prompt = `Tu es un sommelier expert. Analyse cette étiquette. L'année actuelle est 2026.\n${getPromptBase()}`;
-      // FIX MODEL: Utilisation de 1.5-flash qui est universellement disponible
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-      const payload = { contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: b64Data } }] }], generationConfig: { responseMimeType: "application/json" } };
-      const result = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const result = await callGemini(prompt, b64Data);
       await processAIResult(result.candidates?.[0]?.content?.parts?.[0]?.text, base64Img);
     } catch (err) {
-      setErrorMsg("Erreur technique de l'appareil photo : " + err.message);
+      setErrorMsg(err.message);
       setView('error');
     }
   };
@@ -435,13 +478,10 @@ export default function App() {
     setPreviousView('home');
     try {
       const prompt = `Tu es un sommelier expert. L'utilisateur recherche le vin : "${textQuery}". L'année actuelle est 2026.\n${getPromptBase()}`;
-      // FIX MODEL: Utilisation de 1.5-flash qui est universellement disponible
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-      const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } };
-      const result = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const result = await callGemini(prompt);
       await processAIResult(result.candidates?.[0]?.content?.parts?.[0]?.text, null);
     } catch (err) {
-      setErrorMsg("Erreur technique de recherche : " + err.message);
+      setErrorMsg(err.message);
       setView('error');
     }
   };
@@ -461,10 +501,7 @@ export default function App() {
       Pour CHAQUE vin, tu DOIS utiliser EXACTEMENT cette structure :
       ${getPromptBase()}`;
 
-      // FIX MODEL: Utilisation de 1.5-flash qui est universellement disponible
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-      const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } };
-      const result = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const result = await callGemini(prompt);
       
       let parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
       let vins = parsed.vins || (Array.isArray(parsed) ? parsed : null);
@@ -474,7 +511,7 @@ export default function App() {
       setRecommendationList(normalizedVins);
       setView('recommendationList');
     } catch (err) {
-      setErrorMsg("Erreur technique de recommandation : " + err.message);
+      setErrorMsg(err.message);
       setView('error');
     }
   };
@@ -483,10 +520,9 @@ export default function App() {
     await processAIResult(JSON.stringify(wineData), null, getGenericImageForType(wineData.type_simplifie), true); 
   };
 
-  // --- ACTIONS MAJEURES ---
   const genericUpdate = async (id, fields) => {
     setScanHistory(prev => prev.map(item => item.id === id ? { ...item, ...fields } : item));
-    if (auth.currentUser && !auth.currentUser.isAnonymous && !id.startsWith('temp_')) {
+    if (auth.currentUser && !id.startsWith('temp_')) {
       try {
         const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans', id);
         await updateDoc(docRef, fields);
@@ -501,7 +537,7 @@ export default function App() {
 
     setScanHistory(prev => prev.map(item => item.id === id ? { ...item, data: newData } : item));
 
-    if (auth.currentUser && !auth.currentUser.isAnonymous && !id.startsWith('temp_')) {
+    if (auth.currentUser && !id.startsWith('temp_')) {
       try {
         const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans', id);
         await updateDoc(docRef, { [`data.${fieldName}`]: value });
@@ -509,7 +545,6 @@ export default function App() {
     }
   };
 
-  // Pour que la touche "Entrée" sauvegarde la valeur
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.target.blur();
@@ -551,7 +586,7 @@ export default function App() {
     }
     setScanAction(null);
 
-    if (auth.currentUser && !auth.currentUser.isAnonymous && !id.startsWith('temp_')) {
+    if (auth.currentUser && !id.startsWith('temp_')) {
       try {
         const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans', id);
         if (newStock === 0 && !newInHistory && !currentScanObj.wishlist) await deleteDoc(docRef);
@@ -564,7 +599,7 @@ export default function App() {
     const newStock = Math.max(0, parseInt(currentStock) + change);
     setScanHistory(prev => prev.map(item => item.id === scanId ? { ...item, stock: newStock } : item));
 
-    if (auth.currentUser && !auth.currentUser.isAnonymous && !scanId.startsWith('temp_')) {
+    if (auth.currentUser && !scanId.startsWith('temp_')) {
       try {
         const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans', scanId);
         const currentScanObj = scanHistory.find(s => s.id === scanId);
@@ -586,7 +621,7 @@ export default function App() {
 
     setScanHistory(prev => prev.map(item => item.id === scanId ? { ...item, stock: newStock } : item));
 
-    if (val !== '' && auth.currentUser && !auth.currentUser.isAnonymous && !scanId.startsWith('temp_')) {
+    if (val !== '' && auth.currentUser && !scanId.startsWith('temp_')) {
       try {
         const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'scans', scanId);
         const currentScanObj = scanHistory.find(s => s.id === scanId);
