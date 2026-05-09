@@ -63,75 +63,47 @@ class ErrorBoundary extends React.Component {
 }
 
 // =========================================================================
-// MOTEUR IA INTELLIGENT (Avec Diagnostic d'Erreur)
+// MOTEUR IA INTELLIGENT (Avec Diagnostic d'Erreur Clair)
 // =========================================================================
-const fetchWithRetry = async (url, options, maxRetries = 2) => {
-  let retries = 0;
-  const delays = [1000, 2000];
-  while (retries < maxRetries) {
-    try {
-      const response = await fetch(url, options);
-      if (!response.ok) {
-        let errMsg = `Erreur ${response.status}`;
-        try {
-          const errData = await response.json();
-          // Extrait la vraie raison du blocage depuis les serveurs de Google
-          if (errData.error && errData.error.message) {
-            errMsg += ` : ${errData.error.message}`;
-          }
-        } catch (e) {}
-        throw new Error(errMsg);
-      }
-      return await response.json();
-    } catch (error) {
-      const errStr = String(error.message || error);
-      // On ne réessaie pas pour les erreurs bloquantes de Google (Clé invalide, modèle absent, etc.)
-      if (errStr.includes('Erreur 400') || errStr.includes('Erreur 403') || errStr.includes('Erreur 404')) {
-        throw error;
-      }
-      retries++;
-      if (retries >= maxRetries) throw error;
-      await new Promise(resolve => setTimeout(resolve, delays[retries - 1]));
-    }
-  }
-};
-
 const callGemini = async (prompt, b64Data = null) => {
-  // On teste les versions explicites les plus récentes et stables
-  const models = ['gemini-1.5-flash', 'gemini-1.5-flash-002', 'gemini-1.5-flash-001', 'gemini-1.5-pro'];
-  let lastErrorMsg = "";
+  const model = 'gemini-1.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const parts = [{ text: prompt }];
+  if (b64Data) parts.push({ inlineData: { mimeType: "image/jpeg", data: b64Data } });
+  
+  const payload = {
+    contents: [{ role: "user", parts }],
+    generationConfig: { responseMimeType: "application/json" }
+  };
 
-  for (const model of models) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const parts = [{ text: prompt }];
-      if (b64Data) parts.push({ inlineData: { mimeType: "image/jpeg", data: b64Data } });
-      
-      const payload = {
-        contents: [{ role: "user", parts }],
-        generationConfig: { responseMimeType: "application/json" }
-      };
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
-      return await fetchWithRetry(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-    } catch (err) {
-      lastErrorMsg = err.message || String(err);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      const exactError = errData.error?.message || 'Erreur réseau inconnue';
       
-      // Si l'erreur mentionne un problème grave, on arrête tout de suite pour l'afficher à l'utilisateur
-      if (lastErrorMsg.includes('API key not valid') || lastErrorMsg.includes('API_KEY_INVALID') || lastErrorMsg.includes('Erreur 400')) {
-        throw new Error("Clé API Google invalide ou manquante. Vérifiez la ligne 17 du code. Détail exact : " + lastErrorMsg);
+      if (exactError.includes('API key not valid') || response.status === 400) {
+        throw new Error("Clé API Google invalide. Assurez-vous d'avoir bien collé la clé de Google AI Studio.");
       }
-      if (lastErrorMsg.includes('Erreur 403')) {
-        throw new Error("Accès refusé par Google. La clé est peut-être restreinte. Détail exact : " + lastErrorMsg);
+      if (exactError.includes('not found') || response.status === 404) {
+        throw new Error("Modèle IA introuvable. 🚨 PIÈGE CLASSIQUE : Avez-vous collé votre clé 'Firebase' au lieu de votre clé 'Google AI Studio' à la ligne 17 ? Elles se ressemblent beaucoup !");
       }
-      // Si c'est une 404 (Modèle non trouvé), la boucle continue et essaie le modèle suivant
+      if (response.status === 403) {
+        throw new Error("Accès refusé par Google. Créez une nouvelle clé sans restriction sur Google AI Studio.");
+      }
+      
+      throw new Error(`Erreur serveur (${response.status}) : ${exactError}`);
     }
+
+    return await response.json();
+  } catch (err) {
+    throw new Error(err.message);
   }
-  // Si TOUS les modèles ont échoué
-  throw new Error("Refus de connexion aux serveurs de l'IA. Cause exacte envoyée par Google : " + lastErrorMsg);
 };
 
 const extractJSON = (text) => {
