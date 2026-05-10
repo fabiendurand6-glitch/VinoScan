@@ -566,6 +566,7 @@ const CellarView = ({ ctx }) => {
         )}
       </div>
 
+      {/* --- MODAL TIROIR POUR RÉORGANISATION --- */}
       {selectedBottle && (
         <div className="fixed inset-0 z-[100] bg-black/60 flex items-end justify-center p-4 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl mb-safe animate-in slide-in-from-bottom-4">
@@ -659,8 +660,6 @@ const AccountView = ({ ctx }) => {
 
   const handleLogout = async () => {
     await signOut(auth);
-    // On repasse en anonyme pour continuer à utiliser l'appli
-    try { await signInAnonymously(auth); } catch (e) {}
     ctx.setView('home');
   };
   
@@ -869,6 +868,130 @@ const ErrorView = ({ ctx }) => (
     <button onClick={ctx.goBack} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-colors shadow-lg">Retourner à l'accueil</button>
   </div>
 );
+
+const RecommendationView = ({ ctx }) => {
+  const [filterType, setFilterType] = useState('ALL');
+  const [filterApogee, setFilterApogee] = useState('ALL');
+  const [filterFood, setFilterFood] = useState('ALL');
+  const [filterPrice, setFilterPrice] = useState('ALL');
+
+  const handleRecommend = () => { ctx.fetchAIRecommendation(filterType, filterApogee, filterFood, filterPrice); };
+
+  return (
+    <div className="flex flex-col h-full bg-gradient-to-b from-amber-50 to-white pb-20 overflow-y-auto">
+      <div className="bg-white/80 backdrop-blur-md pt-12 pb-6 px-6 shadow-sm z-10 sticky top-0 border-b border-amber-100">
+        <div className="flex items-center space-x-4 mb-2">
+          <div className="w-12 h-12 bg-gradient-to-br from-amber-200 to-amber-400 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200/50 transform -rotate-3"><Sparkles className="w-6 h-6 text-amber-900" /></div>
+          <div><h1 className="text-3xl font-serif font-bold text-slate-900">Le Sommelier</h1><p className="text-slate-500 text-sm font-medium">Laissez l'IA vous conseiller</p></div>
+        </div>
+      </div>
+      <div className="p-6 space-y-10">
+        <div className="space-y-4">
+          <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Euro className="w-5 h-5 text-emerald-600" /><span>Budget</span></h3>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setFilterPrice('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'ALL' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Peu importe</button>
+            <button onClick={() => setFilterPrice('BUDGET')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'BUDGET' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Abordable ({"<"} 20€)</button>
+            <button onClick={() => setFilterPrice('MEDIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'MEDIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Plaisir (20-50€)</button>
+            <button onClick={() => setFilterPrice('PREMIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'PREMIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Exception ({">"} 50€)</button>
+          </div>
+        </div>
+        
+        <div className="space-y-4">
+          <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Pour quel repas ?</span></h3>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setFilterFood('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'ALL' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍽️ Peu importe</button>
+            <button onClick={() => setFilterFood('APERITIF')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'APERITIF' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥂 Apéro & Tapas</button>
+            <button onClick={() => setFilterFood('VIANDE_ROUGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_ROUGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥩 Viande rouge</button>
+            <button onClick={() => setFilterFood('VIANDE_BLANCHE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_BLANCHE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍗 Viande blanche</button>
+            <button onClick={() => setFilterFood('POISSON')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'POISSON' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🐟 Poisson & Mer</button>
+            <button onClick={() => setFilterFood('FROMAGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'FROMAGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🧀 Fromage</button>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Wine className="w-5 h-5 text-rose-800" /><span>Type de vin</span></h3>
+          <div className="flex flex-wrap gap-2">
+            {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(type => (
+              <button key={type} onClick={() => setFilterType(type)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterType === type ? 'bg-rose-900 text-white border-rose-900 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                {type === 'ALL' ? 'Surprenez-moi' : type === 'PETILLANT' ? 'Bulles' : type}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Clock className="w-5 h-5 text-indigo-600" /><span>Âge & Apogée</span></h3>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setFilterApogee('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterApogee === 'ALL' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Peu importe</button>
+            <button onClick={() => setFilterApogee('A_GARDER')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterApogee === 'A_GARDER' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Un vin jeune</button>
+            <button onClick={() => setFilterApogee('APOGEE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterApogee === 'APOGEE' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Prêt à boire</button>
+            <button onClick={() => setFilterApogee('DECLIN')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterApogee === 'DECLIN' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Vieux millésime</button>
+          </div>
+        </div>
+
+        <button onClick={handleRecommend} className="w-full py-5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-bold text-lg shadow-xl shadow-amber-500/30 hover:scale-[1.02] transition-all active:scale-95 flex justify-center items-center space-x-3 mt-8">
+          <Sparkles className="w-6 h-6" /><span>Trouver la perle rare</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const RecommendationListView = ({ ctx }) => {
+  const [sortOrder, setSortOrder] = useState('asc');
+  const sortedList = useMemo(() => {
+    if (!ctx.recommendationList) return [];
+    return [...ctx.recommendationList].sort((a, b) => {
+      const priceA = a.prix_unitaire_nombre || 0;
+      const priceB = b.prix_unitaire_nombre || 0;
+      return sortOrder === 'asc' ? priceA - priceB : priceB - priceA;
+    });
+  }, [ctx.recommendationList, sortOrder]);
+
+  return (
+    <div className="flex flex-col h-full bg-slate-50 pb-20">
+      <div className="bg-white pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center justify-between border-b border-slate-100">
+        <div className="flex items-center">
+          <button onClick={() => ctx.setView('recommendation')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
+          <div><h1 className="text-2xl font-serif font-bold text-slate-900">La Sélection</h1><p className="text-slate-500 text-xs mt-1 font-medium">{sortedList.length} vins trouvés</p></div>
+        </div>
+        <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} className="flex items-center space-x-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors">
+          <ArrowDownUp className="w-4 h-4" /><span>{sortOrder === 'asc' ? 'Prix croissant' : 'Prix décroissant'}</span>
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {sortedList.map((wine, index) => {
+           const imgUrl = getGenericImageForType(wine.type_simplifie);
+           return (
+             <div key={index} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex space-x-5 hover:shadow-md transition-shadow">
+               <div className="w-24 h-32 bg-slate-100 rounded-2xl overflow-hidden shrink-0 shadow-inner">
+                  <img src={imgUrl} alt="Bouteille" className="w-full h-full object-cover" />
+               </div>
+               <div className="flex-1 min-w-0 flex flex-col justify-between">
+                 <div>
+                   <div className="flex justify-between items-start mb-2">
+                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{wine.type_simplifie === 'PETILLANT' ? 'Pétillant' : (wine.type_simplifie || 'VIN')}</span>
+                     <div className="flex items-end space-x-1 text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+                       <span className="text-lg leading-none">{wine.prix_unitaire_nombre || '?'}</span><span className="text-xs">€</span>
+                     </div>
+                   </div>
+                   <h3 className="font-serif text-slate-900 text-lg leading-tight mb-1 font-bold line-clamp-2">{wine.nom}</h3>
+                   <div className="flex items-center space-x-2 text-xs text-slate-500 mb-2 font-medium">
+                     <span className="text-rose-800 font-bold">{wine.annee}</span><span>•</span><span className="truncate">{wine.region}</span>
+                   </div>
+                   <p className="text-xs text-slate-600 mb-3 line-clamp-2 leading-relaxed">{wine.description}</p>
+                 </div>
+                 <button onClick={() => ctx.processRecommendationSelection(wine)} className="w-full py-3 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-md hover:bg-slate-800 transition-colors">
+                   Découvrir ce vin
+                 </button>
+               </div>
+             </div>
+           );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const ResultsView = ({ ctx }) => {
   let currentScanObj = ctx.scanHistory.find(s => s.id === ctx.currentScanId);
@@ -1140,9 +1263,9 @@ const ResultsView = ({ ctx }) => {
         </div>
 
         <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-emerald-50 rounded-lg"><Tag className="w-5 h-5 text-emerald-600" /></div>
-            <h3 className="font-serif text-xl font-bold text-slate-900">Valeur Marchande</h3>
+          <div className="flex items-center space-x-2 mb-4">
+            <Tag className="w-5 h-5 text-emerald-600" />
+            <h3 className="text-lg font-semibold text-slate-800">Tarif Marchand</h3>
           </div>
           
           <div className="flex items-end space-x-2 mb-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 w-max">
