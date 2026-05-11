@@ -40,6 +40,17 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = 'vinoscan-app-8d4af';
 
+const checkGlobalCache = async (wineKey) => {
+  const id = wineKey.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  const snap = await getDoc(doc(db, "global_wine_cache", id));
+  return snap.exists() ? snap.data() : null;
+};
+
+const saveToGlobalCache = async (wineKey, data) => {
+  const id = wineKey.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  await setDoc(doc(db, "global_wine_cache", id), data);
+};
+
 // =========================================================================
 // FILET DE SÉCURITÉ ANTI-CRASH
 // =========================================================================
@@ -1522,31 +1533,8 @@ export default function App() {
 
   useEffect(() => { return () => stopCamera(); }, []);
 
-  const getPromptBase = () => `
-    Tu DOIS renvoyer UNIQUEMENT un objet JSON valide. Ne renvoie AUCUN texte avant ou après le JSON.
-    Structure EXACTE et OBLIGATOIRE :
-    {
-      "nom": "Nom complet du domaine, cuvée ou marque",
-      "type": "Vin Rouge / Vin Blanc / Champagne / etc.",
-      "type_simplifie": "ROUGE", 
-      "annee": "Le millésime (ou 'Non millésimé')",
-      "region": "Région ou pays d'origine",
-      "description": "Brève description du profil aromatique.",
-      "prix_moyen": "Prix marchand estimé (ex: '45€')",
-      "prix_unitaire_nombre": 45.0, 
-      "potentiel_garde": "Combien de temps le conserver (ex: '5 à 10 ans')",
-      "apogee": "L'année ou la période où il sera parfait (ex: '2026 - 2028')",
-      "declin": "L'année où il commencera à perdre ses qualités (ex: 'À partir de 2030')",
-      "statut_apogee": "APOGEE", 
-      "comparateur": [
-        {"site": "Vinatis", "prix": "44.90€"}
-      ],
-      "accord_parfait": "LE plat ou l'accompagnement idéal et précis avec ce vin",
-      "accords_mets": ["Autre Plat 1", "Autre Plat 2"], 
-      "tags_accords": ["VIANDE_ROUGE", "FROMAGE"]
-    }
-  `;
-
+  const SYSTEM_PROMPT = `Expert Sommelier. Réponds UNIQUEMENT en JSON. 
+  Format: {"nom":"","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
   const processAIResult = async (aiText, sourceImage, defaultImageFallback, isWishlist = false) => {
     const parsedData = normalizeData(extractJSON(aiText));
     setAnalysisResult(parsedData);
@@ -1585,14 +1573,26 @@ export default function App() {
 
   const analyzeImage = async (base64Img) => {
     setView('analyzing');
-    setPreviousView('home');
     try {
       const b64Data = base64Img.split(',')[1];
-      const prompt = `Tu es un sommelier expert. Analyse cette étiquette. L'année actuelle est 2026.\n${getPromptBase()}`;
-      const result = await callGemini(prompt, b64Data);
-      await processAIResult(result.candidates?.[0]?.content?.parts?.[0]?.text, base64Img);
+      
+      // 1. On demande d'abord à l'IA d'identifier le nom pour le cache
+      const identified = await callGemini("Identifie nom et année. JSON: {'nom':''}", b64Data);
+      
+      // 2. On vérifie si ce vin existe déjà pour TOUS les utilisateurs
+      let finalData = await checkGlobalCache(identified.nom);
+      
+      if (!finalData) {
+        // 3. Si pas en cache, on fait l'analyse complète (Payant)
+        finalData = await callGemini(SYSTEM_PROMPT, b64Data);
+        await saveToGlobalCache(finalData.nom, finalData); // On le sauve pour le prochain
+      }
+      
+      setAnalysisResult(normalizeData(finalData));
+      setImageSrc(base64Img);
+      setView('results');
     } catch (err) {
-      setErrorMsg(err.message);
+      setErrorMsg("Erreur d'analyse.");
       setView('error');
     }
   };
