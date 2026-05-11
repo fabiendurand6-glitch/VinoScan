@@ -482,7 +482,7 @@ const ManualSearchView = ({ ctx }) => {
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto"><Trophy className="w-8 h-8 text-emerald-600"/></div>
               <h3 className="font-serif text-xl font-bold text-slate-900">Terminé !</h3>
               <p className="text-lg font-bold text-slate-700">Score: {score} / {quizQuestions.length}</p>
-              <button onClick={() => setGameState('idle')} className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl">Retour</button>
+              <button onClick={() => setGameState('idle')} className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl">Rejouer</button>
             </div>
           )}
         </div>
@@ -799,116 +799,40 @@ const HistoryView = ({ ctx }) => {
 };
 
 const AccountView = ({ ctx }) => {
+  const [showBadges, setShowBadges] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
-  // 👇 Le state des badges a été ajouté ici
-  const [showBadges, setShowBadges] = useState(false);
 
-  const handleAuth = async (e) => {
-    e.preventDefault();
-    setAuthError('');
-    try {
-      if (authMode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-      }
-    } catch (err) {
-      setAuthError("Erreur : Vérifiez vos identifiants ou le mot de passe (min 6 caractères).");
-    }
-  };
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    try { await signInAnonymously(auth); } catch (e) {}
-    ctx.setView('home');
-  };
+  const historyLen = ctx.scanHistory.filter(i => i.in_history !== false).length;
   
-  if (!ctx.user || ctx.user.isAnonymous) {
-    return (
-      <div className="flex flex-col h-full bg-slate-50 pb-20 overflow-y-auto p-6">
-        <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-          <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl flex items-center justify-center mb-8 shadow-lg shadow-emerald-500/30 transform rotate-3">
-            <ShieldCheck className="w-12 h-12 text-white transform -rotate-3" />
-          </div>
-          <h2 className="text-3xl font-serif font-bold text-slate-900 mb-3 text-center">Sauvegardez votre cave</h2>
-          <p className="text-sm text-slate-500 text-center mb-8 font-medium">
-            Créez un compte gratuitement pour retrouver vos précieux nectars sur tous vos appareils.
-          </p>
-
-          {authError && <div className="bg-red-50 text-red-600 text-sm p-4 rounded-xl w-full mb-6 text-center font-medium border border-red-100">{authError}</div>}
-
-          <form onSubmit={handleAuth} className="w-full space-y-4">
-            <input type="email" placeholder="Adresse email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent font-medium shadow-sm" required />
-            <input type="password" placeholder="Mot de passe" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent font-medium shadow-sm" required />
-            <button type="submit" className="w-full py-4 mt-2 bg-slate-900 text-white rounded-2xl font-bold shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-95">
-              {authMode === 'login' ? 'Se connecter' : 'Créer mon compte'}
-            </button>
-          </form>
-
-          <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="mt-8 text-slate-500 text-sm font-medium hover:text-slate-800 transition-colors">
-            {authMode === 'login' ? "Nouveau ici ? Créer un compte" : "Déjà membre ? Se connecter"}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const exportToCSV = () => {
-    const headers = ["Nom", "Millésime", "Région", "Type", "Prix Estimé", "Emplacement", "Notes Personnelles"];
-    const csvContent = [
-      headers.join(","),
-      ...ctx.scanHistory.map(item => {
-        const data = item.data || {};
-        return [
-          `"${(data.nom || '').replace(/"/g, '""')}"`,
-          `"${data.annee || ''}"`,
-          `"${data.region || ''}"`,
-          `"${data.type_simplifie || ''}"`,
-          `"${data.prix_unitaire_nombre || 0}"`,
-          `"${(item.location || '').replace(/"/g, '""')}"`,
-          `"${(item.notes || '').replace(/"/g, '""')}"`
-        ].join(",");
-      })
-    ].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'ma_cave_vinoscan.csv';
-    a.click();
-  };
-
   const calculateLevel = (length) => {
     if (length >= 50) return { name: "Maître Sommelier", iconColor: "text-purple-600", bgColor: "bg-purple-100", bar: "bg-purple-500" };
     if (length >= 20) return { name: "Grand Connaisseur", iconColor: "text-rose-600", bgColor: "bg-rose-100", bar: "bg-rose-500" };
     if (length >= 5) return { name: "Amateur Éclairé", iconColor: "text-amber-600", bgColor: "bg-amber-100", bar: "bg-amber-500" };
     return { name: "Novice Curieux", iconColor: "text-emerald-600", bgColor: "bg-emerald-100", bar: "bg-emerald-500" };
   };
-
-  const historyLen = ctx.scanHistory.filter(i => i.in_history !== false).length;
   const level = calculateLevel(historyLen);
 
-  // 👇 Les paliers des badges
-  const allLevels = [
-    { name: "Novice Curieux", req: 0, color: "text-emerald-600 bg-emerald-50" },
-    { name: "Amateur Éclairé", req: 5, color: "text-amber-600 bg-amber-50" },
-    { name: "Grand Connaisseur", req: 20, color: "text-rose-600 bg-rose-50" },
-    { name: "Maître Sommelier", req: 50, color: "text-purple-600 bg-purple-50" }
+  // LOGIQUE DES BADGES DE COLLECTION
+  const bordeauxCount = ctx.scanHistory.filter(i => i.data.region?.toLowerCase().includes('bordeaux')).length;
+  const bourgogneCount = ctx.scanHistory.filter(i => i.data.region?.toLowerCase().includes('bourgogne')).length;
+  const rougeCount = ctx.scanHistory.filter(i => i.data.type_simplifie === 'ROUGE').length;
+  const bullesCount = ctx.scanHistory.filter(i => i.data.type_simplifie === 'PETILLANT').length;
+
+  const collectionBadges = [
+    { id: 'bordeaux', name: 'Baron de Bordeaux', desc: 'Scanner 3 vins de Bordeaux', req: 3, count: bordeauxCount, icon: '🍷' },
+    { id: 'bourgogne', name: 'Duc de Bourgogne', desc: 'Scanner 3 vins de Bourgogne', req: 3, count: bourgogneCount, icon: '🍇' },
+    { id: 'rouge', name: 'Sang de la Vigne', desc: 'Scanner 10 vins Rouges', req: 10, count: rougeCount, icon: '🥩' },
+    { id: 'bulles', name: 'Maître des Bulles', desc: 'Scanner 5 Pétillants ou Champagnes', req: 5, count: bullesCount, icon: '🥂' }
   ];
+
+  // ... (Garder tes fonctions handleAuth, handleLogout, exportToCSV identiques à avant) ...
 
   const itemsInStock = ctx.scanHistory.filter(i => i.stock > 0);
   const totalBottles = itemsInStock.reduce((acc, curr) => acc + (curr.stock || 0), 0);
   const totalValue = itemsInStock.reduce((acc, curr) => acc + ((curr.data.prix_unitaire_nombre || 0) * (curr.stock || 0)), 0);
-  
-  const countType = (type) => itemsInStock.filter(i => i.data.type_simplifie === type).reduce((acc, curr) => acc + curr.stock, 0);
-  const red = countType('ROUGE');
-  const white = countType('BLANC');
-  const rose = countType('ROSE');
-  const spark = countType('PETILLANT');
-  const getPct = (val) => totalBottles === 0 ? 0 : Math.round((val / totalBottles) * 100);
 
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20 overflow-y-auto relative">
@@ -924,7 +848,7 @@ const AccountView = ({ ctx }) => {
 
       <div className="p-4 space-y-4">
         
-        {/* 👇 GAMIFICATION CARD MODIFIÉE POUR ÊTRE CLIQUABLE */}
+        {/* GAMIFICATION CARD CLIQUABLE */}
         <div onClick={() => setShowBadges(true)} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-all relative overflow-hidden">
           <div className="absolute top-4 right-4 text-slate-300"><Info className="w-5 h-5"/></div>
           <div className="flex justify-between items-end mb-3">
@@ -932,79 +856,41 @@ const AccountView = ({ ctx }) => {
                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Niveau Actuel</p>
                <h3 className={`font-serif text-xl font-bold ${level.iconColor}`}>{level.name}</h3>
              </div>
-             <p className="text-sm font-bold text-slate-700">{historyLen} <span className="text-xs text-slate-400 font-normal">vins découverts</span></p>
+             <p className="text-sm font-bold text-slate-700">{historyLen} <span className="text-xs text-slate-400 font-normal">scans</span></p>
           </div>
           <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
              <div className={`h-full ${level.bar} rounded-full transition-all duration-1000`} style={{width: `${Math.min(100, (historyLen/50)*100)}%`}}></div>
           </div>
         </div>
 
-        {/* DASHBOARD CARD */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
-          <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center mb-5"><PieChart className="w-5 h-5 mr-2 text-indigo-500"/> Ma Cave</h3>
-          
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Bouteilles</p>
-              <p className="text-3xl font-bold text-slate-800">{totalBottles}</p>
-            </div>
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Valeur Estimée</p>
-              <p className="text-3xl font-bold text-emerald-700">{totalValue.toFixed(0)}€</p>
-            </div>
-          </div>
-
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Répartition</p>
-          <div className="h-4 w-full flex rounded-full overflow-hidden mb-4 shadow-inner">
-            {red > 0 && <div style={{width: `${getPct(red)}%`}} className="bg-rose-800 h-full transition-all"></div>}
-            {white > 0 && <div style={{width: `${getPct(white)}%`}} className="bg-amber-100 h-full transition-all border-r border-slate-200"></div>}
-            {rose > 0 && <div style={{width: `${getPct(rose)}%`}} className="bg-pink-300 h-full transition-all"></div>}
-            {spark > 0 && <div style={{width: `${getPct(spark)}%`}} className="bg-yellow-400 h-full transition-all"></div>}
-            {totalBottles === 0 && <div className="bg-slate-200 h-full w-full"></div>}
-          </div>
-          
-          <div className="grid grid-cols-2 gap-y-3 text-sm font-medium">
-            <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-rose-800 mr-3 shadow-sm"></div><span className="text-slate-700">Rouges ({getPct(red)}%)</span></div>
-            <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-amber-100 mr-3 shadow-sm border border-slate-200"></div><span className="text-slate-700">Blancs ({getPct(white)}%)</span></div>
-            <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-pink-300 mr-3 shadow-sm"></div><span className="text-slate-700">Rosés ({getPct(rose)}%)</span></div>
-            <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-yellow-400 mr-3 shadow-sm"></div><span className="text-slate-700">Pétillants ({getPct(spark)}%)</span></div>
-          </div>
-        </div>
-
-        {/* ACTIONS CARD */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-3">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">Paramètres du compte</p>
-          <div className="text-sm font-medium text-slate-700 bg-slate-50 p-4 rounded-2xl flex items-center break-all border border-slate-100">
-            <Mail className="w-5 h-5 mr-3 text-slate-400 shrink-0"/> {ctx.user.email}
-          </div>
-          
-          <button onClick={exportToCSV} className="w-full flex items-center p-4 bg-indigo-50 text-indigo-700 rounded-2xl font-bold hover:bg-indigo-100 transition-colors border border-indigo-100">
-            <Download className="w-5 h-5 mr-3" /> Exporter ma cave (.csv)
-          </button>
-
-          <button onClick={handleLogout} className="w-full flex items-center p-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-colors border border-slate-200">
-            <LogOut className="w-5 h-5 mr-3" /> Se déconnecter
-          </button>
-        </div>
-
+        {/* ... (DASHBOARD CARD ET ACTIONS CARD RESTENT ICI COMME AVANT) ... */}
       </div>
 
-      {/* 👇 MODAL DES BADGES */}
+      {/* MODAL DES BADGES ET COLLECTIONS */}
       {showBadges && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative shadow-2xl">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative shadow-2xl max-h-[80vh] overflow-y-auto">
             <button onClick={() => setShowBadges(false)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"><X className="w-5 h-5"/></button>
-            <h3 className="font-serif text-2xl font-bold mb-6 text-center text-slate-900">Vos Badges</h3>
-            <div className="space-y-4">
-              {allLevels.map((lvl) => {
-                const unlocked = historyLen >= lvl.req;
+            <h3 className="font-serif text-2xl font-bold mb-6 text-center text-slate-900">Trophées & Collections</h3>
+            
+            <div className="space-y-3">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Collections Régionales</p>
+              {collectionBadges.map((badge) => {
+                const unlocked = badge.count >= badge.req;
                 return (
-                  <div key={lvl.name} className={`p-4 rounded-2xl border flex items-center justify-between ${unlocked ? lvl.color + ' border-transparent' : 'bg-slate-50 border-slate-200 opacity-60 grayscale'}`}>
-                    <div className="flex items-center space-x-4">
-                      <Award className="w-6 h-6" />
-                      <div><h4 className="font-bold text-slate-900">{lvl.name}</h4><p className="text-xs text-slate-500">{lvl.req} vins découverts</p></div>
+                  <div key={badge.id} className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${unlocked ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200 opacity-70 grayscale'}`}>
+                    <div className="flex items-center space-x-3">
+                      <div className="text-2xl">{badge.icon}</div>
+                      <div>
+                        <h4 className={`font-bold ${unlocked ? 'text-amber-900' : 'text-slate-700'}`}>{badge.name}</h4>
+                        <p className="text-xs text-slate-500">{badge.desc}</p>
+                      </div>
                     </div>
-                    {unlocked && <CheckCircle className="w-5 h-5 text-emerald-500" />}
+                    {unlocked ? (
+                      <CheckCircle className="w-5 h-5 text-amber-500" />
+                    ) : (
+                      <span className="text-xs font-bold text-slate-400">{badge.count}/{badge.req}</span>
+                    )}
                   </div>
                 );
               })}
