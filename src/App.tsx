@@ -1577,27 +1577,39 @@ export default function App() {
       const b64Data = base64Img.split(',')[1];
       
       // 1. Identification rapide
-      const identified = await callGemini(
-        "Identifie le vin sur cette photo. Si ce n'est pas une bouteille de vin ou une étiquette lisible, réponds {'nom': 'INCONNU'}. Sinon réponds {'nom': 'NOM_DU_VIN'}", 
+      const firstCall = await callGemini(
+        "Identifie le vin sur cette photo. Si ce n'est pas une bouteille de vin ou une étiquette lisible, réponds {\"nom\": \"INCONNU\"}. Sinon réponds {\"nom\": \"NOM_DU_VIN\"}", 
         b64Data
       );
       
-      // Sécurité Anti-Gaspillage
-      if (!identified.nom || identified.nom === 'INCONNU') {
+      // On extrait et on parse proprement la réponse de l'IA
+      const firstText = firstCall.candidates?.[0]?.content?.parts?.[0]?.text;
+      const identified = extractJSON(firstText);
+      
+      // Sécurité Anti-Gaspillage corrigée
+      if (!identified || !identified.nom || identified.nom === 'INCONNU') {
         setErrorMsg("Le sommelier n'a pas reconnu de bouteille. Assurez-vous que l'étiquette est bien visible.");
         setView('error');
         return; 
       }
       
-      let finalData = await checkGlobalCache(identified.nom);
+      let finalDataText = "";
+      let finalDataObj = await checkGlobalCache(identified.nom);
       
-      if (!finalData) {
-        finalData = await callGemini(SYSTEM_PROMPT, b64Data);
-        await saveToGlobalCache(finalData.nom, finalData);
+      if (!finalDataObj) {
+        // Si pas en cache, analyse complète
+        const secondCall = await callGemini(SYSTEM_PROMPT, b64Data);
+        finalDataText = secondCall.candidates?.[0]?.content?.parts?.[0]?.text;
+        finalDataObj = extractJSON(finalDataText);
+        await saveToGlobalCache(finalDataObj.nom, finalDataObj);
+      } else {
+        // Si en cache, on le re-transforme en texte pour processAIResult
+        finalDataText = JSON.stringify(finalDataObj);
       }
       
-      await processAIResult(JSON.stringify(finalData), base64Img);
+      await processAIResult(finalDataText, base64Img);
     } catch (err) {
+      console.error(err);
       setErrorMsg("Oups ! L'analyse a échoué. Vérifiez la clarté de la photo.");
       setView('error');
     }
@@ -1631,24 +1643,32 @@ export default function App() {
     setView('analyzing');
     setPreviousView('home');
     try {
-      let finalData = await checkGlobalCache(textQuery);
+      let finalDataText = "";
+      let finalDataObj = await checkGlobalCache(textQuery);
       
-      if (!finalData) {
-        const prompt = `Recherche le vin : "${textQuery}". Si ce vin n'existe pas ou est absurde, réponds {'nom': 'INCONNU'}. Sinon utilise ce format : \n${SYSTEM_PROMPT}`;
+      if (!finalDataObj) {
+        const prompt = `Recherche le vin : "${textQuery}". Si ce vin n'existe pas ou est absurde, réponds {"nom": "INCONNU"}. Sinon utilise ce format : \n${SYSTEM_PROMPT}`;
         const result = await callGemini(prompt);
         
-        if (result.nom === 'INCONNU') {
+        // On extrait proprement
+        finalDataText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        finalDataObj = extractJSON(finalDataText);
+        
+        // Sécurité corrigée
+        if (!finalDataObj || finalDataObj.nom === 'INCONNU') {
           setErrorMsg("Nous n'avons trouvé aucun vin correspondant à votre recherche. Vérifiez l'orthographe !");
           setView('error');
           return;
         }
         
-        finalData = result;
-        await saveToGlobalCache(finalData.nom, finalData);
+        await saveToGlobalCache(finalDataObj.nom, finalDataObj);
+      } else {
+        finalDataText = JSON.stringify(finalDataObj);
       }
       
-      await processAIResult(JSON.stringify(finalData), null);
+      await processAIResult(finalDataText, null);
     } catch (err) {
+      console.error(err);
       setErrorMsg("Impossible de trouver ce vin pour le moment.");
       setView('error');
     }
