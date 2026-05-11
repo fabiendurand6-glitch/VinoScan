@@ -1602,21 +1602,13 @@ export default function App() {
     setPreviousView('menuConfig');
     try {
       const b64Data = base64Img.split(',')[1];
-      const mapType = { 'ALL': 'Peu importe', 'ROUGE': 'Vin Rouge', 'BLANC': 'Vin Blanc', 'ROSE': 'Vin Rosé', 'PETILLANT': 'Champagne ou Pétillant' };
-      const mapFood = { 'ALL': 'Peu importe', 'APERITIF': 'Apéritif/Tapas', 'VIANDE_ROUGE': 'Viande rouge', 'VIANDE_BLANCHE': 'Viande blanche', 'POISSON': 'Poisson/Mer', 'FROMAGE': 'Fromage', 'DESSERT': 'Dessert' };
-      
-      const prompt = `Tu es un Maître Sommelier. L'image est une carte des vins. L'utilisateur veut le MEILLEUR RAPPORT QUALITÉ/PRIX de cette carte.
-      Ses préférences : Type de vin = ${mapType[menuPrefs.type]}, Repas prévu = ${mapFood[menuPrefs.food]}.
-      Trouve les 3 meilleurs choix sur cette carte.
-      Renvoie UNIQUEMENT un objet JSON avec une propriété "vins" contenant un tableau (array).
-      Structure EXACTE pour CHAQUE vin :
-      ${getPromptBase()}`;
+      const prompt = `Trouve les 3 meilleurs vins sur cette carte. Budget: ${menuPrefs.food}. 
+      Réponds en JSON avec une propriété "vins" (tableau). 
+      Structure par vin : ${SYSTEM_PROMPT}`; // Changement ici
 
       const result = await callGemini(prompt, b64Data);
-      
       let parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
-      let vins = parsed.vins || (Array.isArray(parsed) ? parsed : null);
-      if (!vins || !Array.isArray(vins) || vins.length === 0) throw new Error("Impossible de lire la carte ou aucun vin ne correspond.");
+      let vins = parsed.vins || (Array.isArray(parsed) ? parsed : []);
       
       const normalizedVins = vins.map(v => normalizeData(v));
       setRecommendationList(normalizedVins);
@@ -1631,7 +1623,7 @@ export default function App() {
     setView('analyzing');
     setPreviousView('home');
     try {
-      const prompt = `Tu es un sommelier expert. L'utilisateur recherche le vin : "${textQuery}". L'année actuelle est 2026.\n${getPromptBase()}`;
+      const prompt = `Recherche le vin : "${textQuery}". 2026. \n${SYSTEM_PROMPT}`; // Changement ici
       const result = await callGemini(prompt);
       await processAIResult(result.candidates?.[0]?.content?.parts?.[0]?.text, null);
     } catch (err) {
@@ -1644,22 +1636,12 @@ export default function App() {
     setView('analyzing');
     setPreviousView('recommendation');
     try {
-      const mapType = { 'ALL': 'Peu importe le type', 'ROUGE': 'Vin Rouge', 'BLANC': 'Vin Blanc', 'ROSE': 'Vin Rosé', 'PETILLANT': 'Champagne ou Pétillant' };
-      const mapApogee = { 'ALL': 'Peu importe', 'A_GARDER': 'Jeune', 'APOGEE': 'Apogée', 'DECLIN': 'Vieux millésime' };
-      const mapFood = { 'ALL': 'Peu importe', 'APERITIF': 'Apéritif/Tapas', 'VIANDE_ROUGE': 'Viande rouge', 'VIANDE_BLANCHE': 'Viande blanche', 'POISSON': 'Poisson/Mer', 'FROMAGE': 'Fromage', 'DESSERT': 'Dessert' };
-      const mapPrice = { 'ALL': 'Différentes tranches', 'BUDGET': '< 20 euros', 'MEDIUM': '20 - 50 euros', 'PREMIUM': '> 50 euros' };
-
-      const prompt = `Tu es un sommelier de classe mondiale. Recommandations : Type: ${mapType[type]}, Repas: ${mapFood[food]}, Apogée: ${mapApogee[apogee]}, Budget: ${mapPrice[price]}.
-      Trouve 3 à 4 vins RÉELS.
-      Renvoie UNIQUEMENT un objet JSON avec une propriété "vins" contenant un tableau (array) de vins.
-      Pour CHAQUE vin, tu DOIS utiliser EXACTEMENT cette structure :
-      ${getPromptBase()}`;
+      const prompt = `Sommelier: trouve 3 vins. Type: ${type}, Repas: ${food}, Budget: ${price}.
+      JSON avec propriété "vins". Structure par vin : ${SYSTEM_PROMPT}`; // Changement ici
 
       const result = await callGemini(prompt);
-      
       let parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
-      let vins = parsed.vins || (Array.isArray(parsed) ? parsed : null);
-      if (!vins || !Array.isArray(vins) || vins.length === 0) throw new Error("Format inattendu");
+      let vins = parsed.vins || (Array.isArray(parsed) ? parsed : []);
       
       const normalizedVins = vins.map(v => normalizeData(v));
       setRecommendationList(normalizedVins);
