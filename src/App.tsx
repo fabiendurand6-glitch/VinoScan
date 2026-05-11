@@ -16,14 +16,8 @@ import {
 // =========================================================================
 // CONFIGURATION SÉCURISÉE
 // =========================================================================
-let apiKey = ""; 
-try {
-  if (import.meta.env.VITE_GEMINI_API_KEY) {
-    apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  }
-} catch (e) {
-  // Silence
-}
+// Récupère la clé depuis les variables d'environnement (StackBlitz local ou Vercel Prod)
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 const firebaseConfig = { 
   apiKey: "AIzaSyA1SP_DboqzXPzSuYJmrYxWhd-lqBpml20", 
