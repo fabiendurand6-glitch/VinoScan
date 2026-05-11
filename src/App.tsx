@@ -1610,7 +1610,7 @@ export default function App() {
       await processAIResult(finalDataText, base64Img);
     } catch (err) {
       console.error(err);
-      setErrorMsg("Oups ! L'analyse a échoué. Vérifiez la clarté de la photo.");
+      setErrorMsg(`Erreur technique : ${err.message}`); // 👈 On affiche le vrai message !
       setView('error');
     }
   };
@@ -1669,7 +1669,7 @@ export default function App() {
       await processAIResult(finalDataText, null);
     } catch (err) {
       console.error(err);
-      setErrorMsg("Impossible de trouver ce vin pour le moment.");
+      setErrorMsg(`Erreur technique : ${err.message}`);
       setView('error');
     }
   };
