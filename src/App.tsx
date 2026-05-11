@@ -132,11 +132,12 @@ const extractPrice = (priceStr) => {
 };
 
 const getGenericImageForType = (type) => {
+  // Nouveaux liens Unsplash fiables avec les bons paramètres d'API
   switch(type) {
-    case 'BLANC': return "https://images.unsplash.com/photo-1557682204-e53b55fd740c?auto=format&fit=crop&w=800";
-    case 'PETILLANT': return "https://images.unsplash.com/photo-1599939571322-792a326cb6ae?auto=format&fit=crop&w=800";
-    case 'ROSE': return "https://images.unsplash.com/photo-1559596355-6bcfcc77112a?auto=format&fit=crop&w=800";
-    default: return "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=800"; 
+    case 'BLANC': return "https://images.unsplash.com/photo-1506377847308-cb8f9d0cbdf6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
+    case 'PETILLANT': return "https://images.unsplash.com/photo-1599939571322-792a326cb6ae?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
+    case 'ROSE': return "https://images.unsplash.com/photo-1559596355-6bcfcc77112a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80";
+    default: return "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"; 
   }
 };
 
@@ -396,31 +397,78 @@ const MenuConfigView = ({ ctx }) => {
   );
 };
 
-const quizQuestions = [
+// BANQUE DE 40 QUESTIONS POUR LE JEU
+const allQuestions = [
   { q: "Quel cépage donne souvent des arômes de litchi et de rose ?", options: ["Chardonnay", "Gewürztraminer", "Sauvignon Blanc"], ans: "Gewürztraminer" },
   { q: "Quelle région est célèbre pour son 'Vin Jaune' ?", options: ["Bourgogne", "Alsace", "Jura"], ans: "Jura" },
-  { q: "Qu'appelle-t-on la 'Part des Anges' ?", options: ["Le vin évaporé", "Le vin offert au clergé", "Le fond de la bouteille"], ans: "Le vin évaporé" },
-  { q: "Quel est le cépage rouge emblématique de la Bourgogne ?", options: ["Merlot", "Pinot Noir", "Syrah"], ans: "Pinot Noir" }
+  { q: "Qu'appelle-t-on la 'Part des Anges' ?", options: ["Le vin évaporé en fût", "Le vin offert au clergé", "Le fond de la bouteille"], ans: "Le vin évaporé en fût" },
+  { q: "Quel est le cépage rouge emblématique de la Bourgogne ?", options: ["Merlot", "Pinot Noir", "Syrah"], ans: "Pinot Noir" },
+  { q: "Comment s'appelle l'art d'assembler différents vins ?", options: ["Le soutirage", "Le coupage", "L'assemblage"], ans: "L'assemblage" },
+  { q: "Lequel de ces cépages est blanc ?", options: ["Cabernet Franc", "Viognier", "Gamay"], ans: "Viognier" },
+  { q: "Quel vin est traditionnellement muté à l'alcool ?", options: ["Le Porto", "Le Champagne", "Le Beaujolais"], ans: "Le Porto" },
+  { q: "Que signifie 'Blanc de Blancs' pour un Champagne ?", options: ["Fait avec du raisin blanc", "Sans ajout de sucre", "Vieilli en cuve inox"], ans: "Fait avec du raisin blanc" },
+  { q: "Quel est le grand cépage rouge de la rive droite à Bordeaux ?", options: ["Cabernet Sauvignon", "Merlot", "Malbec"], ans: "Merlot" },
+  { q: "Laquelle de ces maladies attaque la vigne ?", options: ["Le Phylloxéra", "La Rouille", "Le Mildiou Noir"], ans: "Le Phylloxéra" },
+  { q: "Quelle température est idéale pour servir un grand vin rouge ?", options: ["12-14°C", "16-18°C", "20-22°C"], ans: "16-18°C" },
+  { q: "Quel cépage est majoritaire dans un Châteauneuf-du-Pape rouge ?", options: ["Syrah", "Grenache", "Mourvèdre"], ans: "Grenache" },
+  { q: "Dans quelle région se trouve l'appellation Sancerre ?", options: ["Vallée de la Loire", "Bordeaux", "Alsace"], ans: "Vallée de la Loire" },
+  { q: "Comment appelle-t-on la mousse qui se forme à la surface du champagne servi ?", options: ["La collerette", "Le cordon", "La couronne"], ans: "Le cordon" },
+  { q: "Quel pays est le plus grand producteur de vin au monde (en volume, moyenne) ?", options: ["France", "Espagne", "Italie"], ans: "Italie" },
+  { q: "Quel type de vin produit l'appellation Sauternes ?", options: ["Principalement du rouge", "Principalement du blanc", "Du vin effervescent"], ans: "Principalement du blanc" },
+  { q: "Quel cépage donne les grands vins de la Vallée du Rhône Nord (ex: Côte-Rôtie) ?", options: ["Grenache", "Syrah", "Carignan"], ans: "Syrah" },
+  { q: "Qu'est-ce que la 'carafage' d'un vin ?", options: ["Séparer le dépôt du vin", "Aérer un vin jeune", "Refroidir un vin"], ans: "Aérer un vin jeune" },
+  { q: "Quelle est la contenance d'un Magnum ?", options: ["1.5 Litre", "3 Litres", "4.5 Litres"], ans: "1.5 Litre" },
+  { q: "Où produit-on le vin de Tokaj ?", options: ["En Russie", "En Hongrie", "En Roumanie"], ans: "En Hongrie" },
+  { q: "Qu'est-ce que le 'Botrytis cinerea' ?", options: ["Un insecte", "La pourriture noble", "Un type de levure"], ans: "La pourriture noble" },
+  { q: "Lequel n'est pas un cépage autorisé en Champagne ?", options: ["Pinot Meunier", "Chardonnay", "Riesling"], ans: "Riesling" },
+  { q: "Quel vin associe-t-on classiquement au Roquefort ?", options: ["Un vin blanc sec", "Un vin rouge puissant", "Un vin liquoreux"], ans: "Un vin blanc sec" },
+  { q: "Quelle appellation est connue pour ses sols de 'galets roulés' ?", options: ["Pomerol", "Châteauneuf-du-Pape", "Corton-Charlemagne"], ans: "Châteauneuf-du-Pape" },
+  { q: "Qu'est-ce que les 'larmes' ou 'jambes' d'un vin ?", options: ["Le dépôt au fond", "Les traces coulantes sur le verre", "Le bord du vin dans le verre"], ans: "Les traces coulantes sur le verre" },
+  { q: "Que signifie un vin 'bouchonné' ?", options: ["Il a un goût de liège moisi", "Il est fermé hermétiquement", "Il a été élevé en fût de chêne"], ans: "Il a un goût de liège moisi" },
+  { q: "Dans quelle région se trouve Saint-Émilion ?", options: ["Bourgogne", "Bordeaux", "Vallée du Rhône"], ans: "Bordeaux" },
+  { q: "Quel célèbre vin pétillant vient d'Espagne ?", options: ["Le Prosecco", "Le Cava", "L'Asti"], ans: "Le Cava" },
+  { q: "Comment appelle-t-on le récipient en bois pour élever le vin ?", options: ["Un fût (ou barrique)", "Une dame-jeanne", "Un foudre en inox"], ans: "Un fût (ou barrique)" },
+  { q: "Quel vin est réputé pour accompagner le foie gras poêlé ?", options: ["Un blanc liquoreux", "Un rosé sec", "Un rouge léger"], ans: "Un blanc liquoreux" },
+  { q: "Quel est le grand cépage rouge du Piémont en Italie ?", options: ["Sangiovese", "Nebbiolo", "Barbera"], ans: "Nebbiolo" },
+  { q: "Que signifie 'AOC' ?", options: ["Appellation d'Origine Contrôlée", "Association des Œnologues Certifiés", "Appellation d'Origine Commune"], ans: "Appellation d'Origine Contrôlée" },
+  { q: "Quel pays est le berceau du cépage Malbec aujourd'hui ?", options: ["L'Argentine", "Le Chili", "L'Afrique du Sud"], ans: "L'Argentine" },
+  { q: "Quel est le nom du célèbre domaine produisant la Romanée-Conti ?", options: ["Bordeaux", "Bourgogne", "Alsace"], ans: "Bourgogne" }, // Modifiée pour rester simple
+  { q: "Combien y a-t-il de crus classés en 1855 dans le Médoc ?", options: ["61", "88", "102"], ans: "61" },
+  { q: "Quel vin blanc est typique de la région de Chablis ?", options: ["Chardonnay", "Sauvignon", "Riesling"], ans: "Chardonnay" },
+  { q: "Que signifie l'ouillage ?", options: ["Remplir les fûts pour compenser l'évaporation", "Filtrer le vin", "Mettre le vin en bouteille"], ans: "Remplir les fûts pour compenser l'évaporation" },
+  { q: "Quel est le synonyme du cépage Syrah en Australie ?", options: ["Shiraz", "Sirac", "Zinfandel"], ans: "Shiraz" },
+  { q: "Comment appelle-t-on l'opération de taille de la vigne en hiver ?", options: ["Le palissage", "L'ébourgeonnage", "La taille sèche"], ans: "La taille sèche" },
+  { q: "Quel vin accompagne idéalement des huîtres ?", options: ["Chablis", "Bordeaux Rouge", "Côtes de Provence"], ans: "Chablis" }
 ];
 
 const ManualSearchView = ({ ctx }) => {
   const [query, setQuery] = useState('');
-  const [gameState, setGameState] = useState('idle'); 
+  const [gameState, setGameState] = useState('idle'); // idle, playing, end
+  const [currentQuiz, setCurrentQuiz] = useState([]);
   const [qIndex, setQIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState(null); 
 
   const handleSearch = (e) => { e.preventDefault(); if(query.trim()) ctx.searchWineText(query); };
   
-  const startGame = () => { setGameState('playing'); setQIndex(0); setScore(0); setFeedback(null); };
+  const startGame = () => { 
+    // Mélanger les 40 questions et en prendre 4
+    const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+    setCurrentQuiz(shuffled.slice(0, 4));
+    setGameState('playing'); 
+    setQIndex(0); 
+    setScore(0); 
+    setFeedback(null); 
+  };
+
   const handleAnswer = (option) => {
     if (feedback) return;
-    const correct = option === quizQuestions[qIndex].ans;
+    const correct = option === currentQuiz[qIndex].ans;
     if (correct) setScore(s => s + 1);
     setFeedback(correct ? 'correct' : 'wrong');
     setTimeout(() => {
       setFeedback(null);
-      if (qIndex + 1 < quizQuestions.length) setQIndex(i => i + 1);
+      if (qIndex + 1 < currentQuiz.length) setQIndex(i => i + 1);
       else setGameState('end');
     }, 1200);
   };
@@ -455,18 +503,18 @@ const ManualSearchView = ({ ctx }) => {
             </div>
           )}
 
-          {gameState === 'playing' && (
+          {gameState === 'playing' && currentQuiz.length > 0 && (
             <div className="space-y-4 relative z-10">
               <div className="flex justify-between text-xs font-bold text-slate-400 uppercase">
-                <span>Question {qIndex + 1}/{quizQuestions.length}</span>
+                <span>Question {qIndex + 1}/{currentQuiz.length}</span>
                 <span>Score : {score}</span>
               </div>
-              <p className="font-serif text-lg font-bold text-slate-900 min-h-[60px]">{quizQuestions[qIndex].q}</p>
+              <p className="font-serif text-lg font-bold text-slate-900 min-h-[60px]">{currentQuiz[qIndex].q}</p>
               <div className="space-y-2">
-                {quizQuestions[qIndex].options.map(opt => {
+                {currentQuiz[qIndex].options.map(opt => {
                   let btnClass = "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100";
-                  if (feedback && opt === quizQuestions[qIndex].ans) btnClass = "bg-emerald-500 border-emerald-500 text-white";
-                  else if (feedback === 'wrong' && opt !== quizQuestions[qIndex].ans) btnClass = "bg-slate-100 text-slate-300 opacity-50";
+                  if (feedback && opt === currentQuiz[qIndex].ans) btnClass = "bg-emerald-500 border-emerald-500 text-white";
+                  else if (feedback === 'wrong' && opt !== currentQuiz[qIndex].ans) btnClass = "bg-slate-100 text-slate-300 opacity-50";
                   return (
                     <button key={opt} onClick={() => handleAnswer(opt)} className={`w-full p-4 rounded-xl border font-bold text-left transition-colors ${btnClass}`}>
                       {opt}
@@ -481,8 +529,12 @@ const ManualSearchView = ({ ctx }) => {
             <div className="text-center space-y-4 relative z-10">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto"><Trophy className="w-8 h-8 text-emerald-600"/></div>
               <h3 className="font-serif text-xl font-bold text-slate-900">Terminé !</h3>
-              <p className="text-lg font-bold text-slate-700">Score: {score} / {quizQuestions.length}</p>
-              <button onClick={() => setGameState('idle')} className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl">Rejouer</button>
+              <p className="text-lg font-bold text-slate-700">Score: {score} / {currentQuiz.length}</p>
+              <p className="text-sm text-slate-500 mb-2">
+                {score === 4 ? "Un vrai Maître Sommelier ! 🍷" : score >= 2 ? "Bonnes connaissances ! 🍇" : "Encore un peu de pratique ! 🥂"}
+              </p>
+              <button onClick={startGame} className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl shadow-md mr-2">Rejouer</button>
+              <button onClick={() => setGameState('idle')} className="px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl">Quitter</button>
             </div>
           )}
         </div>
