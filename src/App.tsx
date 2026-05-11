@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe
+  Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe, X, Trophy 
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -16,8 +16,14 @@ import {
 // =========================================================================
 // CONFIGURATION SÉCURISÉE
 // =========================================================================
-let apiKey = "AIzaSyDvvMeIcZKLRE_VElKCA-Bm9kFogErJ5_I"; // 👈 Mets ta clé AIzaSy... entre les guillemets
-
+let apiKey = ""; 
+try {
+  if (import.meta.env.VITE_GEMINI_API_KEY) {
+    apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  }
+} catch (e) {
+  // Silence
+}
 
 const firebaseConfig = { 
   apiKey: "AIzaSyA1SP_DboqzXPzSuYJmrYxWhd-lqBpml20", 
@@ -35,14 +41,20 @@ const db = getFirestore(app);
 const appId = 'vinoscan-app-8d4af';
 
 const checkGlobalCache = async (wineKey) => {
-  const id = wineKey.toLowerCase().replace(/[^a-z0-9]/g, '_');
-  const snap = await getDoc(doc(db, "global_wine_cache", id));
-  return snap.exists() ? snap.data() : null;
+  try {
+    const id = wineKey.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const snap = await getDoc(doc(db, "global_wine_cache", id));
+    return snap.exists() ? snap.data() : null;
+  } catch (e) {
+    return null; // Si Firebase bloque, on ignore et on continue
+  }
 };
 
 const saveToGlobalCache = async (wineKey, data) => {
-  const id = wineKey.toLowerCase().replace(/[^a-z0-9]/g, '_');
-  await setDoc(doc(db, "global_wine_cache", id), data);
+  try {
+    const id = wineKey.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    await setDoc(doc(db, "global_wine_cache", id), data);
+  } catch (e) {}
 };
 
 // =========================================================================
@@ -390,28 +402,96 @@ const MenuConfigView = ({ ctx }) => {
   );
 };
 
+const quizQuestions = [
+  { q: "Quel cépage donne souvent des arômes de litchi et de rose ?", options: ["Chardonnay", "Gewürztraminer", "Sauvignon Blanc"], ans: "Gewürztraminer" },
+  { q: "Quelle région est célèbre pour son 'Vin Jaune' ?", options: ["Bourgogne", "Alsace", "Jura"], ans: "Jura" },
+  { q: "Qu'appelle-t-on la 'Part des Anges' ?", options: ["Le vin évaporé", "Le vin offert au clergé", "Le fond de la bouteille"], ans: "Le vin évaporé" },
+  { q: "Quel est le cépage rouge emblématique de la Bourgogne ?", options: ["Merlot", "Pinot Noir", "Syrah"], ans: "Pinot Noir" }
+];
+
 const ManualSearchView = ({ ctx }) => {
   const [query, setQuery] = useState('');
+  const [gameState, setGameState] = useState('idle'); 
+  const [qIndex, setQIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [feedback, setFeedback] = useState(null); 
+
   const handleSearch = (e) => { e.preventDefault(); if(query.trim()) ctx.searchWineText(query); };
+  
+  const startGame = () => { setGameState('playing'); setQIndex(0); setScore(0); setFeedback(null); };
+  const handleAnswer = (option) => {
+    if (feedback) return;
+    const correct = option === quizQuestions[qIndex].ans;
+    if (correct) setScore(s => s + 1);
+    setFeedback(correct ? 'correct' : 'wrong');
+    setTimeout(() => {
+      setFeedback(null);
+      if (qIndex + 1 < quizQuestions.length) setQIndex(i => i + 1);
+      else setGameState('end');
+    }, 1200);
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20">
       <div className="bg-white pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
-        <div><h1 className="text-2xl font-serif font-bold text-slate-900">Ajouter un vin</h1><p className="text-slate-500 text-xs mt-1">Recherche dans la base de données mondiale</p></div>
+        <div><h1 className="text-2xl font-serif font-bold text-slate-900">Ajouter un vin</h1><p className="text-slate-500 text-xs mt-1">Recherche mondiale</p></div>
       </div>
       <div className="p-6">
-        <form onSubmit={handleSearch} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 ml-1">Nom du vin, Domaine, Millésime...</label>
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Ex: Château Margaux 2015" className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none shadow-sm text-lg"/>
-            </div>
+        <form onSubmit={handleSearch} className="space-y-4 mb-10">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Ex: Château Margaux 2015" className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-rose-500 shadow-sm text-lg"/>
           </div>
-          <button type="submit" disabled={!query.trim()} className="w-full py-4 bg-slate-900 text-white rounded-xl font-medium shadow-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2">
+          <button type="submit" disabled={!query.trim()} className="w-full py-4 bg-slate-900 text-white rounded-xl font-medium shadow-lg disabled:opacity-50">
             Rechercher ce vin
           </button>
         </form>
+
+        {/* SECTION MINI JEU */}
+        <div className="bg-white border border-amber-200 rounded-3xl p-6 shadow-sm relative overflow-hidden">
+          <div className="absolute -right-10 -top-10 w-32 h-32 bg-amber-100 rounded-full mix-blend-multiply opacity-50"></div>
+          
+          {gameState === 'idle' && (
+            <div className="text-center space-y-4 relative z-10">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto"><Gamepad2 className="w-8 h-8 text-amber-600"/></div>
+              <h3 className="font-serif text-xl font-bold text-slate-900">Le Quiz du Sommelier</h3>
+              <p className="text-sm text-slate-500">Testez vos connaissances en attendant votre prochaine dégustation.</p>
+              <button onClick={startGame} className="px-6 py-3 bg-amber-600 text-white font-bold rounded-xl shadow-md active:scale-95 transition-transform">Jouer maintenant</button>
+            </div>
+          )}
+
+          {gameState === 'playing' && (
+            <div className="space-y-4 relative z-10">
+              <div className="flex justify-between text-xs font-bold text-slate-400 uppercase">
+                <span>Question {qIndex + 1}/{quizQuestions.length}</span>
+                <span>Score : {score}</span>
+              </div>
+              <p className="font-serif text-lg font-bold text-slate-900 min-h-[60px]">{quizQuestions[qIndex].q}</p>
+              <div className="space-y-2">
+                {quizQuestions[qIndex].options.map(opt => {
+                  let btnClass = "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100";
+                  if (feedback && opt === quizQuestions[qIndex].ans) btnClass = "bg-emerald-500 border-emerald-500 text-white";
+                  else if (feedback === 'wrong' && opt !== quizQuestions[qIndex].ans) btnClass = "bg-slate-100 text-slate-300 opacity-50";
+                  return (
+                    <button key={opt} onClick={() => handleAnswer(opt)} className={`w-full p-4 rounded-xl border font-bold text-left transition-colors ${btnClass}`}>
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {gameState === 'end' && (
+            <div className="text-center space-y-4 relative z-10">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto"><Trophy className="w-8 h-8 text-emerald-600"/></div>
+              <h3 className="font-serif text-xl font-bold text-slate-900">Terminé !</h3>
+              <p className="text-lg font-bold text-slate-700">Score: {score} / {quizQuestions.length}</p>
+              <button onClick={() => setGameState('idle')} className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl">Retour</button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -421,6 +501,8 @@ const CellarView = ({ ctx }) => {
   const [cellarTab, setCellarTab] = useState('STOCK');
   const [filterType, setFilterType] = useState('ALL');
   const [filterApogee, setFilterApogee] = useState('ALL');
+  // 👇 Le state du filtre a été ajouté ici :
+  const [filterFood, setFilterFood] = useState('ALL'); 
   const [viewMode, setViewMode] = useState('list');
   
   const [reorgMode, setReorgMode] = useState(false);
@@ -436,9 +518,18 @@ const CellarView = ({ ctx }) => {
     return cellarItems.filter(item => {
       const matchType = filterType === 'ALL' || item.data.type_simplifie === filterType;
       const matchApogee = filterApogee === 'ALL' || item.data.statut_apogee === filterApogee;
-      return matchType && matchApogee;
+      
+      // 👇 La logique de filtrage des plats a été ajoutée ici :
+      const accordsStr = (item.data.accord_parfait + " " + (item.data.accords_mets || []).join(" ")).toUpperCase();
+      let matchFood = true;
+      if (filterFood === 'VIANDE') matchFood = accordsStr.includes('VIANDE');
+      else if (filterFood === 'POISSON') matchFood = accordsStr.includes('POISSON') || accordsStr.includes('MER');
+      else if (filterFood === 'FROMAGE') matchFood = accordsStr.includes('FROMAGE');
+      else if (filterFood === 'APERITIF') matchFood = accordsStr.includes('APÉRITIF') || accordsStr.includes('APERITIF');
+      
+      return matchType && matchApogee && matchFood;
     });
-  }, [cellarItems, filterType, filterApogee]);
+  }, [cellarItems, filterType, filterApogee, filterFood]);
 
   const existingLocations = Array.from(new Set(ctx.scanHistory.map(s => s.location).filter(Boolean))).sort();
 
@@ -508,6 +599,7 @@ const CellarView = ({ ctx }) => {
               </button>
             ))}
           </div>
+
           {cellarTab === 'STOCK' && (
             <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide">
               <Clock className="w-4 h-4 text-slate-400 shrink-0 mr-1" />
@@ -517,6 +609,17 @@ const CellarView = ({ ctx }) => {
               <button onClick={() => setFilterApogee('DECLIN')} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${filterApogee === 'DECLIN' ? 'bg-red-600 text-white shadow-md border-red-600' : 'bg-red-50 border-red-100 text-red-700 hover:bg-red-100'}`}>Déclin</button>
             </div>
           )}
+
+          {/* 👇 Les boutons des plats ont été ajoutés ici : */}
+          <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide">
+            <Utensils className="w-4 h-4 text-slate-400 shrink-0 mr-1" />
+            {['ALL', 'VIANDE', 'POISSON', 'FROMAGE', 'APERITIF'].map(f => (
+              <button key={f} onClick={() => setFilterFood(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${filterFood === f ? 'bg-amber-600 text-white shadow-md border-amber-600' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                {f === 'ALL' ? 'Tous plats' : f}
+              </button>
+            ))}
+          </div>
+
         </div>
         
         {viewMode === 'shelves' && cellarTab === 'STOCK' && (
@@ -546,7 +649,7 @@ const CellarView = ({ ctx }) => {
         {filteredItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-50 mt-10">
             {cellarTab === 'STOCK' ? <Archive className="w-16 h-16 mb-4 text-slate-300" /> : <Heart className="w-16 h-16 mb-4 text-slate-300" />}
-            <p className="text-slate-500 font-medium">Aucun vin ici.</p>
+            <p className="text-slate-500 font-medium">Aucun vin ne correspond.</p>
           </div>
         ) : viewMode === 'list' ? (
           <div className="space-y-4">
@@ -706,6 +809,8 @@ const AccountView = ({ ctx }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  // 👇 Le state des badges a été ajouté ici
+  const [showBadges, setShowBadges] = useState(false);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -792,6 +897,14 @@ const AccountView = ({ ctx }) => {
   const historyLen = ctx.scanHistory.filter(i => i.in_history !== false).length;
   const level = calculateLevel(historyLen);
 
+  // 👇 Les paliers des badges
+  const allLevels = [
+    { name: "Novice Curieux", req: 0, color: "text-emerald-600 bg-emerald-50" },
+    { name: "Amateur Éclairé", req: 5, color: "text-amber-600 bg-amber-50" },
+    { name: "Grand Connaisseur", req: 20, color: "text-rose-600 bg-rose-50" },
+    { name: "Maître Sommelier", req: 50, color: "text-purple-600 bg-purple-50" }
+  ];
+
   const itemsInStock = ctx.scanHistory.filter(i => i.stock > 0);
   const totalBottles = itemsInStock.reduce((acc, curr) => acc + (curr.stock || 0), 0);
   const totalValue = itemsInStock.reduce((acc, curr) => acc + ((curr.data.prix_unitaire_nombre || 0) * (curr.stock || 0)), 0);
@@ -804,7 +917,7 @@ const AccountView = ({ ctx }) => {
   const getPct = (val) => totalBottles === 0 ? 0 : Math.round((val / totalBottles) * 100);
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 pb-20 overflow-y-auto">
+    <div className="flex flex-col h-full bg-slate-50 pb-20 overflow-y-auto relative">
       <div className="bg-white pt-12 pb-6 px-6 shadow-sm z-10 flex items-center justify-between border-b border-slate-100">
         <div>
           <h1 className="text-3xl font-serif font-bold text-slate-900">Mon Profil</h1>
@@ -817,8 +930,9 @@ const AccountView = ({ ctx }) => {
 
       <div className="p-4 space-y-4">
         
-        {/* GAMIFICATION CARD */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
+        {/* 👇 GAMIFICATION CARD MODIFIÉE POUR ÊTRE CLIQUABLE */}
+        <div onClick={() => setShowBadges(true)} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-all relative overflow-hidden">
+          <div className="absolute top-4 right-4 text-slate-300"><Info className="w-5 h-5"/></div>
           <div className="flex justify-between items-end mb-3">
              <div>
                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Niveau Actuel</p>
@@ -827,12 +941,7 @@ const AccountView = ({ ctx }) => {
              <p className="text-sm font-bold text-slate-700">{historyLen} <span className="text-xs text-slate-400 font-normal">vins découverts</span></p>
           </div>
           <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-             <div className={`h-full ${level.bar} rounded-full transition-all duration-1000`} style={{width: `${Math.min(100, (historyLength => {
-               if(historyLength < 5) return (historyLength/5)*100;
-               if(historyLength < 20) return (historyLength/20)*100;
-               if(historyLength < 50) return (historyLength/50)*100;
-               return 100;
-             })(historyLen))}%`}}></div>
+             <div className={`h-full ${level.bar} rounded-full transition-all duration-1000`} style={{width: `${Math.min(100, (historyLen/50)*100)}%`}}></div>
           </div>
         </div>
 
@@ -885,6 +994,30 @@ const AccountView = ({ ctx }) => {
         </div>
 
       </div>
+
+      {/* 👇 MODAL DES BADGES */}
+      {showBadges && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative shadow-2xl">
+            <button onClick={() => setShowBadges(false)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"><X className="w-5 h-5"/></button>
+            <h3 className="font-serif text-2xl font-bold mb-6 text-center text-slate-900">Vos Badges</h3>
+            <div className="space-y-4">
+              {allLevels.map((lvl) => {
+                const unlocked = historyLen >= lvl.req;
+                return (
+                  <div key={lvl.name} className={`p-4 rounded-2xl border flex items-center justify-between ${unlocked ? lvl.color + ' border-transparent' : 'bg-slate-50 border-slate-200 opacity-60 grayscale'}`}>
+                    <div className="flex items-center space-x-4">
+                      <Award className="w-6 h-6" />
+                      <div><h4 className="font-bold text-slate-900">{lvl.name}</h4><p className="text-xs text-slate-500">{lvl.req} vins découverts</p></div>
+                    </div>
+                    {unlocked && <CheckCircle className="w-5 h-5 text-emerald-500" />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
