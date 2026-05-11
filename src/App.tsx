@@ -541,6 +541,38 @@ const CellarView = ({ ctx }) => {
   const totalValue = filteredItems.reduce((acc, curr) => acc + ((curr.data.prix_unitaire_nombre || 0) * (cellarTab === 'STOCK' ? (parseInt(curr.stock) || 0) : 1)), 0);
   const declinAlerts = cellarTab === 'STOCK' ? filteredItems.filter(i => i.data.statut_apogee === 'DECLIN') : [];
 
+   // LA FONCTION KILLER APP
+   const handleAskCellarSommelier = async () => {
+    if (!pairingDish.trim()) return;
+    setIsPairingLoading(true);
+    
+    try {
+      const inStockWines = ctx.scanHistory.filter(w => w.stock > 0);
+      if (inStockWines.length === 0) throw new Error("Votre cave est vide !");
+      
+      const inventoryString = inStockWines.map(w => `[ID: ${w.id}] ${w.data.nom} ${w.data.annee} (${w.data.type_simplifie})`).join('\n');
+      
+      const prompt = `Tu es le Sommelier privé. L'utilisateur mange : "${pairingDish}".
+      Voici les vins EXACTS dans sa cave :
+      ${inventoryString}
+      
+      Choisis LE MEILLEUR vin PARMI CETTE LISTE UNIQUEMENT pour ce plat.
+      Réponds en JSON strict : {"chosen_id": "ID_ici", "explication": "Pourquoi ce choix (max 20 mots)"}`;
+
+      const result = await callGemini(prompt);
+      const parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
+      
+      const chosenWine = inStockWines.find(w => w.id === parsed.chosen_id);
+      if(!chosenWine) throw new Error("Erreur de sélection");
+
+      setPairingResult({ wine: chosenWine, explication: parsed.explication });
+    } catch (e) {
+      ctx.showToast("Impossible de trouver l'accord parfait pour le moment.");
+    } finally {
+      setIsPairingLoading(false);
+    }
+  };
+  
   const handleMoveBottle = (locName) => {
     if (selectedBottle) {
       ctx.genericUpdate(selectedBottle.id, { location: locName });
