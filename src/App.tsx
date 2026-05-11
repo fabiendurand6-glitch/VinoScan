@@ -1576,23 +1576,33 @@ export default function App() {
     try {
       const b64Data = base64Img.split(',')[1];
       
-      // 1. On demande d'abord à l'IA d'identifier le nom pour le cache
-      const identified = await callGemini("Identifie nom et année. JSON: {'nom':''}", b64Data);
+      // 1. Identification rapide (bas coût)
+      const identified = await callGemini(
+        "Identifie le vin sur cette photo. Si ce n'est pas une bouteille de vin ou une étiquette lisible, réponds {'nom': 'INCONNU'}. Sinon réponds {'nom': 'NOM_DU_VIN'}", 
+        b64Data
+      );
       
-      // 2. On vérifie si ce vin existe déjà pour TOUS les utilisateurs
+      // SÉCURITÉ : Si l'IA ne reconnaît pas de vin
+      if (!identified.nom || identified.nom === 'INCONNU') {
+        setErrorMsg("Le sommelier n'a pas reconnu de bouteille. Assurez-vous que l'étiquette est bien visible et lumineuse.");
+        setView('error');
+        return; // On arrête tout ici, pas de frais supplémentaires
+      }
+      
+      // 2. Vérification du cache global
       let finalData = await checkGlobalCache(identified.nom);
       
       if (!finalData) {
-        // 3. Si pas en cache, on fait l'analyse complète (Payant)
+        // 3. Si pas en cache, analyse complète (Expertise)
         finalData = await callGemini(SYSTEM_PROMPT, b64Data);
-        await saveToGlobalCache(finalData.nom, finalData); // On le sauve pour le prochain
+        await saveToGlobalCache(finalData.nom, finalData);
       }
       
       setAnalysisResult(normalizeData(finalData));
       setImageSrc(base64Img);
       setView('results');
     } catch (err) {
-      setErrorMsg("Erreur d'analyse.");
+      setErrorMsg("Oups ! L'analyse a échoué. Vérifiez votre connexion ou la clarté de la photo.");
       setView('error');
     }
   };
@@ -1620,14 +1630,32 @@ export default function App() {
   };
 
   const searchWineText = async (textQuery) => {
+    if (!textQuery || textQuery.length < 3) return;
+    
     setView('analyzing');
     setPreviousView('home');
     try {
-      const prompt = `Recherche le vin : "${textQuery}". 2026. \n${SYSTEM_PROMPT}`; // Changement ici
-      const result = await callGemini(prompt);
-      await processAIResult(result.candidates?.[0]?.content?.parts?.[0]?.text, null);
+      // 1. Vérifier si on a déjà ce vin en mémoire
+      let finalData = await checkGlobalCache(textQuery);
+      
+      if (!finalData) {
+        // 2. Demander à l'IA de chercher le vin
+        const prompt = `Recherche le vin : "${textQuery}". Si ce vin n'existe pas, réponds {'nom': 'INCONNU'}. Sinon utilise ce format : ${SYSTEM_PROMPT}`;
+        const result = await callGemini(prompt);
+        
+        if (result.nom === 'INCONNU') {
+          setErrorMsg("Nous n'avons trouvé aucun vin correspondant à votre recherche. Vérifiez l'orthographe !");
+          setView('error');
+          return;
+        }
+        
+        finalData = result;
+        await saveToGlobalCache(finalData.nom, finalData);
+      }
+      
+      await processAIResult(JSON.stringify(finalData), null);
     } catch (err) {
-      setErrorMsg(err.message);
+      setErrorMsg("Impossible de trouver ce vin pour le moment.");
       setView('error');
     }
   };
