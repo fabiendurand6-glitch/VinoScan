@@ -10,19 +10,13 @@ import {
   getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut
 } from 'firebase/auth';
 import { 
-  getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc
+  getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc 
 } from 'firebase/firestore';
 
 // =========================================================================
 // CONFIGURATION SÉCURISÉE
 // =========================================================================
-let apiKey = "";
-try {
-  // Tentative de récupération via Vite (StackBlitz)
-  apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-} catch (e) {
-  apiKey = ""; 
-}
+let apiKey = "AIzaSyDvvMeIcZKLRE_VElKCA-Bm9kFogErJ5_I"; // 👈 Mets ta clé AIzaSy... entre les guillemets
 
 
 const firebaseConfig = { 
