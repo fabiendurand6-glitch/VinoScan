@@ -969,50 +969,52 @@ const HistoryView = ({ ctx }) => {
 
 const AccountView = ({ ctx }) => {
   const [showBadges, setShowBadges] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
   const [authMode, setAuthMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  const historyLen = ctx.scanHistory.filter(i => i.in_history !== false).length;
+  // Statistiques globales
+  const historyItems = ctx.scanHistory.filter(i => i.in_history !== false);
+  const historyLen = historyItems.length;
+  const itemsInStock = ctx.scanHistory.filter(i => i.stock > 0);
+  const totalBottles = itemsInStock.reduce((acc, curr) => acc + (parseInt(curr.stock) || 0), 0);
+  const totalValue = itemsInStock.reduce((acc, curr) => acc + ((curr.data?.prix_unitaire_nombre || 0) * (parseInt(curr.stock) || 0)), 0);
   
+  const countType = (type) => itemsInStock.filter(i => i.data?.type_simplifie === type).reduce((acc, curr) => acc + parseInt(curr.stock || 0), 0);
+  const getPct = (val) => totalBottles === 0 ? 0 : Math.round((val / totalBottles) * 100);
+
+  // Niveaux et Badges
   const calculateLevel = (length) => {
-    if (length >= 50) return { name: "Maître Sommelier", iconColor: "text-purple-600", bgColor: "bg-purple-100", bar: "bg-purple-500" };
-    if (length >= 20) return { name: "Grand Connaisseur", iconColor: "text-rose-600", bgColor: "bg-rose-100", bar: "bg-rose-500" };
-    if (length >= 5) return { name: "Amateur Éclairé", iconColor: "text-amber-600", bgColor: "bg-amber-100", bar: "bg-amber-500" };
-    return { name: "Novice Curieux", iconColor: "text-emerald-600", bgColor: "bg-emerald-100", bar: "bg-emerald-500" };
+    if (length >= 50) return { name: "Maître Sommelier", color: "text-purple-600", bg: "bg-purple-100", bar: "bg-purple-500", req: 50 };
+    if (length >= 20) return { name: "Grand Connaisseur", color: "text-rose-600", bg: "bg-rose-100", bar: "bg-rose-500", req: 20 };
+    if (length >= 5) return { name: "Amateur Éclairé", color: "text-amber-600", bg: "bg-amber-100", bar: "bg-amber-500", req: 5 };
+    return { name: "Novice Curieux", color: "text-emerald-600", bg: "bg-emerald-100", bar: "bg-emerald-500", req: 0 };
   };
   const level = calculateLevel(historyLen);
 
-  // LES 8 BADGES DIVERSIFIÉS
-  const bordeauxCount = ctx.scanHistory.filter(i => i.data.region?.toLowerCase().includes('bordeaux')).length;
-  const bourgogneCount = ctx.scanHistory.filter(i => i.data.region?.toLowerCase().includes('bourgogne')).length;
-  const rhoneCount = ctx.scanHistory.filter(i => i.data.region?.toLowerCase().includes('rhône') || i.data.region?.toLowerCase().includes('rhone')).length;
-  const loireCount = ctx.scanHistory.filter(i => i.data.region?.toLowerCase().includes('loire')).length;
-  
-  const rougeCount = ctx.scanHistory.filter(i => i.data.type_simplifie === 'ROUGE').length;
-  const blancCount = ctx.scanHistory.filter(i => i.data.type_simplifie === 'BLANC').length;
-  const bullesCount = ctx.scanHistory.filter(i => i.data.type_simplifie === 'PETILLANT').length;
-  const premiumCount = ctx.scanHistory.filter(i => i.data.prix_unitaire_nombre >= 50).length;
-
+  const getCount = (r) => ctx.scanHistory.filter(i => i.data?.region?.toLowerCase().includes(r)).length;
   const collectionBadges = [
-    { id: 'bordeaux', name: 'Baron de Bordeaux', desc: '3 vins de Bordeaux', req: 3, count: bordeauxCount, icon: '🍷' },
-    { id: 'bourgogne', name: 'Duc de Bourgogne', desc: '3 vins de Bourgogne', req: 3, count: bourgogneCount, icon: '🍇' },
-    { id: 'rhone', name: 'Prince du Rhône', desc: '3 vins du Rhône', req: 3, count: rhoneCount, icon: '☀️' },
-    { id: 'loire', name: 'Seigneur de la Loire', desc: '3 vins de la Loire', req: 3, count: loireCount, icon: '🏰' },
-    { id: 'rouge', name: 'Sang de la Vigne', desc: '10 vins Rouges', req: 10, count: rougeCount, icon: '🥩' },
-    { id: 'blanc', name: "L'Or Blanc", desc: '5 vins Blancs', req: 5, count: blancCount, icon: '🧀' },
-    { id: 'bulles', name: 'Maître des Bulles', desc: '5 Pétillants', req: 5, count: bullesCount, icon: '🥂' },
-    { id: 'premium', name: 'Le Grand Cru', desc: '3 vins > 50€', req: 3, count: premiumCount, icon: '💎' }
+    { id: 'bx', name: 'Baron de Bordeaux', req: 3, count: getCount('bordeaux'), icon: '🍷' },
+    { id: 'bg', name: 'Duc de Bourgogne', req: 3, count: getCount('bourgogne'), icon: '🍇' },
+    { id: 'rh', name: 'Prince du Rhône', req: 3, count: getCount('rhone'), icon: '☀️' },
+    { id: 'lo', name: 'Seigneur de la Loire', req: 3, count: getCount('loire'), icon: '🏰' },
+    { id: 'rg', name: 'Sang de la Vigne', req: 10, count: countType('ROUGE'), icon: '🥩' },
+    { id: 'bl', name: "L'Or Blanc", req: 5, count: countType('BLANC'), icon: '🧀' },
+    { id: 'bu', name: 'Maître des Bulles', req: 5, count: countType('PETILLANT'), icon: '🥂' },
+    { id: 'pr', name: 'Le Grand Cru', req: 3, count: ctx.scanHistory.filter(i => i.data?.prix_unitaire_nombre >= 50).length, icon: '💎' }
   ];
 
+  // Actions
   const handleAuth = async (e) => {
     e.preventDefault();
     setAuthError('');
     try {
       if (authMode === 'login') await signInWithEmailAndPassword(auth, email, password);
       else await createUserWithEmailAndPassword(auth, email, password);
-    } catch (err) { setAuthError("Erreur : Vérifiez vos identifiants ou le mot de passe."); }
+    } catch (err) { setAuthError("Erreur d'identifiants ou mot de passe."); }
   };
 
   const handleLogout = async () => {
@@ -1021,70 +1023,161 @@ const AccountView = ({ ctx }) => {
     ctx.setView('home');
   };
 
+  const handleClearHistory = () => {
+    if (ctx.setScanHistory) {
+      ctx.setScanHistory([]);
+      setShowDeleteConfirm(false);
+      if(ctx.showToast) ctx.showToast("Historique et cave effacés avec succès.");
+    }
+  };
+
+  const exportToCSV = () => {
+    if(ctx.showToast) ctx.showToast("Fonction d'export bientôt disponible !");
+  };
+
+  // --- VUE NON CONNECTÉE ---
   if (!ctx.user || ctx.user.isAnonymous) {
     return (
-      <div className="flex flex-col h-full bg-slate-50 pb-20 overflow-y-auto p-6">
-        <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-          <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl flex items-center justify-center mb-8 shadow-lg transform rotate-3">
-            <ShieldCheck className="w-12 h-12 text-white transform -rotate-3" />
+      <div className="flex flex-col h-full bg-[#f8f5f2] pb-20 overflow-y-auto p-6 relative">
+        <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full relative z-10">
+          <div className="w-24 h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl flex items-center justify-center mb-8 shadow-xl">
+            <ShieldCheck className="w-12 h-12 text-amber-400" />
           </div>
-          <h2 className="text-3xl font-serif font-bold text-slate-900 mb-3 text-center">Sauvegardez votre cave</h2>
-          <form onSubmit={handleAuth} className="w-full space-y-4 mt-8">
-            <input type="email" placeholder="Adresse email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-4 rounded-2xl border outline-none focus:ring-2" required />
-            <input type="password" placeholder="Mot de passe" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-4 rounded-2xl border outline-none focus:ring-2" required />
-            <button type="submit" className="w-full py-4 mt-2 bg-slate-900 text-white rounded-2xl font-bold">{authMode === 'login' ? 'Se connecter' : 'Créer mon compte'}</button>
+          <h2 className="text-3xl font-serif font-bold text-slate-900 mb-3 text-center">Sécurisez votre cave</h2>
+          <p className="text-slate-500 text-center mb-8 font-medium">Créez un compte pour sauvegarder vos données dans le cloud.</p>
+          <form onSubmit={handleAuth} className="w-full space-y-4">
+            <input type="email" placeholder="Adresse email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 shadow-sm" required />
+            <input type="password" placeholder="Mot de passe" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 shadow-sm" required />
+            {authError && <p className="text-red-500 text-xs text-center font-bold">{authError}</p>}
+            <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-transform">{authMode === 'login' ? 'Se connecter' : 'Créer mon compte'}</button>
           </form>
-          <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="mt-8 text-slate-500 text-sm font-medium">{authMode === 'login' ? "Nouveau ici ? Créer un compte" : "Déjà membre ? Se connecter"}</button>
+          <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="mt-6 text-slate-500 text-sm font-bold underline decoration-slate-300 underline-offset-4">{authMode === 'login' ? "Créer un compte gratuit" : "Déjà membre ? Se connecter"}</button>
         </div>
       </div>
     );
   }
 
-  const itemsInStock = ctx.scanHistory.filter(i => i.stock > 0);
-  const totalBottles = itemsInStock.reduce((acc, curr) => acc + (curr.stock || 0), 0);
-  const totalValue = itemsInStock.reduce((acc, curr) => acc + ((curr.data.prix_unitaire_nombre || 0) * (curr.stock || 0)), 0);
-  const countType = (type) => itemsInStock.filter(i => i.data.type_simplifie === type).reduce((acc, curr) => acc + curr.stock, 0);
-  const getPct = (val) => totalBottles === 0 ? 0 : Math.round((val / totalBottles) * 100);
-
+  // --- VUE CONNECTÉE (TABLEAU DE BORD PREMIUM) ---
   return (
-    <div className="flex flex-col h-full bg-slate-50 pb-20 overflow-y-auto relative">
-      <div className="bg-white pt-12 pb-6 px-6 shadow-sm z-10 flex items-center justify-between border-b border-slate-100">
-        <div><h1 className="text-3xl font-serif font-bold text-slate-900">Mon Profil</h1></div>
-        <div className={`w-12 h-12 rounded-full ${level.bgColor} flex items-center justify-center border border-white`}><Award className={`w-6 h-6 ${level.iconColor}`} /></div>
-      </div>
-
-      <div className="p-4 space-y-4">
-        <div onClick={() => setShowBadges(true)} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md relative overflow-hidden">
-          <div className="absolute top-4 right-4 text-slate-300"><Info className="w-5 h-5"/></div>
-          <div className="flex justify-between items-end mb-3">
-             <div><p className="text-xs text-slate-400 font-bold uppercase">Niveau Actuel</p><h3 className={`font-serif text-xl font-bold ${level.iconColor}`}>{level.name}</h3></div>
-             <p className="text-sm font-bold text-slate-700">{historyLen} scans</p>
-          </div>
-          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden"><div className={`h-full ${level.bar} rounded-full`} style={{width: `${Math.min(100, (historyLen/50)*100)}%`}}></div></div>
+    <div className="flex flex-col h-full bg-[#f8f5f2] pb-20 overflow-y-auto relative">
+      
+      {/* EN-TÊTE */}
+      <div className="bg-white pt-12 pb-6 px-6 shadow-sm border-b border-slate-200 flex justify-between items-center sticky top-0 z-10">
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-slate-900">Tableau de Bord</h1>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 mt-1 flex items-center"><CheckCircle className="w-3 h-3 mr-1"/> Sauvegarde Cloud</p>
         </div>
-
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
-          <h3 className="font-serif text-xl font-bold text-slate-900 mb-5 flex items-center"><PieChart className="w-5 h-5 mr-2 text-indigo-500"/> Ma Cave</h3>
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-slate-50 p-4 rounded-2xl border"><p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Bouteilles</p><p className="text-3xl font-bold text-slate-800">{totalBottles}</p></div>
-            <div className="bg-slate-50 p-4 rounded-2xl border"><p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Valeur Estimée</p><p className="text-3xl font-bold text-emerald-700">{totalValue.toFixed(0)}€</p></div>
-          </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Répartition par type</p>
-          <div className="h-4 w-full flex rounded-full overflow-hidden mb-4">
-            {countType('ROUGE') > 0 && <div style={{width: `${getPct(countType('ROUGE'))}%`}} className="bg-rose-800 h-full"></div>}
-            {countType('BLANC') > 0 && <div style={{width: `${getPct(countType('BLANC'))}%`}} className="bg-amber-100 h-full"></div>}
-            {countType('ROSE') > 0 && <div style={{width: `${getPct(countType('ROSE'))}%`}} className="bg-pink-300 h-full"></div>}
-            {countType('PETILLANT') > 0 && <div style={{width: `${getPct(countType('PETILLANT'))}%`}} className="bg-yellow-400 h-full"></div>}
-            {totalBottles === 0 && <div className="bg-slate-200 h-full w-full"></div>}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-3">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Paramètres</p>
-          <button onClick={handleLogout} className="w-full flex items-center p-4 bg-slate-100 text-slate-700 rounded-2xl font-bold"><LogOut className="w-5 h-5 mr-3" /> Se déconnecter</button>
+        <div className={`w-14 h-14 rounded-full ${level.bg} flex items-center justify-center border-2 border-white shadow-md`}>
+          <Award className={`w-7 h-7 ${level.color}`} />
         </div>
       </div>
 
+      <div className="p-5 space-y-6">
+        
+        {/* CARTE NIVEAU & BADGES */}
+        <div onClick={() => setShowBadges(true)} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="absolute top-6 right-6 text-slate-300 group-hover:text-amber-500 transition-colors"><ChevronRight className="w-6 h-6"/></div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Votre Profil Œnologique</p>
+          <h3 className={`font-serif text-2xl font-bold ${level.color} mb-4`}>{level.name}</h3>
+          
+          <div className="flex justify-between items-end mb-2">
+            <span className="text-sm font-bold text-slate-700">{historyLen} vins découverts</span>
+            <span className="text-xs font-bold text-slate-400">Prochain palier : {level.req === 50 ? 'Max' : (level.req === 0 ? 5 : (level.req === 5 ? 20 : 50))}</span>
+          </div>
+          <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
+             <div className={`h-full ${level.bar} rounded-full transition-all duration-1000`} style={{width: `${Math.min(100, (historyLen/(level.req === 50 ? 50 : (level.req === 0 ? 5 : (level.req === 5 ? 20 : 50))))*100)}%`}}></div>
+          </div>
+        </div>
+
+        {/* CARTE STATISTIQUES FINANCIÈRES (DARK MODE PREMIUM) */}
+        <div className="bg-[#1A100C] rounded-3xl p-6 text-white shadow-xl shadow-slate-900/10 relative overflow-hidden border border-[#2D1B13]">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-[#3A2318] rounded-full mix-blend-screen filter blur-3xl opacity-50"></div>
+          
+          <div className="flex items-center space-x-3 mb-6 relative z-10">
+            <div className="p-2 bg-amber-500/20 rounded-xl border border-amber-500/30"><PieChart className="w-5 h-5 text-amber-400"/></div>
+            <h3 className="font-serif text-xl font-bold text-amber-50">Valeur & Contenu</h3>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
+            <div className="bg-white/5 backdrop-blur-sm p-5 rounded-2xl border border-white/10">
+              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">En Cave</p>
+              <p className="text-4xl font-bold text-white">{totalBottles}</p>
+            </div>
+            <div className="bg-gradient-to-br from-emerald-900/40 to-emerald-800/40 backdrop-blur-sm p-5 rounded-2xl border border-emerald-500/30">
+              <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-widest mb-1">Capital Estimé</p>
+              <p className="text-4xl font-bold text-emerald-400">{totalValue.toFixed(0)}€</p>
+            </div>
+          </div>
+
+          <div className="relative z-10">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Répartition de la cave</p>
+            
+            {/* Jauge de répartition */}
+            <div className="h-3 w-full flex rounded-full overflow-hidden mb-5 bg-black/50 shadow-inner">
+              {countType('ROUGE') > 0 && <div style={{width: `${getPct(countType('ROUGE'))}%`}} className="bg-rose-600 h-full"></div>}
+              {countType('BLANC') > 0 && <div style={{width: `${getPct(countType('BLANC'))}%`}} className="bg-amber-200 h-full border-l border-black/20"></div>}
+              {countType('ROSE') > 0 && <div style={{width: `${getPct(countType('ROSE'))}%`}} className="bg-pink-400 h-full border-l border-black/20"></div>}
+              {countType('PETILLANT') > 0 && <div style={{width: `${getPct(countType('PETILLANT'))}%`}} className="bg-yellow-500 h-full border-l border-black/20"></div>}
+            </div>
+            
+            {/* Légendes */}
+            <div className="grid grid-cols-2 gap-y-4 text-sm font-medium">
+              <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-rose-600 mr-3 shadow-[0_0_8px_rgba(225,29,72,0.6)]"></div><span className="text-slate-300">Rouges ({getPct(countType('ROUGE'))}%)</span></div>
+              <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-amber-200 mr-3 shadow-[0_0_8px_rgba(253,230,138,0.6)]"></div><span className="text-slate-300">Blancs ({getPct(countType('BLANC'))}%)</span></div>
+              <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-pink-400 mr-3 shadow-[0_0_8px_rgba(244,114,182,0.6)]"></div><span className="text-slate-300">Rosés ({getPct(countType('ROSE'))}%)</span></div>
+              <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-yellow-500 mr-3 shadow-[0_0_8px_rgba(234,179,8,0.6)]"></div><span className="text-slate-300">Bulles ({getPct(countType('PETILLANT'))}%)</span></div>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION PARAMÈTRES ET DANGER */}
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="p-6 border-b border-slate-50 flex items-center space-x-3 bg-slate-50/50">
+            <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100"><Settings className="w-5 h-5 text-slate-600"/></div>
+            <h3 className="font-serif text-xl font-bold text-slate-900">Paramètres</h3>
+          </div>
+          
+          <div className="p-4 space-y-2">
+            <button onClick={exportToCSV} className="w-full flex items-center p-4 bg-white hover:bg-slate-50 rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
+              <Download className="w-5 h-5 mr-4 text-slate-400" /> Exporter ma cave (.csv)
+            </button>
+
+            <button onClick={handleLogout} className="w-full flex items-center p-4 bg-white hover:bg-slate-50 rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
+              <LogOut className="w-5 h-5 mr-4 text-slate-400" /> Se déconnecter
+            </button>
+            
+            <div className="my-4 border-t border-slate-100"></div>
+
+            {/* ZONE DE DANGER (Bouton bien visible maintenant) */}
+            <div className="px-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-3 ml-2">Zone de Danger</p>
+              <button onClick={() => setShowDeleteConfirm(true)} className="w-full flex items-center p-4 bg-red-50 hover:bg-red-100 rounded-2xl transition-colors text-red-700 font-bold border border-red-100">
+                <Trash2 className="w-5 h-5 mr-4 text-red-500" /> Effacer tout l'historique
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* MODAL DE CONFIRMATION DE SUPPRESSION (Sécurité) */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/70 z-[150] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-sm relative shadow-2xl text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <AlertTriangle className="w-10 h-10 text-red-600" />
+            </div>
+            <h3 className="font-serif text-2xl font-bold text-slate-900 mb-2">Êtes-vous sûr ?</h3>
+            <p className="text-slate-500 font-medium mb-8 text-sm leading-relaxed">Cette action va supprimer définitivement l'ensemble de votre historique de scans et vider votre cave. C'est irréversible.</p>
+            
+            <div className="space-y-3">
+              <button onClick={handleClearHistory} className="w-full py-4 bg-red-600 text-white font-bold rounded-2xl shadow-lg hover:bg-red-700 active:scale-95 transition-all">Oui, tout effacer</button>
+              <button onClick={() => setShowDeleteConfirm(false)} className="w-full py-4 bg-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-200 transition-colors">Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DES BADGES */}
       {showBadges && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative shadow-2xl max-h-[80vh] overflow-y-auto">
@@ -1094,15 +1187,15 @@ const AccountView = ({ ctx }) => {
               {collectionBadges.map((badge) => {
                 const unlocked = badge.count >= badge.req;
                 return (
-                  <div key={badge.id} className={`p-4 rounded-2xl border flex items-center justify-between ${unlocked ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200 opacity-60 grayscale'}`}>
+                  <div key={badge.id} className={`p-4 rounded-2xl border flex items-center justify-between ${unlocked ? 'bg-amber-50 border-amber-200 shadow-sm' : 'bg-slate-50 border-slate-200 opacity-60 grayscale'}`}>
                     <div className="flex items-center space-x-3">
-                      <div className="text-2xl">{badge.icon}</div>
+                      <span className="text-2xl">{badge.icon}</span>
                       <div>
-                        <h4 className={`font-bold ${unlocked ? 'text-amber-900' : 'text-slate-700'}`}>{badge.name}</h4>
-                        <p className="text-xs text-slate-500">{badge.desc}</p>
+                        <h4 className="font-bold text-sm text-slate-900">{badge.name}</h4>
+                        <p className="text-[10px] font-medium text-slate-500">{badge.req} vins requis</p>
                       </div>
                     </div>
-                    {unlocked ? <CheckCircle className="w-5 h-5 text-amber-500" /> : <span className="text-xs font-bold text-slate-400">{badge.count}/{badge.req}</span>}
+                    {unlocked ? <CheckCircle className="w-5 h-5 text-amber-500" /> : <span className="text-xs font-bold text-slate-400 bg-slate-200/50 px-2 py-1 rounded-md">{badge.count}/{badge.req}</span>}
                   </div>
                 );
               })}
