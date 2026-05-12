@@ -343,6 +343,7 @@ const HomeView = ({ ctx }) => (
   </div>
 );
 
+// 1. RECHERCHE MANUELLE (Sans le jeu, juste la barre de recherche)
 const ManualSearchView = ({ ctx }) => {
   const [query, setQuery] = useState('');
   const handleSearch = (e) => { e.preventDefault(); if(query.trim()) ctx.searchWineText(query); };
@@ -368,18 +369,18 @@ const ManualSearchView = ({ ctx }) => {
   );
 };
 
-// LA BANQUE DE QUESTIONS ET LA VUE DU JEU DÉDIÉE
+// 2. LE JEU DU SOMMELIER (Vue dédiée)
 const allQuestions = [
   { q: "Quel cépage donne souvent des arômes de litchi et de rose ?", options: ["Chardonnay", "Gewürztraminer", "Sauvignon Blanc"], ans: "Gewürztraminer" },
   { q: "Quelle région est célèbre pour son 'Vin Jaune' ?", options: ["Bourgogne", "Alsace", "Jura"], ans: "Jura" },
-  { q: "Qu'appelle-t-on la 'Part des Anges' ?", options: ["Le vin évaporé", "Le vin offert au clergé", "Le fond de la bouteille"], ans: "Le vin évaporé" },
+  { q: "Qu'appelle-t-on la 'Part des Anges' ?", options: ["Le vin évaporé en fût", "Le vin offert au clergé", "Le fond de la bouteille"], ans: "Le vin évaporé en fût" },
   { q: "Quel est le cépage rouge emblématique de la Bourgogne ?", options: ["Merlot", "Pinot Noir", "Syrah"], ans: "Pinot Noir" },
   { q: "Comment s'appelle l'art d'assembler différents vins ?", options: ["Le soutirage", "Le coupage", "L'assemblage"], ans: "L'assemblage" },
   { q: "Lequel de ces cépages est blanc ?", options: ["Cabernet Franc", "Viognier", "Gamay"], ans: "Viognier" },
   { q: "Quel vin est traditionnellement muté à l'alcool ?", options: ["Le Porto", "Le Champagne", "Le Beaujolais"], ans: "Le Porto" },
-  { q: "Que signifie 'Blanc de Blancs' pour un Champagne ?", options: ["Fait avec du raisin blanc", "Sans sucre", "Vieilli en cuve"], ans: "Fait avec du raisin blanc" },
+  { q: "Que signifie 'Blanc de Blancs' pour un Champagne ?", options: ["Fait avec du raisin blanc", "Sans ajout de sucre", "Vieilli en cuve inox"], ans: "Fait avec du raisin blanc" },
   { q: "Quel est le grand cépage rouge de la rive droite à Bordeaux ?", options: ["Cabernet Sauvignon", "Merlot", "Malbec"], ans: "Merlot" },
-  { q: "Laquelle de ces maladies attaque la vigne ?", options: ["Le Phylloxéra", "La Rouille", "Le Mildiou Noir"], ans: "Le Phylloxéra" }
+  { q: "Laquelle de ces maladies attaque la vigne ?", options: ["Le Phylloxéra", "La Rouille", "Le Mildiou Noir"], ans: "Le Phylloxéra" },
   { q: "Quelle température est idéale pour servir un grand vin rouge ?", options: ["12-14°C", "16-18°C", "20-22°C"], ans: "16-18°C" },
   { q: "Quel cépage est majoritaire dans un Châteauneuf-du-Pape rouge ?", options: ["Syrah", "Grenache", "Mourvèdre"], ans: "Grenache" },
   { q: "Dans quelle région se trouve l'appellation Sancerre ?", options: ["Vallée de la Loire", "Bordeaux", "Alsace"], ans: "Vallée de la Loire" },
@@ -387,7 +388,7 @@ const allQuestions = [
   { q: "Quel pays est le plus grand producteur de vin au monde (en volume, moyenne) ?", options: ["France", "Espagne", "Italie"], ans: "Italie" },
   { q: "Quel type de vin produit l'appellation Sauternes ?", options: ["Principalement du rouge", "Principalement du blanc", "Du vin effervescent"], ans: "Principalement du blanc" },
   { q: "Quel cépage donne les grands vins de la Vallée du Rhône Nord (ex: Côte-Rôtie) ?", options: ["Grenache", "Syrah", "Carignan"], ans: "Syrah" },
-  { q: "Qu'est-ce que la 'carafage' d'un vin ?", options: ["Séparer le dépôt du vin", "Aérer un vin jeune", "Refroidir un vin"], ans: "Aérer un vin jeune" },
+  { q: "Qu'est-ce que le 'carafage' d'un vin ?", options: ["Séparer le dépôt du vin", "Aérer un vin jeune", "Refroidir un vin"], ans: "Aérer un vin jeune" },
   { q: "Quelle est la contenance d'un Magnum ?", options: ["1.5 Litre", "3 Litres", "4.5 Litres"], ans: "1.5 Litre" },
   { q: "Où produit-on le vin de Tokaj ?", options: ["En Russie", "En Hongrie", "En Roumanie"], ans: "En Hongrie" },
   { q: "Qu'est-ce que le 'Botrytis cinerea' ?", options: ["Un insecte", "La pourriture noble", "Un type de levure"], ans: "La pourriture noble" },
@@ -403,7 +404,7 @@ const allQuestions = [
   { q: "Quel est le grand cépage rouge du Piémont en Italie ?", options: ["Sangiovese", "Nebbiolo", "Barbera"], ans: "Nebbiolo" },
   { q: "Que signifie 'AOC' ?", options: ["Appellation d'Origine Contrôlée", "Association des Œnologues Certifiés", "Appellation d'Origine Commune"], ans: "Appellation d'Origine Contrôlée" },
   { q: "Quel pays est le berceau du cépage Malbec aujourd'hui ?", options: ["L'Argentine", "Le Chili", "L'Afrique du Sud"], ans: "L'Argentine" },
-  { q: "Quel est le nom du célèbre domaine produisant la Romanée-Conti ?", options: ["Bordeaux", "Bourgogne", "Alsace"], ans: "Bourgogne" }, // Modifiée pour rester simple
+  { q: "Quel est le nom du célèbre domaine produisant la Romanée-Conti ?", options: ["Bordeaux", "Bourgogne", "Alsace"], ans: "Bourgogne" }, 
   { q: "Combien y a-t-il de crus classés en 1855 dans le Médoc ?", options: ["61", "88", "102"], ans: "61" },
   { q: "Quel vin blanc est typique de la région de Chablis ?", options: ["Chardonnay", "Sauvignon", "Riesling"], ans: "Chardonnay" },
   { q: "Que signifie l'ouillage ?", options: ["Remplir les fûts pour compenser l'évaporation", "Filtrer le vin", "Mettre le vin en bouteille"], ans: "Remplir les fûts pour compenser l'évaporation" },
@@ -494,103 +495,53 @@ const QuizView = ({ ctx }) => {
   );
 };
 
-  const handleAnswer = (option) => {
-    if (feedback) return;
-    const correct = option === currentQuiz[qIndex].ans;
-    if (correct) setScore(s => s + 1);
-    setFeedback(correct ? 'correct' : 'wrong');
-    setTimeout(() => {
-      setFeedback(null);
-      if (qIndex + 1 < currentQuiz.length) setQIndex(i => i + 1);
-      else setGameState('end');
-    }, 1200);
-  };
-
+// 3. SCANNER DE CARTE DE RESTAURANT (Rétabli !)
+const MenuConfigView = ({ ctx }) => {
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20">
       <div className="bg-white pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
-        <div><h1 className="text-2xl font-serif font-bold text-slate-900">Ajouter un vin</h1><p className="text-slate-500 text-xs mt-1">Recherche mondiale</p></div>
+        <div>
+          <h1 className="text-2xl font-serif font-bold text-slate-900">Le bon choix</h1>
+          <p className="text-slate-500 text-xs mt-1 font-medium">Scanner un menu de restaurant</p>
+        </div>
       </div>
-      <div className="p-6">
-        <form onSubmit={handleSearch} className="space-y-4 mb-10">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Ex: Château Margaux 2015" className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-rose-500 shadow-sm text-lg"/>
+      <div className="p-6 space-y-8 overflow-y-auto">
+        <div className="space-y-4">
+          <h3 className="font-serif text-lg font-bold text-slate-900 flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Que mangez-vous ?</span></h3>
+          <div className="flex flex-wrap gap-2">
+            {['ALL', 'APERITIF', 'VIANDE_ROUGE', 'VIANDE_BLANCHE', 'POISSON', 'FROMAGE'].map(f => (
+              <button key={f} onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: f})} className={`px-4 py-2.5 rounded-xl text-sm font-bold border ${ctx.menuPrefs.food === f ? 'bg-amber-600 text-white' : 'bg-white text-slate-600'}`}>{f === 'ALL' ? 'Peu importe' : f}</button>
+            ))}
           </div>
-          <button type="submit" disabled={!query.trim()} className="w-full py-4 bg-slate-900 text-white rounded-xl font-medium shadow-lg disabled:opacity-50">
-            Rechercher ce vin
-          </button>
-        </form>
-
-        {/* SECTION MINI JEU */}
-        <div className="bg-white border border-amber-200 rounded-3xl p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute -right-10 -top-10 w-32 h-32 bg-amber-100 rounded-full mix-blend-multiply opacity-50"></div>
-          
-          {gameState === 'idle' && (
-            <div className="text-center space-y-4 relative z-10">
-              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto"><Gamepad2 className="w-8 h-8 text-amber-600"/></div>
-              <h3 className="font-serif text-xl font-bold text-slate-900">Le Quiz du Sommelier</h3>
-              <p className="text-sm text-slate-500">Testez vos connaissances en attendant votre prochaine dégustation.</p>
-              <button onClick={startGame} className="px-6 py-3 bg-amber-600 text-white font-bold rounded-xl shadow-md active:scale-95 transition-transform">Jouer maintenant</button>
-            </div>
-          )}
-
-          {gameState === 'playing' && currentQuiz.length > 0 && (
-            <div className="space-y-4 relative z-10">
-              <div className="flex justify-between text-xs font-bold text-slate-400 uppercase">
-                <span>Question {qIndex + 1}/{currentQuiz.length}</span>
-                <span>Score : {score}</span>
-              </div>
-              <p className="font-serif text-lg font-bold text-slate-900 min-h-[60px]">{currentQuiz[qIndex].q}</p>
-              <div className="space-y-2">
-                {currentQuiz[qIndex].options.map(opt => {
-                  let btnClass = "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100";
-                  if (feedback && opt === currentQuiz[qIndex].ans) btnClass = "bg-emerald-500 border-emerald-500 text-white";
-                  else if (feedback === 'wrong' && opt !== currentQuiz[qIndex].ans) btnClass = "bg-slate-100 text-slate-300 opacity-50";
-                  return (
-                    <button key={opt} onClick={() => handleAnswer(opt)} className={`w-full p-4 rounded-xl border font-bold text-left transition-colors ${btnClass}`}>
-                      {opt}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {gameState === 'end' && (
-            <div className="text-center space-y-4 relative z-10">
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto"><Trophy className="w-8 h-8 text-emerald-600"/></div>
-              <h3 className="font-serif text-xl font-bold text-slate-900">Terminé !</h3>
-              <p className="text-lg font-bold text-slate-700">Score: {score} / {currentQuiz.length}</p>
-              <p className="text-sm text-slate-500 mb-2">
-                {score === 4 ? "Un vrai Maître Sommelier ! 🍷" : score >= 2 ? "Bonnes connaissances ! 🍇" : "Encore un peu de pratique ! 🥂"}
-              </p>
-              <button onClick={startGame} className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl shadow-md mr-2">Rejouer</button>
-              <button onClick={() => setGameState('idle')} className="px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl">Quitter</button>
-            </div>
-          )}
+        </div>
+        <div className="pt-6 space-y-3">
+          <button onClick={() => ctx.startCamera('menu')} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold active:scale-95"><Camera className="inline w-5 h-5 mr-2" />Scanner la carte</button>
         </div>
       </div>
     </div>
   );
 };
 
+// ==========================================
+// Assure-toi que la ligne juste en dessous de ce commentaire est bien : 
+// const CellarView = ({ ctx }) => { ...// CAVE AVEC LA KILLER APP "LE SOMMELIER DE CAVE" ET FILTRES CORRIGÉS
 const CellarView = ({ ctx }) => {
   const [cellarTab, setCellarTab] = useState('STOCK');
   const [filterType, setFilterType] = useState('ALL');
   const [filterApogee, setFilterApogee] = useState('ALL');
   const [filterFood, setFilterFood] = useState('ALL');
   const [viewMode, setViewMode] = useState('list');
-  
   const [reorgMode, setReorgMode] = useState(false);
   const [selectedBottle, setSelectedBottle] = useState(null);
   const [newShelfName, setNewShelfName] = useState('');
 
-  const cellarItems = ctx.scanHistory.filter(item => {
-    if (cellarTab === 'STOCK') return item.stock > 0;
-    return item.wishlist === true;
-  });
+  const [showPairingModal, setShowPairingModal] = useState(false);
+  const [pairingDish, setPairingDish] = useState('');
+  const [pairingResult, setPairingResult] = useState(null);
+  const [isPairingLoading, setIsPairingLoading] = useState(false);
+
+  const cellarItems = ctx.scanHistory.filter(item => cellarTab === 'STOCK' ? item.stock > 0 : item.wishlist === true);
   
   const filteredItems = useMemo(() => {
     return cellarItems.filter(item => {
@@ -609,7 +560,6 @@ const CellarView = ({ ctx }) => {
   }, [cellarItems, filterType, filterApogee, filterFood]);
 
   const existingLocations = Array.from(new Set(ctx.scanHistory.map(s => s.location).filter(Boolean))).sort();
-
   const groupedByLocation = useMemo(() => {
     const groups = {};
     filteredItems.forEach(item => {
@@ -622,14 +572,36 @@ const CellarView = ({ ctx }) => {
 
   const totalBottles = cellarTab === 'STOCK' ? filteredItems.reduce((acc, curr) => acc + (parseInt(curr.stock) || 0), 0) : filteredItems.length;
   const totalValue = filteredItems.reduce((acc, curr) => acc + ((curr.data.prix_unitaire_nombre || 0) * (cellarTab === 'STOCK' ? (parseInt(curr.stock) || 0) : 1)), 0);
-  const declinAlerts = cellarTab === 'STOCK' ? filteredItems.filter(i => i.data.statut_apogee === 'DECLIN') : [];
 
-  const handleMoveBottle = (locName) => {
-    if (selectedBottle) {
-      ctx.genericUpdate(selectedBottle.id, { location: locName });
-      setSelectedBottle(null);
-      setNewShelfName('');
-      ctx.showToast("Bouteille déplacée !");
+  const handleAskCellarSommelier = async () => {
+    if (!pairingDish.trim()) return;
+    setIsPairingLoading(true);
+    
+    try {
+      const inStockWines = ctx.scanHistory.filter(w => w.stock > 0);
+      if (inStockWines.length === 0) throw new Error("Votre cave est vide !");
+      
+      const inventoryString = inStockWines.map(w => `[ID: ${w.id}] ${w.data.nom} ${w.data.annee} (${w.data.type_simplifie})`).join('\n');
+      
+      const prompt = `Tu es le Sommelier privé. L'utilisateur mange : "${pairingDish}".
+      Voici les vins EXACTS dans sa cave :
+      ${inventoryString}
+      
+      Choisis LE MEILLEUR vin PARMI CETTE LISTE UNIQUEMENT pour ce plat.
+      Réponds en JSON strict : {"chosen_id": "ID_ici", "explication": "Pourquoi ce choix (max 20 mots)"}`;
+
+      const result = await callGemini(prompt);
+      const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      const parsed = extractJSON(text);
+      
+      const chosenWine = inStockWines.find(w => w.id === parsed.chosen_id);
+      if(!chosenWine) throw new Error("Erreur de sélection");
+
+      setPairingResult({ wine: chosenWine, explication: parsed.explication });
+    } catch (e) {
+      ctx.setErrorMsg("Impossible de trouver l'accord parfait pour le moment.");
+    } finally {
+      setIsPairingLoading(false);
     }
   };
 
@@ -645,118 +617,66 @@ const CellarView = ({ ctx }) => {
     <div className="flex flex-col h-full bg-slate-50 pb-20 relative">
       <div className="bg-white pt-12 pb-4 px-4 shadow-sm z-10 sticky top-0">
         <div className="flex justify-between items-end mb-4">
-          <div>
-            <h1 className="text-3xl font-serif font-bold text-slate-900">Mes Vins</h1>
-            <p className="text-slate-500 text-sm mt-1">{totalBottles} {cellarTab === 'STOCK' ? 'bouteilles' : 'souhaits'}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Valeur Estimée</p>
-            <div className="flex items-center justify-end space-x-1 text-emerald-700"><span className="text-2xl font-bold">{totalValue.toFixed(0)}</span><Euro className="w-5 h-5 mb-0.5" /></div>
-          </div>
+          <div><h1 className="text-3xl font-serif font-bold text-slate-900">Mes Vins</h1><p className="text-slate-500 text-sm mt-1">{totalBottles} bouteilles</p></div>
+          <div className="text-right"><p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Valeur Estimée</p><div className="text-emerald-700"><span className="text-2xl font-bold">{totalValue.toFixed(0)}</span>€</div></div>
         </div>
 
         <div className="flex bg-slate-100 p-1 rounded-xl mb-4">
-          <button onClick={() => setCellarTab('STOCK')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'STOCK' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>En Cave</button>
-          <button onClick={() => setCellarTab('WISHLIST')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'WISHLIST' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Liste d'Achats</button>
+          <button onClick={() => setCellarTab('STOCK')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'STOCK' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>En Cave</button>
+          <button onClick={() => setCellarTab('WISHLIST')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'WISHLIST' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Liste d'Achats</button>
         </div>
 
-        <div className="space-y-3 relative">
-          <div className="absolute right-0 top-0 h-full flex items-center bg-gradient-to-l from-white via-white to-transparent pl-4 pr-1">
+        {/* NOUVELLE DISPOSITION DES FILTRES QUI RÈGLE LE BUG */}
+        <div className="space-y-3">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-2">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Trier & Filtrer</span>
             <div className="flex bg-slate-100 rounded-lg p-0.5 shadow-inner">
                <button onClick={() => { setViewMode('list'); setReorgMode(false); }} className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}><List className="w-4 h-4" /></button>
                <button onClick={() => setViewMode('shelves')} className={`p-1.5 rounded-md transition-colors ${viewMode === 'shelves' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}><LayoutGrid className="w-4 h-4" /></button>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 overflow-x-auto pb-1 pr-24 scrollbar-hide">
-            <Filter className="w-4 h-4 text-slate-400 shrink-0 mr-1" />
-            {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(type => (
-              <button key={type} onClick={() => setFilterType(type)} className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border border-transparent ${filterType === type ? 'bg-slate-800 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                {type === 'ALL' ? 'Tous' : type === 'PETILLANT' ? 'Bulles' : type}
-              </button>
+          <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide">
+            <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+            {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => (
+              <button key={t} onClick={() => setFilterType(t)} className={`px-3 py-1 rounded-full text-xs font-medium border ${filterType === t ? 'bg-slate-800 text-white' : 'bg-white border-slate-200 text-slate-600'}`}>{t === 'ALL' ? 'Tous' : t}</button>
             ))}
           </div>
 
-          <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
-            <Utensils className="w-4 h-4 text-slate-400 shrink-0 mr-1" />
+          <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide">
+            <Utensils className="w-4 h-4 text-slate-400 shrink-0" />
             {['ALL', 'VIANDE', 'POISSON', 'FROMAGE', 'APERITIF'].map(f => (
-              <button key={f} onClick={() => setFilterFood(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${filterFood === f ? 'bg-amber-600 text-white shadow-md border-amber-600' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                {f === 'ALL' ? 'Tous plats' : f}
-              </button>
+              <button key={f} onClick={() => setFilterFood(f)} className={`px-3 py-1 rounded-full text-xs font-medium border ${filterFood === f ? 'bg-amber-600 text-white border-amber-600' : 'bg-white border-slate-200 text-slate-600'}`}>{f === 'ALL' ? 'Tous plats' : f}</button>
             ))}
           </div>
-
         </div>
-        
-        ) : (
-          <div className="space-y-8 mt-4">
-             {Object.entries(groupedByLocation).map(([shelfName, bottles]) => (
-                <div key={shelfName} className="bg-[#2D1B13] rounded-sm shadow-2xl border-[12px] border-[#3E2723] relative">
-                   <div className="absolute -top-6 left-4 bg-amber-100 text-[#3E2723] px-4 py-1 text-xs font-bold uppercase tracking-wider rounded-sm shadow-md border border-amber-900/20 z-10 flex items-center">
-                      <MapPin className="w-3 h-3 mr-1"/> {shelfName}
-                   </div>
-                   
-                   {/* Grille de la cave (Les casiers) */}
-                   <div className="grid grid-cols-4 sm:grid-cols-5 gap-0 bg-black/40 p-2 min-h-[140px]">
-                      {bottles.map(bottle => (
-                         <div 
-                            key={bottle.id} 
-                            onClick={() => {
-                              if (reorgMode) setSelectedBottle(bottle);
-                              else ctx.openExistingWine(bottle, 'cellar');
-                            }} 
-                            className={`relative w-full aspect-[1/3] border border-[#3E2723]/30 bg-black/60 flex items-center justify-center group transition-all cursor-pointer ${reorgMode ? 'hover:bg-rose-900/50' : 'hover:bg-white/10'}`}
-                         >
-                            <img src={bottle.image} className={`w-[80%] h-[90%] object-cover rounded-t-xl rounded-b-sm shadow-2xl transition-all ${reorgMode ? 'animate-pulse scale-95' : 'group-hover:scale-110'}`} />
-                            
-                            <div className="absolute bottom-0 w-full h-1/4 bg-gradient-to-t from-black to-transparent opacity-80"></div>
-                            
-                            {/* Pastille de couleur discrète */}
-                            <div className={`absolute bottom-1 w-2 h-2 rounded-full ${getColorForType(bottle.data.type_simplifie)} shadow-sm border border-white/20`}></div>
-                            
-                            {cellarTab === 'STOCK' && bottle.stock > 1 && (
-                              <span className="absolute -top-2 -right-2 bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md z-10 border border-[#3E2723]">x{bottle.stock}</span>
-                            )}
-                         </div>
-                      ))}
-                      
-                      {/* Trous vides pour le style */}
-                      {Array.from({length: Math.max(0, 4 - (bottles.length % 4))}).map((_, i) => (
-                        <div key={`empty-${i}`} className="w-full aspect-[1/3] border border-[#3E2723]/30 bg-black/20 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]"></div>
-                      ))}
-                   </div>
-                   <div className="h-4 w-full bg-[#3E2723] shadow-[0_-5px_15px_rgba(0,0,0,0.5)]"></div>
-                </div>
-             ))}
-          </div>
-        )}
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        
+        {/* LE BOUTON KILLER APP */}
+        {cellarTab === 'STOCK' && totalBottles > 0 && (
+          <button onClick={() => {setShowPairingModal(true); setPairingResult(null); setPairingDish('');}} className="w-full bg-gradient-to-r from-indigo-800 to-purple-900 text-white rounded-2xl p-4 shadow-lg flex items-center justify-between active:scale-95 transition-transform">
+            <div className="text-left">
+              <h3 className="font-bold text-lg flex items-center"><Sparkles className="w-5 h-5 mr-2 text-yellow-300"/> Que boire ce soir ?</h3>
+              <p className="text-xs text-indigo-200">Demander au sommelier d'explorer votre cave</p>
+            </div>
+            <ChevronRight className="w-6 h-6 text-indigo-300" />
+          </button>
+        )}
+
         {filteredItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-50 mt-10">
-            {cellarTab === 'STOCK' ? <Archive className="w-16 h-16 mb-4 text-slate-300" /> : <Heart className="w-16 h-16 mb-4 text-slate-300" />}
-            <p className="text-slate-500 font-medium">Aucun vin trouvé.</p>
-          </div>
+          <div className="text-center p-6 opacity-50 mt-10"><Archive className="w-16 h-16 mx-auto mb-4 text-slate-300" /><p className="font-medium">Aucun vin trouvé.</p></div>
         ) : viewMode === 'list' ? (
           <div className="space-y-4">
             {filteredItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
-                <div onClick={() => ctx.openExistingWine(item, 'cellar')} className="p-4 flex items-start space-x-4 active:bg-slate-50 cursor-pointer">
-                  <div className="w-16 h-24 bg-slate-100 rounded-lg overflow-hidden shrink-0 shadow-inner">
-                    <img src={item.image} alt="Miniature" className="w-full h-full object-cover" />
-                  </div>
+              <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div onClick={() => ctx.openExistingWine(item, 'cellar')} className="p-4 flex items-start space-x-4 cursor-pointer">
+                  <div className="w-16 h-24 bg-slate-100 rounded-lg overflow-hidden shrink-0"><img src={item.image} className="w-full h-full object-cover" /></div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{item.data.type_simplifie}</span>
-                      <span className="text-xs font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded">{item.data.annee}</span>
-                    </div>
-                    <h3 className="font-serif text-slate-900 truncate font-bold leading-tight mb-1">{item.data.nom}</h3>
-                    {item.location && <p className="text-xs text-slate-500 font-medium flex items-center mt-1"><MapPin className="w-3 h-3 mr-1"/> {item.location}</p>}
-                    <div className="mt-3 flex items-center justify-between">
-                      {getApogeeBadge(item.data.statut_apogee)}
-                      <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">{item.data.prix_unitaire_nombre}€</span>
-                    </div>
+                    <div className="flex justify-between items-start mb-1"><span className="text-[10px] font-bold uppercase text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{item.data.type_simplifie}</span><span className="text-xs font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded">{item.data.annee}</span></div>
+                    <h3 className="font-serif text-slate-900 truncate font-bold">{item.data.nom}</h3>
+                    <div className="mt-3 flex items-center justify-between">{getApogeeBadge(item.data.statut_apogee)}<span className="text-sm font-bold text-emerald-700">{item.data.prix_unitaire_nombre}€</span></div>
                   </div>
                 </div>
               </div>
@@ -796,25 +716,37 @@ const CellarView = ({ ctx }) => {
         )}
       </div>
 
-      {/* MODAL TIROIR POUR RÉORGANISATION */}
-      {selectedBottle && (
-        <div className="fixed inset-0 z-[100] bg-black/60 flex items-end justify-center p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl mb-safe animate-in slide-in-from-bottom-4">
-             <h3 className="font-serif text-2xl font-bold text-slate-900 mb-1">Déplacer</h3>
-             <p className="text-slate-500 text-sm mb-6">Où voulez-vous ranger <b>{selectedBottle.data.nom}</b> ?</p>
-             <div className="space-y-2 max-h-48 overflow-y-auto mb-6 pr-2">
-               {existingLocations.length > 0 ? existingLocations.map(loc => (
-                 <button key={loc} onClick={() => handleMoveBottle(loc)} className="w-full text-left p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-100 text-slate-700 font-bold transition-colors shadow-sm">
-                   <MapPin className="w-4 h-4 inline mr-3 opacity-50" /> {loc}
-                 </button>
-               )) : <p className="text-slate-400 text-sm italic text-center py-4 bg-slate-50 rounded-xl">Aucune étagère existante.</p>}
-               <button onClick={() => handleMoveBottle('')} className="w-full text-left p-4 rounded-2xl bg-slate-50 border text-slate-500 italic">Retirer de l'étagère</button>
-             </div>
-             <div className="flex space-x-2 border-t border-slate-100 pt-6">
-               <input type="text" placeholder="Nouvelle étagère..." value={newShelfName} onChange={(e) => setNewShelfName(e.target.value)} className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 outline-none focus:ring-2 focus:ring-rose-200 transition-all font-medium" />
-               <button onClick={() => handleMoveBottle(newShelfName)} disabled={!newShelfName.trim()} className="px-6 py-4 bg-slate-900 text-white rounded-2xl font-bold disabled:opacity-50">Créer</button>
-             </div>
-             <button onClick={() => { setSelectedBottle(null); setNewShelfName(''); }} className="mt-4 w-full py-4 text-slate-500 font-bold hover:bg-slate-50 rounded-2xl">Annuler</button>
+      {/* MODAL KILLER APP (SOMMELIER DE CAVE) */}
+      {showPairingModal && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative shadow-2xl">
+            <button onClick={() => setShowPairingModal(false)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"><X className="w-5 h-5"/></button>
+            
+            {!pairingResult ? (
+              <div className="space-y-4 mt-4">
+                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-2"><Utensils className="w-8 h-8 text-indigo-600"/></div>
+                <h3 className="font-serif text-2xl font-bold text-center text-slate-900">Que mangez-vous ?</h3>
+                <p className="text-sm text-center text-slate-500">Dites au sommelier ce que vous avez prévu, il trouvera la bouteille parfaite dans votre stock.</p>
+                <input autoFocus type="text" placeholder="Ex: Magret de canard, Raclette..." value={pairingDish} onChange={e=>setPairingDish(e.target.value)} className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <button onClick={handleAskCellarSommelier} disabled={!pairingDish.trim() || isPairingLoading} className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg disabled:opacity-50 flex items-center justify-center">
+                  {isPairingLoading ? <RefreshCw className="w-5 h-5 animate-spin"/> : "Explorer ma cave"}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4 mt-4 animate-in slide-in-from-bottom-4">
+                <h3 className="font-serif text-xl font-bold text-center text-indigo-900">Voici le choix parfait !</h3>
+                <div onClick={() => {setShowPairingModal(false); ctx.openExistingWine(pairingResult.wine, 'cellar');}} className="border border-indigo-100 bg-indigo-50 rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-shadow">
+                  <div className="w-16 h-24 rounded-lg overflow-hidden shrink-0"><img src={pairingResult.wine.image} className="w-full h-full object-cover" /></div>
+                  <div>
+                    <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">{pairingResult.wine.data.type_simplifie}</span>
+                    <h4 className="font-bold text-slate-900 leading-tight mb-2">{pairingResult.wine.data.nom}</h4>
+                    <p className="text-xs text-slate-600 italic">"{pairingResult.explication}"</p>
+                  </div>
+                </div>
+                {pairingResult.wine.location && <p className="text-xs text-center font-bold text-slate-500 uppercase"><MapPin className="w-3 h-3 inline mr-1" />{pairingResult.wine.location}</p>}
+                <button onClick={() => setShowPairingModal(false)} className="w-full py-3 bg-slate-900 text-white font-bold rounded-xl">Fermer</button>
+              </div>
+            )}
           </div>
         </div>
       )}
