@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe, X, Trophy 
+  Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe, X, Trophy, TrendingUp, BarChart3, Target, Focus 
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -307,30 +307,35 @@ const HomeView = ({ ctx }) => (
   <div className="flex flex-col items-center justify-center h-full p-6 space-y-8 pb-20 relative bg-slate-50 overflow-hidden">
     <div className="absolute -top-32 -left-32 w-64 h-64 bg-rose-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse"></div>
     <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-amber-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse"></div>
-
+    
     <div className="text-center space-y-4 relative z-10">
-      <div className="mx-auto w-28 h-28 bg-gradient-to-br from-rose-800 to-rose-950 rounded-full flex items-center justify-center shadow-xl shadow-rose-900/30 border-4 border-white">
+      <div className="mx-auto w-28 h-28 bg-gradient-to-br from-rose-800 to-rose-950 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
         <Wine className="w-14 h-14 text-rose-100" />
       </div>
       <h1 className="text-5xl font-serif text-slate-800 tracking-tight font-bold">VinoScan</h1>
-      <p className="text-slate-500 max-w-sm mx-auto text-sm font-medium">Gérez votre cave, analysez vos vins et découvrez leur apogée parfaite.</p>
+      <p className="text-slate-500 max-w-sm mx-auto text-sm font-medium">L'assistant ultime de votre cave.</p>
     </div>
 
-    <div className="w-full max-w-sm space-y-4 pt-6 relative z-10">
-      <button onClick={() => ctx.startCamera('bottle')} className="w-full flex items-center justify-center space-x-3 bg-slate-900 hover:bg-slate-800 text-white p-5 rounded-2xl shadow-xl shadow-slate-900/20 transition-all active:scale-95">
+    <div className="w-full max-w-sm space-y-4 pt-4 relative z-10">
+      <button onClick={() => ctx.startCamera('bottle')} className="w-full flex items-center justify-center space-x-3 bg-slate-900 text-white p-5 rounded-2xl shadow-xl active:scale-95 transition-all">
         <Camera className="w-6 h-6" /><span className="font-medium text-lg">Scanner une bouteille</span>
       </button>
       
-      <button onClick={() => ctx.setView('menuConfig')} className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white p-5 rounded-2xl shadow-xl shadow-amber-600/30 transition-all active:scale-95">
-        <BookOpen className="w-6 h-6" /><span className="font-medium text-lg">Scanner une carte des vins</span>
-      </button>
+      <div className="flex space-x-4">
+        <button onClick={() => ctx.setView('menuConfig')} className="flex-1 flex flex-col items-center justify-center space-y-2 bg-white border border-slate-100 text-amber-700 p-4 rounded-2xl shadow-sm active:scale-95">
+          <BookOpen className="w-6 h-6" /><span className="font-bold text-xs uppercase tracking-wider">Carte des vins</span>
+        </button>
+        <button onClick={() => ctx.setView('quiz')} className="flex-1 flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-md active:scale-95">
+          <Gamepad2 className="w-6 h-6" /><span className="font-bold text-xs uppercase tracking-wider">Jouer & Apprendre</span>
+        </button>
+      </div>
 
       <div className="flex space-x-4 pt-2">
-        <label className="flex-1 flex flex-col items-center justify-center space-y-2 bg-white border border-slate-100 text-slate-700 hover:bg-slate-50 p-4 rounded-2xl cursor-pointer transition-all active:scale-95 shadow-sm">
+        <label className="flex-1 flex flex-col items-center justify-center space-y-2 bg-white border border-slate-100 text-slate-700 p-4 rounded-2xl cursor-pointer shadow-sm active:scale-95">
           <ImageIcon className="w-6 h-6 text-slate-400" /><span className="font-medium text-sm">Galerie</span>
           <input type="file" accept="image/*" className="hidden" onChange={(e) => ctx.handleFileUpload(e, 'bottle')} />
         </label>
-        <button onClick={() => ctx.setView('manualSearch')} className="flex-1 flex flex-col items-center justify-center space-y-2 bg-white border border-slate-100 text-slate-700 hover:bg-slate-50 p-4 rounded-2xl shadow-sm transition-all active:scale-95">
+        <button onClick={() => ctx.setView('manualSearch')} className="flex-1 flex flex-col items-center justify-center space-y-2 bg-white border border-slate-100 text-slate-700 p-4 rounded-2xl shadow-sm active:scale-95">
           <Search className="w-6 h-6 text-slate-400" /><span className="font-medium text-sm">Recherche</span>
         </button>
       </div>
@@ -338,77 +343,43 @@ const HomeView = ({ ctx }) => (
   </div>
 );
 
-// NOUVELLE VUE : Configuration du Scanner de Menu
-const MenuConfigView = ({ ctx }) => {
+const ManualSearchView = ({ ctx }) => {
+  const [query, setQuery] = useState('');
+  const handleSearch = (e) => { e.preventDefault(); if(query.trim()) ctx.searchWineText(query); };
+  
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20">
       <div className="bg-white pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
-        <div>
-          <h1 className="text-2xl font-serif font-bold text-slate-900">Le bon choix</h1>
-          <p className="text-slate-500 text-xs mt-1 font-medium">Scanner un menu de restaurant</p>
-        </div>
+        <div><h1 className="text-2xl font-serif font-bold text-slate-900">Ajouter un vin</h1><p className="text-slate-500 text-xs mt-1">Recherche mondiale</p></div>
       </div>
-      
-      <div className="p-6 space-y-8 overflow-y-auto">
-        <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex space-x-3 shadow-sm">
-          <Info className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-900 font-medium">Prenez en photo la carte des vins du restaurant, l'IA vous trouvera le Top 3 des meilleurs rapports qualité/prix selon votre plat !</p>
-        </div>
-
-        {/* Choix du plat */}
-        <div className="space-y-4">
-          <h3 className="font-serif text-lg font-bold text-slate-900 flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Que mangez-vous ?</span></h3>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: 'ALL'})} className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${ctx.menuPrefs.food === 'ALL' ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍽️ Peu importe</button>
-            <button onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: 'APERITIF'})} className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${ctx.menuPrefs.food === 'APERITIF' ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥂 Apéro/Tapas</button>
-            <button onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: 'VIANDE_ROUGE'})} className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${ctx.menuPrefs.food === 'VIANDE_ROUGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥩 Viande rouge</button>
-            <button onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: 'VIANDE_BLANCHE'})} className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${ctx.menuPrefs.food === 'VIANDE_BLANCHE' ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍗 Volaille/Porc</button>
-            <button onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: 'POISSON'})} className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${ctx.menuPrefs.food === 'POISSON' ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🐟 Poisson/Mer</button>
-            <button onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: 'FROMAGE'})} className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${ctx.menuPrefs.food === 'FROMAGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🧀 Fromage</button>
+      <div className="p-6">
+        <form onSubmit={handleSearch} className="space-y-4 mb-10">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Ex: Château Margaux 2015" className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-rose-500 shadow-sm text-lg"/>
           </div>
-        </div>
-        
-        {/* Choix du vin */}
-        <div className="space-y-4">
-          <h3 className="font-serif text-lg font-bold text-slate-900 flex items-center space-x-2"><Wine className="w-5 h-5 text-rose-800" /><span>Une préférence ?</span></h3>
-          <div className="flex flex-wrap gap-2">
-            {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(type => (
-              <button key={type} onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, type})} className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${ctx.menuPrefs.type === type ? 'bg-rose-900 text-white border-rose-900 shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                {type === 'ALL' ? 'Laissez faire le sommelier' : type === 'PETILLANT' ? 'Bulles' : type}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        {/* Actions */}
-        <div className="pt-6 space-y-3">
-          <button onClick={() => ctx.startCamera('menu')} className="w-full flex items-center justify-center space-x-2 py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-lg shadow-slate-900/20 active:scale-95 transition-all">
-            <Camera className="w-5 h-5" /><span>Scanner la carte des vins</span>
+          <button type="submit" disabled={!query.trim()} className="w-full py-4 bg-slate-900 text-white rounded-xl font-medium shadow-lg disabled:opacity-50">
+            Rechercher dans la base
           </button>
-          
-          <label className="w-full flex items-center justify-center space-x-2 py-4 bg-white text-slate-700 rounded-2xl font-bold border border-slate-200 active:scale-95 transition-all cursor-pointer">
-            <ImageIcon className="w-5 h-5 text-slate-400" /><span>Ou importer une photo</span>
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => ctx.handleFileUpload(e, 'menu')} />
-          </label>
-        </div>
+        </form>
       </div>
     </div>
   );
 };
 
-// BANQUE DE 40 QUESTIONS POUR LE JEU
+// LA BANQUE DE QUESTIONS ET LA VUE DU JEU DÉDIÉE
 const allQuestions = [
   { q: "Quel cépage donne souvent des arômes de litchi et de rose ?", options: ["Chardonnay", "Gewürztraminer", "Sauvignon Blanc"], ans: "Gewürztraminer" },
   { q: "Quelle région est célèbre pour son 'Vin Jaune' ?", options: ["Bourgogne", "Alsace", "Jura"], ans: "Jura" },
-  { q: "Qu'appelle-t-on la 'Part des Anges' ?", options: ["Le vin évaporé en fût", "Le vin offert au clergé", "Le fond de la bouteille"], ans: "Le vin évaporé en fût" },
+  { q: "Qu'appelle-t-on la 'Part des Anges' ?", options: ["Le vin évaporé", "Le vin offert au clergé", "Le fond de la bouteille"], ans: "Le vin évaporé" },
   { q: "Quel est le cépage rouge emblématique de la Bourgogne ?", options: ["Merlot", "Pinot Noir", "Syrah"], ans: "Pinot Noir" },
   { q: "Comment s'appelle l'art d'assembler différents vins ?", options: ["Le soutirage", "Le coupage", "L'assemblage"], ans: "L'assemblage" },
   { q: "Lequel de ces cépages est blanc ?", options: ["Cabernet Franc", "Viognier", "Gamay"], ans: "Viognier" },
   { q: "Quel vin est traditionnellement muté à l'alcool ?", options: ["Le Porto", "Le Champagne", "Le Beaujolais"], ans: "Le Porto" },
-  { q: "Que signifie 'Blanc de Blancs' pour un Champagne ?", options: ["Fait avec du raisin blanc", "Sans ajout de sucre", "Vieilli en cuve inox"], ans: "Fait avec du raisin blanc" },
+  { q: "Que signifie 'Blanc de Blancs' pour un Champagne ?", options: ["Fait avec du raisin blanc", "Sans sucre", "Vieilli en cuve"], ans: "Fait avec du raisin blanc" },
   { q: "Quel est le grand cépage rouge de la rive droite à Bordeaux ?", options: ["Cabernet Sauvignon", "Merlot", "Malbec"], ans: "Merlot" },
-  { q: "Laquelle de ces maladies attaque la vigne ?", options: ["Le Phylloxéra", "La Rouille", "Le Mildiou Noir"], ans: "Le Phylloxéra" },
+  { q: "Laquelle de ces maladies attaque la vigne ?", options: ["Le Phylloxéra", "La Rouille", "Le Mildiou Noir"], ans: "Le Phylloxéra" }
   { q: "Quelle température est idéale pour servir un grand vin rouge ?", options: ["12-14°C", "16-18°C", "20-22°C"], ans: "16-18°C" },
   { q: "Quel cépage est majoritaire dans un Châteauneuf-du-Pape rouge ?", options: ["Syrah", "Grenache", "Mourvèdre"], ans: "Grenache" },
   { q: "Dans quelle région se trouve l'appellation Sancerre ?", options: ["Vallée de la Loire", "Bordeaux", "Alsace"], ans: "Vallée de la Loire" },
@@ -441,25 +412,87 @@ const allQuestions = [
   { q: "Quel vin accompagne idéalement des huîtres ?", options: ["Chablis", "Bordeaux Rouge", "Côtes de Provence"], ans: "Chablis" }
 ];
 
-const ManualSearchView = ({ ctx }) => {
-  const [query, setQuery] = useState('');
-  const [gameState, setGameState] = useState('idle'); // idle, playing, end
+const QuizView = ({ ctx }) => {
+  const [gameState, setGameState] = useState('idle'); 
   const [currentQuiz, setCurrentQuiz] = useState([]);
   const [qIndex, setQIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState(null); 
 
-  const handleSearch = (e) => { e.preventDefault(); if(query.trim()) ctx.searchWineText(query); };
-  
   const startGame = () => { 
-    // Mélanger les 40 questions et en prendre 4
     const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
     setCurrentQuiz(shuffled.slice(0, 4));
-    setGameState('playing'); 
-    setQIndex(0); 
-    setScore(0); 
-    setFeedback(null); 
+    setGameState('playing'); setQIndex(0); setScore(0); setFeedback(null); 
   };
+
+  const handleAnswer = (option) => {
+    if (feedback) return;
+    const correct = option === currentQuiz[qIndex].ans;
+    if (correct) setScore(s => s + 1);
+    setFeedback(correct ? 'correct' : 'wrong');
+    setTimeout(() => {
+      setFeedback(null);
+      if (qIndex + 1 < currentQuiz.length) setQIndex(i => i + 1);
+      else setGameState('end');
+    }, 1200);
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-slate-50 pb-20">
+      <div className="bg-white pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
+        <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
+        <div><h1 className="text-2xl font-serif font-bold text-slate-900">Le Nez du Sommelier</h1><p className="text-slate-500 text-xs mt-1">Défiez vos connaissances</p></div>
+      </div>
+      <div className="p-6 flex-1 flex flex-col justify-center">
+        <div className="bg-white border border-amber-200 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+          <div className="absolute -right-10 -top-10 w-32 h-32 bg-amber-100 rounded-full mix-blend-multiply opacity-50"></div>
+          
+          {gameState === 'idle' && (
+            <div className="text-center space-y-6 relative z-10 py-4">
+              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto shadow-inner"><Gamepad2 className="w-10 h-10 text-amber-600"/></div>
+              <h3 className="font-serif text-2xl font-bold text-slate-900">Prêt à jouer ?</h3>
+              <p className="text-slate-500 font-medium">4 questions aléatoires pour tester votre palais (virtuel).</p>
+              <button onClick={startGame} className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform text-lg">Démarrer le Quiz</button>
+            </div>
+          )}
+
+          {gameState === 'playing' && currentQuiz.length > 0 && (
+            <div className="space-y-6 relative z-10">
+              <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Question {qIndex + 1}/{currentQuiz.length}</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Score : {score}</span>
+              </div>
+              <p className="font-serif text-xl font-bold text-slate-900 min-h-[80px] leading-snug">{currentQuiz[qIndex].q}</p>
+              <div className="space-y-3">
+                {currentQuiz[qIndex].options.map(opt => {
+                  let btnClass = "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm";
+                  if (feedback && opt === currentQuiz[qIndex].ans) btnClass = "bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/30 shadow-lg scale-[1.02]";
+                  else if (feedback === 'wrong' && opt !== currentQuiz[qIndex].ans) btnClass = "bg-slate-50 border-slate-100 text-slate-400 opacity-50";
+                  return (
+                    <button key={opt} onClick={() => handleAnswer(opt)} className={`w-full p-5 rounded-2xl border-2 font-bold text-left transition-all duration-300 ${btnClass}`}>{opt}</button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {gameState === 'end' && (
+            <div className="text-center space-y-6 relative z-10 py-4">
+              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-inner"><Trophy className="w-10 h-10 text-emerald-600"/></div>
+              <h3 className="font-serif text-3xl font-bold text-slate-900">Terminé !</h3>
+              <p className="text-2xl font-black text-emerald-600">{score} / {currentQuiz.length}</p>
+              <p className="text-slate-600 font-medium pb-4">{score === 4 ? "Un vrai Maître Sommelier ! 🍷" : score >= 2 ? "De très bonnes bases ! 🍇" : "Encore un peu de pratique ! 🥂"}</p>
+              <div className="flex space-x-3">
+                <button onClick={startGame} className="flex-1 py-4 bg-slate-900 text-white font-bold rounded-2xl shadow-md">Rejouer</button>
+                <button onClick={() => ctx.setView('home')} className="flex-1 py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-2xl">Quitter</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
   const handleAnswer = (option) => {
     if (feedback) return;
@@ -655,15 +688,46 @@ const CellarView = ({ ctx }) => {
 
         </div>
         
-        {viewMode === 'shelves' && cellarTab === 'STOCK' && (
-          <div className="mt-4 flex justify-end">
-            <button 
-              onClick={() => { setReorgMode(!reorgMode); setSelectedBottle(null); }} 
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-colors ${reorgMode ? 'bg-rose-600 text-white shadow-rose-600/30' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'}`}
-            >
-              <GripHorizontal className="w-4 h-4" />
-              <span>{reorgMode ? 'Terminer Réorganisation' : 'Réorganiser'}</span>
-            </button>
+        ) : (
+          <div className="space-y-8 mt-4">
+             {Object.entries(groupedByLocation).map(([shelfName, bottles]) => (
+                <div key={shelfName} className="bg-[#2D1B13] rounded-sm shadow-2xl border-[12px] border-[#3E2723] relative">
+                   <div className="absolute -top-6 left-4 bg-amber-100 text-[#3E2723] px-4 py-1 text-xs font-bold uppercase tracking-wider rounded-sm shadow-md border border-amber-900/20 z-10 flex items-center">
+                      <MapPin className="w-3 h-3 mr-1"/> {shelfName}
+                   </div>
+                   
+                   {/* Grille de la cave (Les casiers) */}
+                   <div className="grid grid-cols-4 sm:grid-cols-5 gap-0 bg-black/40 p-2 min-h-[140px]">
+                      {bottles.map(bottle => (
+                         <div 
+                            key={bottle.id} 
+                            onClick={() => {
+                              if (reorgMode) setSelectedBottle(bottle);
+                              else ctx.openExistingWine(bottle, 'cellar');
+                            }} 
+                            className={`relative w-full aspect-[1/3] border border-[#3E2723]/30 bg-black/60 flex items-center justify-center group transition-all cursor-pointer ${reorgMode ? 'hover:bg-rose-900/50' : 'hover:bg-white/10'}`}
+                         >
+                            <img src={bottle.image} className={`w-[80%] h-[90%] object-cover rounded-t-xl rounded-b-sm shadow-2xl transition-all ${reorgMode ? 'animate-pulse scale-95' : 'group-hover:scale-110'}`} />
+                            
+                            <div className="absolute bottom-0 w-full h-1/4 bg-gradient-to-t from-black to-transparent opacity-80"></div>
+                            
+                            {/* Pastille de couleur discrète */}
+                            <div className={`absolute bottom-1 w-2 h-2 rounded-full ${getColorForType(bottle.data.type_simplifie)} shadow-sm border border-white/20`}></div>
+                            
+                            {cellarTab === 'STOCK' && bottle.stock > 1 && (
+                              <span className="absolute -top-2 -right-2 bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md z-10 border border-[#3E2723]">x{bottle.stock}</span>
+                            )}
+                         </div>
+                      ))}
+                      
+                      {/* Trous vides pour le style */}
+                      {Array.from({length: Math.max(0, 4 - (bottles.length % 4))}).map((_, i) => (
+                        <div key={`empty-${i}`} className="w-full aspect-[1/3] border border-[#3E2723]/30 bg-black/20 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]"></div>
+                      ))}
+                   </div>
+                   <div className="h-4 w-full bg-[#3E2723] shadow-[0_-5px_15px_rgba(0,0,0,0.5)]"></div>
+                </div>
+             ))}
           </div>
         )}
       </div>
@@ -906,22 +970,58 @@ const AccountView = ({ ctx }) => {
           </div>
         </div>
 
-        {/* DASHBOARD CARD COMPLET */}
+        {/* DASHBOARD CARD COMPLET AVEC BOURSE */}
         <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
-          <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center mb-5"><PieChart className="w-5 h-5 mr-2 text-indigo-500"/> Ma Cave</h3>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center"><PieChart className="w-5 h-5 mr-2 text-indigo-500"/> Ma Cave</h3>
+            <span className="text-xs font-bold bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-100 flex items-center"><TrendingUp className="w-3 h-3 mr-1"/> +4.2% ce mois</span>
+          </div>
           
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 relative overflow-hidden">
               <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Bouteilles</p>
               <p className="text-3xl font-bold text-slate-800">{totalBottles}</p>
+              <Wine className="absolute -right-4 -bottom-4 w-20 h-20 text-slate-200/50" />
             </div>
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Valeur Estimée</p>
+            <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 relative overflow-hidden">
+              <p className="text-[10px] text-emerald-600/70 uppercase font-bold tracking-wider mb-1">Valeur Estimée</p>
               <p className="text-3xl font-bold text-emerald-700">{totalValue.toFixed(0)}€</p>
+              <Euro className="absolute -right-4 -bottom-4 w-20 h-20 text-emerald-200/50" />
             </div>
           </div>
 
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Répartition</p>
+          {/* LE GRAPHIQUE BOURSIER (SIMULATION) */}
+          <div className="mb-8 border border-slate-100 rounded-2xl p-4 bg-slate-50/50">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center"><BarChart3 className="w-4 h-4 mr-1 text-indigo-400"/> Évolution de la valeur</h4>
+            </div>
+            
+            <div className="h-32 flex items-end justify-between space-x-2 pt-2">
+              {[0.82, 0.85, 0.89, 0.94, 0.97, 1].map((multiplier, idx) => {
+                const isCurrentMonth = idx === 5;
+                const barHeight = Math.max(10, multiplier * 100);
+                const months = ['Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+                
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center group relative">
+                    {/* Tooltip */}
+                    <div className="absolute -top-8 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                      {(totalValue * multiplier).toFixed(0)}€
+                    </div>
+                    {/* Barre */}
+                    <div 
+                      style={{ height: `${barHeight}%` }} 
+                      className={`w-full rounded-t-md transition-all duration-1000 ${isCurrentMonth ? 'bg-gradient-to-t from-emerald-400 to-emerald-500 shadow-[0_0_15px_rgba(52,211,153,0.4)]' : 'bg-slate-200 hover:bg-slate-300'}`}
+                    ></div>
+                    {/* Mois */}
+                    <span className={`text-[9px] mt-2 font-bold uppercase ${isCurrentMonth ? 'text-emerald-600' : 'text-slate-400'}`}>{months[idx]}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Répartition par type</p>
           <div className="h-4 w-full flex rounded-full overflow-hidden mb-4 shadow-inner">
             {red > 0 && <div style={{width: `${getPct(red)}%`}} className="bg-rose-800 h-full transition-all"></div>}
             {white > 0 && <div style={{width: `${getPct(white)}%`}} className="bg-amber-100 h-full transition-all border-r border-slate-200"></div>}
@@ -992,21 +1092,42 @@ const AccountView = ({ ctx }) => {
 };
 
 const CameraView = ({ ctx }) => (
-  <div className="relative h-full w-full bg-black flex flex-col">
-    <button onClick={() => { ctx.stopCamera(); ctx.setView('home'); }} className="absolute top-6 left-6 z-10 p-3 bg-black/50 backdrop-blur text-white rounded-full"><ChevronLeft className="w-6 h-6" /></button>
-    <div className="relative flex-1 overflow-hidden flex items-center justify-center">
-      <video ref={ctx.videoRef} autoPlay playsInline className="min-w-full min-h-full object-cover" />
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-        <div className="w-3/4 h-1/2 border-2 border-white/50 rounded-3xl flex flex-col justify-between p-6 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]">
-          <div className="flex justify-between"><div className="w-10 h-10 border-t-4 border-l-4 border-rose-500 rounded-tl-xl"></div><div className="w-10 h-10 border-t-4 border-r-4 border-rose-500 rounded-tr-xl"></div></div>
-          <ScanLine className="w-16 h-16 text-white/40 self-center animate-pulse" />
-          <div className="flex justify-between"><div className="w-10 h-10 border-b-4 border-l-4 border-rose-500 rounded-bl-xl"></div><div className="w-10 h-10 border-b-4 border-r-4 border-rose-500 rounded-br-xl"></div></div>
-        </div>
+  <div className="relative h-full w-full bg-black flex flex-col overflow-hidden">
+    <button onClick={() => { ctx.stopCamera(); ctx.setView('home'); }} className="absolute top-12 left-6 z-20 p-3 bg-black/40 backdrop-blur-md text-white rounded-full hover:bg-black/60 transition-colors border border-white/10"><ChevronLeft className="w-6 h-6" /></button>
+    
+    {/* OVERLAY AR */}
+    <div className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center">
+      <div className="absolute top-24 flex items-center space-x-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+        <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
+        <span className="text-white text-xs font-bold uppercase tracking-widest opacity-80">Analyse IA Active</span>
+      </div>
+
+      {/* Cadre de visée animé */}
+      <div className="relative w-4/5 h-1/2 mt-10">
+        <div className="absolute inset-0 border-2 border-white/20 rounded-3xl shadow-[0_0_0_9999px_rgba(0,0,0,0.6)]"></div>
+        <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-rose-500 rounded-tl-3xl"></div>
+        <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-rose-500 rounded-tr-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-rose-500 rounded-bl-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-rose-500 rounded-br-3xl"></div>
+        
+        <div className="absolute top-1/2 left-0 w-full h-[1px] bg-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
+        <Target className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 text-white/20 animate-[spin_4s_linear_infinite]" />
+      </div>
+
+      {/* Données flottantes */}
+      <div className="absolute bottom-40 flex space-x-6 text-white/60 text-[10px] font-mono uppercase tracking-widest">
+        <div className="flex flex-col items-center"><ScanLine className="w-4 h-4 mb-1 text-emerald-400"/><span>Forme</span></div>
+        <div className="flex flex-col items-center"><Focus className="w-4 h-4 mb-1 text-amber-400 animate-pulse"/><span>Étiquette</span></div>
       </div>
     </div>
-    <div className="h-32 bg-black pb-8 pt-4 flex items-center justify-center">
-      <button onClick={ctx.capturePhoto} className="w-20 h-20 bg-white rounded-full border-4 border-slate-300 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.3)] active:scale-90 transition-transform">
-        <div className="w-16 h-16 bg-white rounded-full border-2 border-rose-500"></div>
+
+    <div className="relative flex-1">
+      <video ref={ctx.videoRef} autoPlay playsInline className="min-w-full min-h-full object-cover" />
+    </div>
+    
+    <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-black via-black/80 to-transparent z-20 flex items-center justify-center pb-8">
+      <button onClick={ctx.capturePhoto} className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full border-2 border-white/30 flex items-center justify-center active:scale-90 transition-transform hover:bg-white/20 group">
+        <div className="w-14 h-14 bg-white rounded-full group-hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.5)]"></div>
       </button>
     </div>
     <canvas ref={ctx.canvasRef} className="hidden" />
