@@ -1917,8 +1917,6 @@ export default function App() {
     }
   };
 
-  const SYSTEM_PROMPT = `Expert Sommelier. Réponds UNIQUEMENT en JSON. Format: {"nom":"","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
-
   // NOUVEAU : LE MOTEUR D'ANALYSE DE FACTURES
   const analyzeReceipt = async (base64Img) => {
     setView('analyzing');
