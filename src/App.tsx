@@ -1784,8 +1784,12 @@ const ResultsView = ({ ctx }) => {
               <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} onBlur={() => ctx.genericUpdate(scanIdToUse, { notes: tempNotes })} placeholder="Arômes ressentis, occasion, personnes présentes..." className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-sm font-medium text-slate-700 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:bg-white transition-all placeholder-slate-400" />
             </div>
 
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-              <div className="flex items-center space-x-2 mb-4"><Tag className="w-5 h-5 text-emerald-600" /><h3 className="text-lg font-semibold text-slate-800">Tarif Marchand</h3></div>
+           {/* --- BLOC TARIF MARCHAND --- */}
+           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <Tag className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-lg font-semibold text-slate-800">Tarif Marchand</h3>
+              </div>
               <div className="flex items-end space-x-2 mb-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 w-max">
                 <div className="relative flex items-center">
                   <input type="number" value={tempPrix} onChange={(e) => setTempPrix(e.target.value)} onBlur={() => ctx.updateDataField(scanIdToUse, 'prix_unitaire_nombre', Number(tempPrix))} className="text-4xl font-bold text-slate-900 bg-white border border-slate-200 rounded-xl w-24 outline-none focus:ring-2 focus:ring-emerald-200 text-center shadow-sm py-1" />
@@ -1794,10 +1798,15 @@ const ResultsView = ({ ctx }) => {
                 <span className="text-4xl font-bold text-slate-900 mb-1">€</span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-2">/ Bouteille</span>
               </div>
+              
+              {/* Le bouton Google qui avait disparu est de retour ! */}
+              <a href={`https://www.google.com/search?q=${encodeURIComponent('prix vin ' + nom + ' ' + tempAnnee)}&tbm=shop`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center space-x-2 py-4 mt-6 bg-slate-900 text-white rounded-2xl font-bold shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-95">
+                <Search className="w-5 h-5" /><span>Chercher le prix exact sur le web</span>
+              </a>
             </div>
             
-          {/* --- NOUVELLE SECTION AFFILIATION (100% ACCESSOIRES) --- */}
-           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mt-6">
+            {/* --- NOUVELLE SECTION AFFILIATION (100% ACCESSOIRES) --- */}
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mt-6">
               <div className="p-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                 <div className="flex items-center space-x-2">
                   <ShoppingCart className="w-5 h-5 text-slate-400" />
@@ -1807,7 +1816,7 @@ const ResultsView = ({ ctx }) => {
               </div>
               
               <div className="p-5 space-y-4">
-                {/* Lien 1 : Accessoire spécifique au type de vin (Verres, Carafe...) */}
+                {/* Lien 1 : Accessoire spécifique */}
                 <a 
                   href={getAmazonAffiliateLink(getRecommendedAccessory(tempType).search)}
                   target="_blank" rel="noopener noreferrer"
@@ -1823,7 +1832,7 @@ const ResultsView = ({ ctx }) => {
                   <ChevronRight className="w-5 h-5 text-white/50" />
                 </a>
 
-                {/* Lien 2 : Un accessoire Premium Générique (Ex: Conservation) */}
+                {/* Lien 2 : Accessoire Premium */}
                 <a 
                   href={getAmazonAffiliateLink("Coravin système de préservation du vin")}
                   target="_blank" rel="noopener noreferrer"
@@ -1841,10 +1850,13 @@ const ResultsView = ({ ctx }) => {
               </div>
               <p className="text-[9px] text-slate-400 text-center pb-4 px-10 italic">En tant que partenaire Amazon, VinoScan peut percevoir une commission sur les achats éligibles.</p>
             </div>
+
+            {/* --- BOUTONS D'ACTION (Historique / Cave) --- */}
             <div className="flex flex-col space-y-3 pt-4">
                {currentScanObj && currentScanObj.in_history !== false && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'history'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-white text-slate-500 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200"><EyeOff className="w-5 h-5" /><span>Retirer de l'historique</span></button>}
                {currentScanObj && currentScanObj.stock > 0 && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'cellar'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 transition-colors border border-red-100"><Archive className="w-5 h-5" /><span>Sortir de la cave</span></button>}
             </div>
+
           </div>
         )}
 
