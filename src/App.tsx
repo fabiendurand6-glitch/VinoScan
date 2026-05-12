@@ -1817,18 +1817,23 @@ export default function App() {
     }
   };
 
+  // 1. ON RÉPARE L'AIGUILLAGE DE L'APPAREIL PHOTO
   const capturePhoto = async () => {
     if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current; canvas.width = videoRef.current.videoWidth; canvas.height = videoRef.current.videoHeight;
+      const canvas = canvasRef.current; 
+      canvas.width = videoRef.current.videoWidth; 
+      canvas.height = videoRef.current.videoHeight;
       canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
       stopCamera();
       const compressedImg = await compressImage(dataUrl); 
       setImageSrc(compressedImg);
 
-      // Aiguillage IA selon ce qu'on scanne
+      // Le fameux aiguillage corrigé :
       if (cameraMode === 'receipt') {
         analyzeReceipt(compressedImg);
+      } else if (cameraMode === 'menu') {
+        analyzeMenu(compressedImg); // 👈 Maintenant, il part au bon endroit !
       } else {
         analyzeImage(compressedImg);
       }
@@ -1842,9 +1847,73 @@ export default function App() {
       reader.onloadend = async () => { 
         const compressedImg = await compressImage(reader.result); 
         setImageSrc(compressedImg); 
+        // Par défaut depuis la galerie, on analyse une bouteille
         analyzeImage(compressedImg); 
       }; 
       reader.readAsDataURL(file); 
+    }
+  };
+
+  const SYSTEM_PROMPT = `Expert Sommelier. Réponds UNIQUEMENT en JSON. Format: {"nom":"","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
+
+  // 2. LE NOUVEAU CERVEAU "SPÉCIAL MENU DE RESTAURANT"
+  const analyzeMenu = async (base64Img) => {
+    setView('analyzing');
+    try {
+      const b64Data = base64Img.split(',')[1];
+      
+      // On traduit la préférence technique en langage naturel pour l'IA
+      let foodPrefText = "un plat surprise";
+      if (menuPrefs.food === 'VIANDE_ROUGE') foodPrefText = "de la viande rouge";
+      else if (menuPrefs.food === 'VIANDE_BLANCHE') foodPrefText = "de la viande blanche ou volaille";
+      else if (menuPrefs.food === 'POISSON') foodPrefText = "du poisson ou fruits de mer";
+      else if (menuPrefs.food === 'FROMAGE') foodPrefText = "un plateau de fromages";
+      else if (menuPrefs.food === 'APERITIF') foodPrefText = "des tapas pour l'apéritif";
+
+      const prompt = `Tu es un Sommelier expert. Voici une photo de carte des vins d'un restaurant.
+      Ce soir, l'utilisateur a prévu de manger : ${foodPrefText}.
+      Analyse la carte et choisis le MEILLEUR vin PARMI CEUX PRÉSENTS SUR L'IMAGE pour sublimer ce plat.
+      
+      Réponds UNIQUEMENT en JSON strict avec ce format :
+      {
+        "nom": "Le nom exact du vin tel qu'écrit sur la carte",
+        "type_simplifie": "ROUGE|BLANC|ROSE|PETILLANT",
+        "annee": "L'année (ou N.M)",
+        "region": "La région",
+        "description": "Explique pourquoi ce vin est incroyable avec ${foodPrefText} (max 20 mots)",
+        "prix_unitaire_nombre": LE_PRIX_INDIQUÉ_SUR_LA_CARTE,
+        "accord_parfait": "Idéal avec ${foodPrefText}"
+      }`;
+
+      const result = await callGemini(prompt, b64Data);
+      const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      const parsedData = normalizeData(extractJSON(text));
+      
+      setAnalysisResult(parsedData);
+      const finalImage = getGenericImageForType(parsedData.type_simplifie);
+      setImageSrc(finalImage);
+
+      const tempId = 'temp_' + Date.now();
+      const newScanObj = {
+        id: tempId,
+        image: finalImage,
+        data: parsedData,
+        stock: 0, // Stock à 0 car c'est un vin bu au restaurant, on ne l'a pas en cave !
+        in_history: true,
+        wishlist: false,
+        location: 'Dégusté au restaurant',
+        timestamp: Date.now()
+      };
+
+      setScanHistory(prev => [newScanObj, ...prev]);
+      
+      // Permet à la vue Résultat de cibler le bon vin
+      if (typeof setCurrentScanId === 'function') setCurrentScanId(tempId);
+      
+      setView('results');
+    } catch(err) {
+      setErrorMsg("Erreur lors de la lecture du menu. Vérifiez la netteté de la photo.");
+      setView('error');
     }
   };
 
