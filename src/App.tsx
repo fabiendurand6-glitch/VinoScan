@@ -1860,10 +1860,65 @@ const ResultsView = ({ ctx }) => {
   );
 };
 
+const PaywallView = ({ ctx }) => (
+  <div className="flex flex-col h-full bg-[#1A100C] text-white pb-20 overflow-y-auto relative z-[60]">
+    {/* Effets de lumière luxueux en arrière-plan */}
+    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full mix-blend-screen filter blur-3xl pointer-events-none"></div>
+    <div className="absolute bottom-0 left-0 w-64 h-64 bg-rose-500/10 rounded-full mix-blend-screen filter blur-3xl pointer-events-none"></div>
+    
+    {/* Bouton fermer */}
+    <button onClick={() => ctx.setView('home')} className="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white/70 hover:bg-white/20 transition-colors z-20">
+      <X className="w-6 h-6"/>
+    </button>
+    
+    <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 mt-8">
+      <div className="w-24 h-24 bg-gradient-to-br from-amber-300 to-amber-600 rounded-3xl flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(245,158,11,0.3)] transform rotate-3 border border-amber-200">
+        <Sparkles className="w-12 h-12 text-amber-950" />
+      </div>
+      
+      <h2 className="text-4xl font-serif font-bold text-center mb-4">
+        <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">VinoScan Pro</span>
+      </h2>
+      <p className="text-amber-100/70 text-center mb-10 text-sm font-medium px-4 leading-relaxed">
+        Vous avez atteint votre limite de scans gratuits. Passez à la vitesse supérieure pour profiter de l'expérience ultime.
+      </p>
+      
+      {/* Liste des avantages */}
+      <div className="w-full space-y-4 mb-10">
+        <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+          <div className="p-2 bg-amber-500/20 rounded-xl"><Camera className="w-6 h-6 text-amber-400"/></div>
+          <div><h4 className="font-bold text-white text-lg">Scans Illimités</h4><p className="text-xs text-white/50">Ne soyez plus jamais bloqué</p></div>
+        </div>
+        <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+          <div className="p-2 bg-amber-500/20 rounded-xl"><Receipt className="w-6 h-6 text-amber-400"/></div>
+          <div><h4 className="font-bold text-white text-lg">Import de Factures</h4><p className="text-xs text-white/50">Ajoutez des dizaines de vins d'un coup</p></div>
+        </div>
+        <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+          <div className="p-2 bg-amber-500/20 rounded-xl"><Wine className="w-6 h-6 text-amber-400"/></div>
+          <div><h4 className="font-bold text-white text-lg">Sommelier Privé</h4><p className="text-xs text-white/50">Accords mets & vins d'exception</p></div>
+        </div>
+      </div>
+      
+      {/* Tarification */}
+      <div className="text-center mb-8">
+        <p className="text-4xl font-black text-white mb-1">3,99€ <span className="text-sm font-medium text-white/50">/ mois</span></p>
+        <p className="text-xs text-amber-400/80 font-bold uppercase tracking-wider">Sans engagement</p>
+      </div>
+      
+      {/* Bouton d'action (Simulé pour l'instant) */}
+      <button onClick={() => ctx.showToast("Bientôt ! Intégration Stripe en cours...")} className="w-full py-5 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 font-black text-lg rounded-2xl shadow-lg shadow-amber-600/30 active:scale-95 transition-all">
+        Débloquer VinoScan Pro
+      </button>
+    </div>
+  </div>
+);
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   
+  const [userProfile, setUserProfile] = useState({ is_premium: false, scans_this_month: 0 });
+
   const [view, setView] = useState('home'); 
   const [previousView, setPreviousView] = useState('home');
   const [imageSrc, setImageSrc] = useState(null);
@@ -1905,12 +1960,37 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
     if (!user) {
       setScanHistory([]);
+      setUserProfile({ is_premium: false, scans_this_month: 0 });
       return;
     }
 
+    // 1. Écoute du profil (Compteur et Premium)
+    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+    const unsubscribeProfile = onSnapshot(profileRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        const currentMonth = new Date().getMonth();
+        
+        // Remise à zéro automatique si on change de mois
+        if (data.last_reset_month !== currentMonth && !data.is_premium) {
+          updateDoc(profileRef, { scans_this_month: 0, last_reset_month: currentMonth });
+        } else {
+          setUserProfile(data);
+        }
+      } else {
+        // Initialisation du profil pour un nouvel utilisateur
+        setDoc(profileRef, { 
+          is_premium: false, 
+          scans_this_month: 0, 
+          last_reset_month: new Date().getMonth() 
+        });
+      }
+    });
+
+    // 2. Écoute de l'historique des scans (Ton code intact)
     const scansRef = collection(db, 'artifacts', appId, 'users', user.uid, 'scans');
     const unsubscribeDb = onSnapshot(scansRef, 
       (snapshot) => {
@@ -1936,13 +2016,28 @@ export default function App() {
       (error) => console.error("Erreur DB:", error)
     );
 
-    return () => unsubscribeDb();
+    return () => { unsubscribeDb(); unsubscribeProfile(); };
   }, [user]);
 
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
   };
+  // --- SYSTÈME FREEMIUM ---
+  const canUserScan = () => {
+    if (userProfile.is_premium) return true; // Les Pro passent en illimité
+    if (userProfile.scans_this_month < 5) return true; // Les gratuits ont 5 essais
+    return false; // Bloqué !
+  };
+
+  const incrementScanCount = async () => {
+    if (userProfile.is_premium || !user) return;
+    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
+    const newCount = (userProfile.scans_this_month || 0) + 1;
+    await updateDoc(profileRef, { scans_this_month: newCount });
+    setUserProfile(prev => ({ ...prev, scans_this_month: newCount }));
+  };
+  // -------------------------
 
   const startCamera = async (mode = 'bottle') => {
     try {
@@ -2005,11 +2100,16 @@ export default function App() {
 
   // 2. LE NOUVEAU CERVEAU "SPÉCIAL MENU DE RESTAURANT"
   const analyzeMenu = async (base64Img) => {
+    // 1. Le vigile vérifie
+    if (!canUserScan()) {
+      setView('paywall');
+      return;
+    }
+
     setView('analyzing');
     try {
       const b64Data = base64Img.split(',')[1];
       
-      // On traduit la préférence technique en langage naturel pour l'IA
       let foodPrefText = "un plat surprise";
       if (menuPrefs.food === 'VIANDE_ROUGE') foodPrefText = "de la viande rouge";
       else if (menuPrefs.food === 'VIANDE_BLANCHE') foodPrefText = "de la viande blanche ou volaille";
@@ -2036,6 +2136,13 @@ export default function App() {
       const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
       const parsedData = normalizeData(extractJSON(text));
       
+      // SÉCURITÉ : Si aucun vin n'est trouvé, on ne compte pas !
+      if (!parsedData || !parsedData.nom || parsedData.nom === "Vin inconnu") {
+        setErrorMsg("Impossible de lire la carte des vins. Assurez-vous que le texte est lisible. Cet essai ne vous a pas été décompté.");
+        setView('error');
+        return;
+      }
+
       setAnalysisResult(parsedData);
       const finalImage = getGenericImageForType(parsedData.type_simplifie);
       setImageSrc(finalImage);
@@ -2045,7 +2152,7 @@ export default function App() {
         id: tempId,
         image: finalImage,
         data: parsedData,
-        stock: 0, // Stock à 0 car c'est un vin bu au restaurant, on ne l'a pas en cave !
+        stock: 0,
         in_history: true,
         wishlist: false,
         location: 'Dégusté au restaurant',
@@ -2053,19 +2160,27 @@ export default function App() {
       };
 
       setScanHistory(prev => [newScanObj, ...prev]);
-      
-      // Permet à la vue Résultat de cibler le bon vin
       if (typeof setCurrentScanId === 'function') setCurrentScanId(tempId);
       
       setView('results');
+
+      // 2. SUCCÈS : on incrémente le compteur
+      await incrementScanCount();
+
     } catch(err) {
-      setErrorMsg("Erreur lors de la lecture du menu. Vérifiez la netteté de la photo.");
+      setErrorMsg("Erreur lors de la lecture du menu. Vérifiez la netteté de la photo. Cet essai n'a pas été décompté.");
       setView('error');
     }
   };
 
   // NOUVEAU : LE MOTEUR D'ANALYSE DE FACTURES
   const analyzeReceipt = async (base64Img) => {
+    // 1. Le vigile vérifie
+    if (!canUserScan()) {
+      setView('paywall');
+      return;
+    }
+
     setView('analyzing');
     try {
       const b64Data = base64Img.split(',')[1];
@@ -2077,10 +2192,11 @@ export default function App() {
       let text = result.candidates?.[0]?.content?.parts?.[0]?.text;
       let parsedArr = extractJSON(text);
 
+      // SÉCURITÉ : Si aucun vin n'est détecté sur le ticket, on ne compte pas !
       if (!Array.isArray(parsedArr) || parsedArr.length === 0) {
-        setErrorMsg("Aucun vin trouvé sur cette facture.");
+        setErrorMsg("Aucun vin trouvé sur cette facture. Assurez-vous que l'image est nette. Cet essai ne vous a pas été décompté.");
         setView('error');
-        return;
+        return; 
       }
 
       let newScans = [];
@@ -2101,9 +2217,13 @@ export default function App() {
 
       setScanHistory(prev => [...newScans, ...prev]);
       showToast(`${newScans.length} vins ajoutés à la cave !`);
-      setView('cellar'); // Redirige directement vers la cave pour voir l'import masssif
+      setView('cellar');
+
+      // 2. SUCCÈS : on incrémente le compteur
+      await incrementScanCount();
+
     } catch(err) {
-      setErrorMsg("Erreur de lecture de la facture. Assurez-vous que l'image est nette.");
+      setErrorMsg("Erreur de lecture de la facture. Assurez-vous que l'image est nette. Cet essai n'a pas été décompté.");
       setView('error');
     }
   };
@@ -2145,25 +2265,30 @@ export default function App() {
   };
 
   const analyzeImage = async (base64Img) => {
+    // 1. Le vigile vérifie le compteur
+    if (!canUserScan()) {
+      setView('paywall'); // Bientôt on affichera l'écran d'abonnement
+      return;
+    }
+
     setView('analyzing');
     try {
       const b64Data = base64Img.split(',')[1];
       
-      // 1. Identification rapide
+      // 2. Identification rapide
       const firstCall = await callGemini(
         "Identifie le vin sur cette photo. Si ce n'est pas une bouteille de vin ou une étiquette lisible, réponds {\"nom\": \"INCONNU\"}. Sinon réponds {\"nom\": \"NOM_DU_VIN\"}", 
         b64Data
       );
       
-      // On extrait et on parse proprement la réponse de l'IA
       const firstText = firstCall.candidates?.[0]?.content?.parts?.[0]?.text;
       const identified = extractJSON(firstText);
       
-      // Sécurité Anti-Gaspillage corrigée
+      // 3. LA SÉCURITÉ FREEMIUM : Si l'IA ne reconnaît rien, on bloque et on NE COMPTE PAS.
       if (!identified || !identified.nom || identified.nom === 'INCONNU') {
-        setErrorMsg("Le sommelier n'a pas reconnu de bouteille. Assurez-vous que l'étiquette est bien visible.");
+        setErrorMsg("Le sommelier n'a pas reconnu de bouteille. Assurez-vous que l'étiquette est bien visible. Cet essai ne vous a pas été décompté.");
         setView('error');
-        return; 
+        return; // 👈 Le "return" stoppe la fonction ici, donc on n'atteint jamais le +1 en bas !
       }
       
       let finalDataText = "";
@@ -2176,14 +2301,18 @@ export default function App() {
         finalDataObj = extractJSON(finalDataText);
         await saveToGlobalCache(finalDataObj.nom, finalDataObj);
       } else {
-        // Si en cache, on le re-transforme en texte pour processAIResult
+        // Si en cache, on réutilise
         finalDataText = JSON.stringify(finalDataObj);
       }
       
       await processAIResult(finalDataText, base64Img);
+      
+      // 4. SUCCÈS : Le vin a été trouvé, on ajoute +1 au compteur !
+      await incrementScanCount();
+
     } catch (err) {
       console.error(err);
-      setErrorMsg(`Erreur technique : ${err.message}`); // 👈 On affiche le vrai message !
+      setErrorMsg(`Erreur technique : ${err.message}`);
       setView('error');
     }
   };
@@ -2398,6 +2527,7 @@ export default function App() {
     <ErrorBoundary onReset={() => setView('home')}>
       <div className="w-full max-w-md mx-auto h-[100dvh] bg-white sm:border-x sm:border-slate-200 overflow-hidden relative shadow-2xl text-slate-900 font-sans">
         {view === 'home' && <HomeView ctx={ctx} />}
+        {view === 'paywall' && <PaywallView ctx={ctx} />}
         {view === 'manualSearch' && <ManualSearchView ctx={ctx} />}
         {view === 'quiz' && <QuizView ctx={ctx} />}
         {view === 'menuConfig' && <MenuConfigView ctx={ctx} />}
