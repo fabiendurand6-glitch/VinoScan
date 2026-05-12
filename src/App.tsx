@@ -1797,7 +1797,7 @@ const ResultsView = ({ ctx }) => {
             </div>
             
           {/* --- NOUVELLE SECTION AFFILIATION (100% ACCESSOIRES) --- */}
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mt-6">
+           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mt-6">
               <div className="p-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                 <div className="flex items-center space-x-2">
                   <ShoppingCart className="w-5 h-5 text-slate-400" />
