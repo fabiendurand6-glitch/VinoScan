@@ -7,7 +7,7 @@ import {
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
 import { 
-  getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut
+  getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInWithCustomToken
 } from 'firebase/auth';
 import { 
   getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc 
@@ -2037,28 +2037,6 @@ export default function App() {
     } catch (err) {
       console.error(err);
       setErrorMsg(`Erreur technique : ${err.message}`); // 👈 On affiche le vrai message !
-      setView('error');
-    }
-  };
-
-  const analyzeMenu = async (base64Img) => {
-    setView('analyzing');
-    setPreviousView('menuConfig');
-    try {
-      const b64Data = base64Img.split(',')[1];
-      const prompt = `Trouve les 3 meilleurs vins sur cette carte. Budget: ${menuPrefs.food}. 
-      Réponds en JSON avec une propriété "vins" (tableau). 
-      Structure par vin : ${SYSTEM_PROMPT}`; // Changement ici
-
-      const result = await callGemini(prompt, b64Data);
-      let parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
-      let vins = parsed.vins || (Array.isArray(parsed) ? parsed : []);
-      
-      const normalizedVins = vins.map(v => normalizeData(v));
-      setRecommendationList(normalizedVins);
-      setView('recommendationList');
-    } catch (err) {
-      setErrorMsg(err.message);
       setView('error');
     }
   };
