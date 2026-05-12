@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe, X, Trophy, TrendingUp, BarChart3, Target, Focus 
+  Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe, X, Trophy, TrendingUp, BarChart3, Target, Focus, Settings, Trash2
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -976,7 +976,7 @@ const AccountView = ({ ctx }) => {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // Statistiques globales
+  // Statistiques globales (Sécurisées)
   const historyItems = ctx.scanHistory.filter(i => i.in_history !== false);
   const historyLen = historyItems.length;
   const itemsInStock = ctx.scanHistory.filter(i => i.stock > 0);
@@ -995,7 +995,9 @@ const AccountView = ({ ctx }) => {
   };
   const level = calculateLevel(historyLen);
 
-  const getCount = (r) => ctx.scanHistory.filter(i => i.data?.region?.toLowerCase().includes(r)).length;
+  // Bouclier anti-crash : On force la région en String quoi qu'il arrive
+  const getCount = (r) => ctx.scanHistory.filter(i => String(i.data?.region || '').toLowerCase().includes(r)).length;
+  
   const collectionBadges = [
     { id: 'bx', name: 'Baron de Bordeaux', req: 3, count: getCount('bordeaux'), icon: '🍷' },
     { id: 'bg', name: 'Duc de Bourgogne', req: 3, count: getCount('bourgogne'), icon: '🍇' },
@@ -1007,7 +1009,6 @@ const AccountView = ({ ctx }) => {
     { id: 'pr', name: 'Le Grand Cru', req: 3, count: ctx.scanHistory.filter(i => i.data?.prix_unitaire_nombre >= 50).length, icon: '💎' }
   ];
 
-  // Actions
   const handleAuth = async (e) => {
     e.preventDefault();
     setAuthError('');
@@ -1035,7 +1036,6 @@ const AccountView = ({ ctx }) => {
     if(ctx.showToast) ctx.showToast("Fonction d'export bientôt disponible !");
   };
 
-  // --- VUE NON CONNECTÉE ---
   if (!ctx.user || ctx.user.isAnonymous) {
     return (
       <div className="flex flex-col h-full bg-[#f8f5f2] pb-20 overflow-y-auto p-6 relative">
@@ -1057,11 +1057,8 @@ const AccountView = ({ ctx }) => {
     );
   }
 
-  // --- VUE CONNECTÉE (TABLEAU DE BORD PREMIUM) ---
   return (
     <div className="flex flex-col h-full bg-[#f8f5f2] pb-20 overflow-y-auto relative">
-      
-      {/* EN-TÊTE */}
       <div className="bg-white pt-12 pb-6 px-6 shadow-sm border-b border-slate-200 flex justify-between items-center sticky top-0 z-10">
         <div>
           <h1 className="text-3xl font-serif font-bold text-slate-900">Tableau de Bord</h1>
@@ -1073,13 +1070,10 @@ const AccountView = ({ ctx }) => {
       </div>
 
       <div className="p-5 space-y-6">
-        
-        {/* CARTE NIVEAU & BADGES */}
         <div onClick={() => setShowBadges(true)} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="absolute top-6 right-6 text-slate-300 group-hover:text-amber-500 transition-colors"><ChevronRight className="w-6 h-6"/></div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Votre Profil Œnologique</p>
           <h3 className={`font-serif text-2xl font-bold ${level.color} mb-4`}>{level.name}</h3>
-          
           <div className="flex justify-between items-end mb-2">
             <span className="text-sm font-bold text-slate-700">{historyLen} vins découverts</span>
             <span className="text-xs font-bold text-slate-400">Prochain palier : {level.req === 50 ? 'Max' : (level.req === 0 ? 5 : (level.req === 5 ? 20 : 50))}</span>
@@ -1089,15 +1083,12 @@ const AccountView = ({ ctx }) => {
           </div>
         </div>
 
-        {/* CARTE STATISTIQUES FINANCIÈRES (DARK MODE PREMIUM) */}
         <div className="bg-[#1A100C] rounded-3xl p-6 text-white shadow-xl shadow-slate-900/10 relative overflow-hidden border border-[#2D1B13]">
           <div className="absolute top-0 right-0 w-40 h-40 bg-[#3A2318] rounded-full mix-blend-screen filter blur-3xl opacity-50"></div>
-          
           <div className="flex items-center space-x-3 mb-6 relative z-10">
             <div className="p-2 bg-amber-500/20 rounded-xl border border-amber-500/30"><PieChart className="w-5 h-5 text-amber-400"/></div>
             <h3 className="font-serif text-xl font-bold text-amber-50">Valeur & Contenu</h3>
           </div>
-          
           <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
             <div className="bg-white/5 backdrop-blur-sm p-5 rounded-2xl border border-white/10">
               <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">En Cave</p>
@@ -1108,19 +1099,14 @@ const AccountView = ({ ctx }) => {
               <p className="text-4xl font-bold text-emerald-400">{totalValue.toFixed(0)}€</p>
             </div>
           </div>
-
           <div className="relative z-10">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Répartition de la cave</p>
-            
-            {/* Jauge de répartition */}
             <div className="h-3 w-full flex rounded-full overflow-hidden mb-5 bg-black/50 shadow-inner">
               {countType('ROUGE') > 0 && <div style={{width: `${getPct(countType('ROUGE'))}%`}} className="bg-rose-600 h-full"></div>}
               {countType('BLANC') > 0 && <div style={{width: `${getPct(countType('BLANC'))}%`}} className="bg-amber-200 h-full border-l border-black/20"></div>}
               {countType('ROSE') > 0 && <div style={{width: `${getPct(countType('ROSE'))}%`}} className="bg-pink-400 h-full border-l border-black/20"></div>}
               {countType('PETILLANT') > 0 && <div style={{width: `${getPct(countType('PETILLANT'))}%`}} className="bg-yellow-500 h-full border-l border-black/20"></div>}
             </div>
-            
-            {/* Légendes */}
             <div className="grid grid-cols-2 gap-y-4 text-sm font-medium">
               <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-rose-600 mr-3 shadow-[0_0_8px_rgba(225,29,72,0.6)]"></div><span className="text-slate-300">Rouges ({getPct(countType('ROUGE'))}%)</span></div>
               <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-amber-200 mr-3 shadow-[0_0_8px_rgba(253,230,138,0.6)]"></div><span className="text-slate-300">Blancs ({getPct(countType('BLANC'))}%)</span></div>
@@ -1130,25 +1116,19 @@ const AccountView = ({ ctx }) => {
           </div>
         </div>
 
-        {/* SECTION PARAMÈTRES ET DANGER */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="p-6 border-b border-slate-50 flex items-center space-x-3 bg-slate-50/50">
             <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100"><Settings className="w-5 h-5 text-slate-600"/></div>
             <h3 className="font-serif text-xl font-bold text-slate-900">Paramètres</h3>
           </div>
-          
           <div className="p-4 space-y-2">
             <button onClick={exportToCSV} className="w-full flex items-center p-4 bg-white hover:bg-slate-50 rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
               <Download className="w-5 h-5 mr-4 text-slate-400" /> Exporter ma cave (.csv)
             </button>
-
             <button onClick={handleLogout} className="w-full flex items-center p-4 bg-white hover:bg-slate-50 rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
               <LogOut className="w-5 h-5 mr-4 text-slate-400" /> Se déconnecter
             </button>
-            
             <div className="my-4 border-t border-slate-100"></div>
-
-            {/* ZONE DE DANGER (Bouton bien visible maintenant) */}
             <div className="px-2">
               <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-3 ml-2">Zone de Danger</p>
               <button onClick={() => setShowDeleteConfirm(true)} className="w-full flex items-center p-4 bg-red-50 hover:bg-red-100 rounded-2xl transition-colors text-red-700 font-bold border border-red-100">
@@ -1159,7 +1139,6 @@ const AccountView = ({ ctx }) => {
         </div>
       </div>
 
-      {/* MODAL DE CONFIRMATION DE SUPPRESSION (Sécurité) */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/70 z-[150] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl p-8 w-full max-w-sm relative shadow-2xl text-center">
@@ -1168,7 +1147,6 @@ const AccountView = ({ ctx }) => {
             </div>
             <h3 className="font-serif text-2xl font-bold text-slate-900 mb-2">Êtes-vous sûr ?</h3>
             <p className="text-slate-500 font-medium mb-8 text-sm leading-relaxed">Cette action va supprimer définitivement l'ensemble de votre historique de scans et vider votre cave. C'est irréversible.</p>
-            
             <div className="space-y-3">
               <button onClick={handleClearHistory} className="w-full py-4 bg-red-600 text-white font-bold rounded-2xl shadow-lg hover:bg-red-700 active:scale-95 transition-all">Oui, tout effacer</button>
               <button onClick={() => setShowDeleteConfirm(false)} className="w-full py-4 bg-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-200 transition-colors">Annuler</button>
@@ -1177,7 +1155,6 @@ const AccountView = ({ ctx }) => {
         </div>
       )}
 
-      {/* MODAL DES BADGES */}
       {showBadges && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative shadow-2xl max-h-[80vh] overflow-y-auto">
