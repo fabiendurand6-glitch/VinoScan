@@ -1799,7 +1799,6 @@ const ResultsView = ({ ctx }) => {
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-2">/ Bouteille</span>
               </div>
               
-              {/* Le bouton Google qui avait disparu est de retour ! */}
               <a href={`https://www.google.com/search?q=${encodeURIComponent('prix vin ' + nom + ' ' + tempAnnee)}&tbm=shop`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center space-x-2 py-4 mt-6 bg-slate-900 text-white rounded-2xl font-bold shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-95">
                 <Search className="w-5 h-5" /><span>Chercher le prix exact sur le web</span>
               </a>
@@ -1851,12 +1850,10 @@ const ResultsView = ({ ctx }) => {
               <p className="text-[9px] text-slate-400 text-center pb-4 px-10 italic">En tant que partenaire Amazon, VinoScan peut percevoir une commission sur les achats éligibles.</p>
             </div>
 
-            {/* --- BOUTONS D'ACTION (Historique / Cave) --- */}
             <div className="flex flex-col space-y-3 pt-4">
                {currentScanObj && currentScanObj.in_history !== false && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'history'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-white text-slate-500 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200"><EyeOff className="w-5 h-5" /><span>Retirer de l'historique</span></button>}
                {currentScanObj && currentScanObj.stock > 0 && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'cellar'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 transition-colors border border-red-100"><Archive className="w-5 h-5" /><span>Sortir de la cave</span></button>}
             </div>
-
           </div>
         )}
 
