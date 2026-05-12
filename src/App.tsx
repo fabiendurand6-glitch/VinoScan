@@ -287,7 +287,7 @@ const compressImage = (base64Str, maxWidth = 800, quality = 0.6) => {
 // =========================================================================
 
 const getAmazonAffiliateLink = (query) => {
-  const trackingTag = "TON_ID_ICI-21"; // 👈 Remplace par ton ID Amazon une fois reçu
+  const trackingTag = "	vinoscan-21"; // 👈 Remplace par ton ID Amazon une fois reçu
   const baseUrl = "https://www.amazon.fr/s?k=";
   const searchTerms = encodeURIComponent(query);
   return `${baseUrl}${searchTerms}&tag=${trackingTag}`;
