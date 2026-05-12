@@ -282,6 +282,31 @@ const compressImage = (base64Str, maxWidth = 800, quality = 0.6) => {
 // =========================================================================
 // VUES DE L'APPLICATION
 // =========================================================================
+// =========================================================================
+// OUTILS D'AFFILIATION (MONÉTISATION)
+// =========================================================================
+
+const getAmazonAffiliateLink = (query) => {
+  const trackingTag = "TON_ID_ICI-21"; // 👈 Remplace par ton ID Amazon une fois reçu
+  const baseUrl = "https://www.amazon.fr/s?k=";
+  const searchTerms = encodeURIComponent(query);
+  return `${baseUrl}${searchTerms}&tag=${trackingTag}`;
+};
+
+const getRecommendedAccessory = (type) => {
+  switch(type) {
+    case 'ROUGE': return { name: "Carafe à décanter en cristal", search: "carafe à décanter vin rouge cristal" };
+    case 'BLANC': return { name: "Seau à glace design", search: "seau à glace vin inox" };
+    case 'PETILLANT': return { name: "Coffret de flûtes à Champagne", search: "verres flûtes champagne cristal" };
+    default: return { name: "Tire-bouchon sommelier professionnel", search: "tire bouchon sommelier professionnel" };
+  }
+};
+
+// =========================================================================
+// VUES DE L'APPLICATION (COMMENCE ICI)
+// =========================================================================
+const NavigationBar = ({ ctx }) => (
+  // ... reste du code
 
 const NavigationBar = ({ ctx }) => (
   <div className="absolute bottom-0 w-full bg-white border-t border-slate-200 flex justify-around items-center pb-safe pt-2 px-1 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 h-16">
@@ -1771,6 +1796,51 @@ const ResultsView = ({ ctx }) => {
               </div>
             </div>
             
+          {/* --- NOUVELLE SECTION AFFILIATION (100% ACCESSOIRES) --- */}
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mt-6">
+              <div className="p-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center space-x-2">
+                  <ShoppingCart className="w-5 h-5 text-slate-400" />
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500">La Boutique du Sommelier</h3>
+                </div>
+                <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm">SÉLECTION PREMIUM</span>
+              </div>
+              
+              <div className="p-5 space-y-4">
+                {/* Lien 1 : Accessoire spécifique au type de vin (Verres, Carafe...) */}
+                <a 
+                  href={getAmazonAffiliateLink(getRecommendedAccessory(tempType).search)}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-between p-4 bg-slate-900 text-white rounded-2xl active:scale-95 transition-all shadow-lg shadow-slate-900/20"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-white/10 rounded-lg"><Wine className="w-5 h-5 text-amber-400" /></div>
+                    <div className="text-left">
+                      <p className="text-[10px] font-bold text-amber-400/80 uppercase">Sublimer ce vin</p>
+                      <p className="text-sm font-bold truncate w-48">{getRecommendedAccessory(tempType).name}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-white/50" />
+                </a>
+
+                {/* Lien 2 : Un accessoire Premium Générique (Ex: Conservation) */}
+                <a 
+                  href={getAmazonAffiliateLink("Coravin système de préservation du vin")}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-between p-4 bg-amber-50 text-amber-900 rounded-2xl border border-amber-100 active:scale-95 transition-all"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-amber-200/50 rounded-lg"><ChefHat className="w-5 h-5 text-amber-700" /></div>
+                    <div className="text-left">
+                      <p className="text-[10px] font-bold text-amber-700/60 uppercase">Matériel de Pro</p>
+                      <p className="text-sm font-bold truncate w-48">Système de préservation (Coravin)</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-amber-300" />
+                </a>
+              </div>
+              <p className="text-[9px] text-slate-400 text-center pb-4 px-10 italic">En tant que partenaire Amazon, VinoScan peut percevoir une commission sur les achats éligibles.</p>
+            </div>
             <div className="flex flex-col space-y-3 pt-4">
                {currentScanObj && currentScanObj.in_history !== false && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'history'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-white text-slate-500 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200"><EyeOff className="w-5 h-5" /><span>Retirer de l'historique</span></button>}
                {currentScanObj && currentScanObj.stock > 0 && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'cellar'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 transition-colors border border-red-100"><Archive className="w-5 h-5" /><span>Sortir de la cave</span></button>}
