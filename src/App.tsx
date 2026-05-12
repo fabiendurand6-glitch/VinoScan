@@ -548,9 +548,8 @@ const MenuConfigView = ({ ctx }) => {
 
 // ==========================================
 // Assure-toi que la ligne juste en dessous de ce commentaire est bien : 
-// const CellarView = ({ ctx }) => { ...// CAVE AVEC LA KILLER APP "LE SOMMELIER DE CAVE" ET FILTRES CORRIGÉS
-// CAVE 3D PREMIUM AVEC DRAG & DROP INTRA-ÉTAGÈRE ET ÉTIQUETTES
-// CAVE 3D PREMIUM AVEC DRAG & DROP ET AUTO-GUÉRISON DES IMAGES
+
+// CAVE MODERNE ET ÉLÉGANTE (LISIBILITÉ MAXIMALE & DRAG AND DROP)
 const CellarView = ({ ctx }) => {
   const [cellarTab, setCellarTab] = useState('STOCK');
   const [filterType, setFilterType] = useState('ALL');
@@ -604,7 +603,7 @@ const CellarView = ({ ctx }) => {
   const totalBottles = cellarTab === 'STOCK' ? filteredItems.reduce((acc, curr) => acc + (parseInt(curr.stock) || 0), 0) : filteredItems.length;
   const totalValue = filteredItems.reduce((acc, curr) => acc + ((curr.data.prix_unitaire_nombre || 0) * (cellarTab === 'STOCK' ? (parseInt(curr.stock) || 0) : 1)), 0);
 
-  // --- LOGIQUE AVANCÉE DU DRAG AND DROP ---
+  // --- LOGIQUE DRAG AND DROP ---
   const handleDragStart = (e, bottle) => {
     e.dataTransfer.setData('text/plain', bottle.id);
     setDraggedBottle(bottle.id);
@@ -629,7 +628,7 @@ const CellarView = ({ ctx }) => {
         ctx.genericUpdate(targetBottleId, { customOrder: draggedOrder - 1 });
       }
     } else {
-      // Déplacement vers un espace vide
+      // Déplacement vers une étagère vide
       ctx.genericUpdate(draggedId, { location: targetShelf });
     }
   };
@@ -660,8 +659,7 @@ const CellarView = ({ ctx }) => {
       Réponds en JSON strict : {"chosen_id": "ID_ici", "explication": "Pourquoi ce choix (max 20 mots)"}`;
 
       const result = await callGemini(prompt);
-      const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-      const parsed = extractJSON(text);
+      const parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
       const chosenWine = inStockWines.find(w => w.id === parsed.chosen_id);
       if(!chosenWine) throw new Error("Erreur IA");
 
@@ -679,11 +677,10 @@ const CellarView = ({ ctx }) => {
     }
   };
 
-  // Image de secours infaillible si l'URL est cassée
   const fallbackImg = "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=400&auto=format&fit=crop";
 
   return (
-    <div className="flex flex-col h-full bg-[#f8f5f2] pb-20 relative">
+    <div className="flex flex-col h-full bg-slate-50 pb-20 relative">
       <div className="bg-white pt-12 pb-4 px-4 shadow-sm z-10 sticky top-0">
         <div className="flex justify-between items-end mb-4">
           <div><h1 className="text-3xl font-serif font-bold text-slate-900">Mes Vins</h1><p className="text-slate-500 text-sm mt-1">{totalBottles} bouteilles</p></div>
@@ -707,7 +704,7 @@ const CellarView = ({ ctx }) => {
           <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide">
             <Filter className="w-4 h-4 text-slate-400 shrink-0" />
             {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => (
-              <button key={t} onClick={() => setFilterType(t)} className={`px-3 py-1 rounded-full text-xs font-medium border ${filterType === t ? 'bg-slate-800 text-white' : 'bg-white border-slate-200 text-slate-600'}`}>{t === 'ALL' ? 'Tous' : t}</button>
+              <button key={t} onClick={() => setFilterType(t)} className={`px-3 py-1 rounded-full text-xs font-medium border ${filterType === t ? 'bg-slate-800 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600'}`}>{t === 'ALL' ? 'Tous' : t}</button>
             ))}
           </div>
 
@@ -736,7 +733,7 @@ const CellarView = ({ ctx }) => {
 
         {viewMode === 'shelves' && cellarTab === 'STOCK' && (
           <div className="flex justify-between items-center bg-amber-50 border border-amber-200 rounded-xl p-3 mb-2">
-            <p className="text-[10px] text-amber-800 font-bold uppercase"><b className="text-amber-900">Astuce :</b> Glissez une bouteille sur une autre pour échanger.</p>
+            <p className="text-[10px] text-amber-800 font-bold uppercase"><b className="text-amber-900">Astuce :</b> Glissez une bouteille pour l'organiser.</p>
             <button 
               onClick={() => { setReorgMode(!reorgMode); setSelectedBottle(null); }} 
               className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${reorgMode ? 'bg-rose-600 text-white shadow-md' : 'bg-white border border-slate-300 text-slate-700'}`}
@@ -754,8 +751,8 @@ const CellarView = ({ ctx }) => {
             {filteredItems.map((item) => (
               <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
                 <div onClick={() => ctx.openExistingWine(item, 'cellar')} className="p-4 flex items-start space-x-4 active:bg-slate-50 cursor-pointer">
-                  <div className="w-16 h-24 bg-slate-100 rounded-lg overflow-hidden shrink-0 shadow-inner">
-                    <img src={item.image} onError={(e) => {e.target.onerror = null; e.target.src = fallbackImg;}} alt="Miniature" className="w-full h-full object-cover" />
+                  <div className="w-16 h-24 bg-slate-100 rounded-lg overflow-hidden shrink-0 shadow-inner flex items-center justify-center">
+                    <img src={item.image} onError={(e) => {e.target.onerror = null; e.target.src = fallbackImg;}} alt="Miniature" className="max-w-full max-h-full object-contain drop-shadow-md" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
@@ -776,18 +773,25 @@ const CellarView = ({ ctx }) => {
         ) : (
           <div className="space-y-10 mt-6">
              {Object.entries(groupedByLocation).map(([shelfName, bottles]) => (
-                <div key={shelfName} className="bg-[#1A100C] rounded-xl shadow-2xl border border-[#3A2318] overflow-hidden">
+                <div key={shelfName} className="mb-8">
                    
-                   {/* En-tête de l'étagère */}
-                   <div className="bg-gradient-to-r from-[#2C1E16] to-[#1A100C] border-b border-[#3A2318] p-3 flex justify-between items-center shadow-md z-10 relative">
-                      <span className="text-[#D4AF37] font-serif font-bold uppercase tracking-widest text-xs flex items-center">
-                        <MapPin className="w-3 h-3 mr-2 text-[#8B7355]"/> {shelfName}
+                   {/* En-tête de l'étagère Épurée */}
+                   <div className="flex items-center justify-between mb-4 px-2">
+                      <h3 className="font-serif text-xl font-bold text-slate-800 flex items-center">
+                        <MapPin className="w-5 h-5 mr-2 text-amber-600" />
+                        {shelfName}
+                      </h3>
+                      <span className="bg-slate-200 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">
+                        {bottles.length} bouteilles
                       </span>
-                      <span className="text-[#8B7355] text-[10px] font-bold bg-[#110805] px-2 py-1 rounded-sm border border-[#2A1A11]">{bottles.length} bot.</span>
                    </div>
                    
-                   {/* Grille 3 Colonnes pour une parfaite lisibilité */}
-                   <div className="p-4 grid grid-cols-3 sm:grid-cols-4 gap-4">
+                   {/* Grille Moderne (3 colonnes) */}
+                   <div 
+                     className="grid grid-cols-3 gap-4 bg-slate-100/50 p-4 rounded-3xl border border-slate-200/60 shadow-inner min-h-[200px]"
+                     onDragOver={handleDragOver}
+                     onDrop={(e) => handleDrop(e, shelfName === 'Vins non rangés' ? '' : shelfName)}
+                   >
                       {bottles.map(bottle => (
                          <div 
                             key={bottle.id}
@@ -800,59 +804,52 @@ const CellarView = ({ ctx }) => {
                               if (reorgMode) setSelectedBottle(bottle);
                               else ctx.openExistingWine(bottle, 'cellar');
                             }} 
-                            className={`flex flex-col relative group cursor-pointer transition-all ${draggedBottle === bottle.id ? 'opacity-40 scale-95' : 'hover:-translate-y-1'}`}
+                            className={`relative flex flex-col bg-white rounded-2xl p-3 shadow-sm border border-slate-100 cursor-pointer transition-all duration-300 group ${draggedBottle === bottle.id ? 'opacity-40 scale-95' : 'hover:-translate-y-1 hover:shadow-md'} ${reorgMode ? 'ring-2 ring-amber-400 animate-pulse' : ''}`}
                          >
-                            {/* Alcôve et Bouteille */}
-                            <div className={`relative w-full aspect-[1/2.5] bg-gradient-to-b from-[#110805] to-[#21140E] rounded-t-[40px] border border-white/5 border-b-0 flex items-end justify-center p-2 shadow-[inset_0_10px_20px_rgba(0,0,0,0.8)] ${reorgMode ? 'ring-2 ring-rose-500 animate-pulse' : ''}`}>
-                               <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent rounded-t-[40px] pointer-events-none"></div>
-                               
+                            {/* Image de la Bouteille */}
+                            <div className="relative h-28 w-full mb-3 flex items-center justify-center">
                                <img 
                                   src={bottle.image} 
                                   onError={(e) => { e.target.onerror = null; e.target.src = fallbackImg; }}
-                                  className="max-h-[95%] w-auto object-contain z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,1)]" 
+                                  className="max-h-full max-w-full object-contain drop-shadow-[0_8px_8px_rgba(0,0,0,0.15)] group-hover:scale-105 transition-transform duration-500" 
                                   alt={bottle.data.nom}
                                />
-                               
                                {cellarTab === 'STOCK' && bottle.stock > 1 && (
-                                 <span className="absolute -top-2 -right-2 bg-rose-700 text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold shadow-lg z-30 border border-[#1A100C]">x{bottle.stock}</span>
+                                 <span className="absolute -top-2 -right-2 bg-rose-600 text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold shadow-md z-10 border-2 border-white">x{bottle.stock}</span>
                                )}
-                               
-                               <div className={`absolute bottom-2 w-8 h-1 blur-md ${getColorForType(bottle.data.type_simplifie)}`}></div>
                             </div>
 
-                            {/* Socle et Étiquette en laiton */}
-                            <div className="relative w-full h-12 bg-gradient-to-b from-[#4A2E1B] to-[#2C1A0F] rounded-b-md border-t-2 border-[#8B5A33] shadow-[0_5px_10px_rgba(0,0,0,0.5)] flex items-center justify-center p-1.5 z-20">
-                               <div className="w-full h-full bg-gradient-to-b from-[#1F110A] to-[#110805] border border-[#3A2318] rounded-[3px] flex flex-col justify-center items-center px-1 overflow-hidden shadow-inner">
-                                  <span className="text-[#E2C073] text-[9px] sm:text-[10px] font-serif font-bold text-center w-full truncate drop-shadow-md">
-                                    {bottle.data.nom}
-                                  </span>
-                                  <span className="text-[#8B7355] text-[7px] font-sans font-bold uppercase tracking-widest mt-0.5">
-                                    {bottle.data.annee}
-                                  </span>
-                               </div>
+                            {/* Texte lisible */}
+                            <div className="flex flex-col items-center text-center">
+                               <span className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${bottle.data.type_simplifie === 'ROUGE' ? 'text-rose-800' : bottle.data.type_simplifie === 'BLANC' ? 'text-amber-600' : bottle.data.type_simplifie === 'PETILLANT' ? 'text-yellow-600' : 'text-pink-500'}`}>
+                                 {bottle.data.type_simplifie}
+                               </span>
+                               <h4 className="text-xs font-bold text-slate-800 leading-tight line-clamp-2 mb-1">
+                                 {bottle.data.nom}
+                               </h4>
+                               <span className="text-[10px] font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 mt-1">
+                                 {bottle.data.annee}
+                               </span>
                             </div>
                          </div>
                       ))}
                       
-                      {/* Espaces vides pour compléter la grille */}
+                      {/* Espaces de drop vides et élégants */}
                       {Array.from({length: Math.max(0, 3 - (bottles.length % 3 === 0 && bottles.length > 0 ? 3 : bottles.length % 3))}).map((_, i) => (
                         <div 
                           key={`empty-${i}`}
                           onDragOver={handleDragOver}
                           onDrop={(e) => handleDrop(e, shelfName === 'Vins non rangés' ? '' : shelfName)}
-                          className="flex flex-col relative"
+                          className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 min-h-[160px]"
                         >
-                           <div className="relative w-full aspect-[1/2.5] bg-gradient-to-b from-[#0A0503] to-[#110805] rounded-t-[40px] border border-white/5 border-b-0 shadow-[inset_0_10px_20px_rgba(0,0,0,0.9)] flex justify-center items-center">
-                             <div className="w-1/2 h-1/2 border-2 border-dashed border-white/10 rounded-xl"></div>
-                           </div>
-                           <div className="relative w-full h-12 bg-gradient-to-b from-[#3A2318] to-[#1F110A] rounded-b-md border-t-2 border-[#5C3A21] shadow-[0_5px_10px_rgba(0,0,0,0.5)]"></div>
+                           <div className="w-8 h-8 rounded-full border-2 border-slate-200"></div>
                         </div>
                       ))}
                    </div>
                 </div>
              ))}
 
-             {/* Zone Drop pour créer une nouvelle étagère */}
+             {/* Zone Création de nouvelle étagère */}
              <div 
                onDragOver={handleDragOver}
                onDrop={(e) => {
@@ -861,9 +858,9 @@ const CellarView = ({ ctx }) => {
                  const newName = window.prompt("Nom de la nouvelle étagère ? (ex: Cave à vin, Salon...)");
                  if (newName && newName.trim() !== '') handleDrop(e, newName);
                }}
-               className="mt-8 border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-slate-400 hover:border-amber-500 hover:bg-amber-50 hover:text-amber-600 transition-all cursor-pointer shadow-sm"
+               className="mt-8 border-2 border-dashed border-slate-300 rounded-2xl p-8 flex flex-col items-center justify-center text-slate-400 hover:border-amber-500 hover:bg-amber-50 hover:text-amber-600 transition-all cursor-pointer shadow-sm"
              >
-               <Plus className="w-6 h-6 mb-2" />
+               <Plus className="w-8 h-8 mb-2" />
                <p className="font-bold text-xs uppercase tracking-wider text-center">Glissez un vin ici pour<br/>créer une étagère</p>
              </div>
           </div>
@@ -904,8 +901,8 @@ const CellarView = ({ ctx }) => {
                 <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-2"><Utensils className="w-8 h-8 text-indigo-600"/></div>
                 <h3 className="font-serif text-2xl font-bold text-center text-slate-900">Que mangez-vous ?</h3>
                 <p className="text-sm text-center text-slate-500">Dites au sommelier ce que vous avez prévu, il trouvera la bouteille parfaite dans votre stock.</p>
-                <input autoFocus type="text" placeholder="Ex: Magret de canard, Raclette..." value={pairingDish} onChange={e=>setPairingDish(e.target.value)} className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
-                <button onClick={handleAskCellarSommelier} disabled={!pairingDish.trim() || isPairingLoading} className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg disabled:opacity-50 flex items-center justify-center">
+                <input autoFocus type="text" placeholder="Ex: Magret de canard..." value={pairingDish} onChange={e=>setPairingDish(e.target.value)} className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <button onClick={handleAskCellarSommelier} disabled={!pairingDish.trim() || isPairingLoading} className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg flex items-center justify-center">
                   {isPairingLoading ? <RefreshCw className="w-5 h-5 animate-spin"/> : "Explorer ma cave"}
                 </button>
               </div>
@@ -913,8 +910,8 @@ const CellarView = ({ ctx }) => {
               <div className="space-y-4 mt-4 animate-in slide-in-from-bottom-4">
                 <h3 className="font-serif text-xl font-bold text-center text-indigo-900">Voici le choix parfait !</h3>
                 <div onClick={() => {setShowPairingModal(false); ctx.openExistingWine(pairingResult.wine, 'cellar');}} className="border border-indigo-100 bg-indigo-50 rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-shadow">
-                  <div className="w-16 h-24 rounded-lg overflow-hidden shrink-0">
-                     <img src={pairingResult.wine.image} onError={(e) => {e.target.onerror=null; e.target.src=fallbackImg;}} className="w-full h-full object-cover" />
+                  <div className="w-16 h-24 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-white">
+                    <img src={pairingResult.wine.image} onError={(e) => {e.target.onerror=null; e.target.src=fallbackImg;}} className="max-w-full max-h-full object-contain" />
                   </div>
                   <div>
                     <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">{pairingResult.wine.data.type_simplifie}</span>
