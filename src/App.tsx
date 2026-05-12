@@ -423,7 +423,10 @@ const QuizView = ({ ctx }) => {
   const startGame = () => { 
     const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
     setCurrentQuiz(shuffled.slice(0, 4));
-    setGameState('playing'); setQIndex(0); setScore(0); setFeedback(null); 
+    setScore(0); 
+    setQIndex(0); 
+    setFeedback(null); 
+    setGameState('playing'); 
   };
 
   const handleAnswer = (option) => {
@@ -446,18 +449,18 @@ const QuizView = ({ ctx }) => {
       </div>
       <div className="p-6 flex-1 flex flex-col justify-center">
         <div className="bg-white border border-amber-200 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-          <div className="absolute -right-10 -top-10 w-32 h-32 bg-amber-100 rounded-full mix-blend-multiply opacity-50"></div>
           
           {gameState === 'idle' && (
             <div className="text-center space-y-6 relative z-10 py-4">
-              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto shadow-inner"><Gamepad2 className="w-10 h-10 text-amber-600"/></div>
+              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto"><Gamepad2 className="w-10 h-10 text-amber-600"/></div>
               <h3 className="font-serif text-2xl font-bold text-slate-900">Prêt à jouer ?</h3>
-              <p className="text-slate-500 font-medium">4 questions aléatoires pour tester votre palais (virtuel).</p>
+              <p className="text-slate-500 font-medium">4 questions aléatoires pour tester votre palais.</p>
               <button onClick={startGame} className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform text-lg">Démarrer le Quiz</button>
             </div>
           )}
 
-          {gameState === 'playing' && currentQuiz.length > 0 && (
+          {/* SÉCURITÉ : On vérifie bien que currentQuiz[qIndex] existe avant d'afficher pour éviter l'écran blanc */}
+          {gameState === 'playing' && currentQuiz.length > 0 && currentQuiz[qIndex] && (
             <div className="space-y-6 relative z-10">
               <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Question {qIndex + 1}/{currentQuiz.length}</span>
@@ -466,11 +469,11 @@ const QuizView = ({ ctx }) => {
               <p className="font-serif text-xl font-bold text-slate-900 min-h-[80px] leading-snug">{currentQuiz[qIndex].q}</p>
               <div className="space-y-3">
                 {currentQuiz[qIndex].options.map(opt => {
-                  let btnClass = "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm";
-                  if (feedback && opt === currentQuiz[qIndex].ans) btnClass = "bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/30 shadow-lg scale-[1.02]";
+                  let btnClass = "bg-white border-slate-200 text-slate-700 hover:bg-slate-50";
+                  if (feedback && opt === currentQuiz[qIndex].ans) btnClass = "bg-emerald-500 border-emerald-500 text-white";
                   else if (feedback === 'wrong' && opt !== currentQuiz[qIndex].ans) btnClass = "bg-slate-50 border-slate-100 text-slate-400 opacity-50";
                   return (
-                    <button key={opt} onClick={() => handleAnswer(opt)} className={`w-full p-5 rounded-2xl border-2 font-bold text-left transition-all duration-300 ${btnClass}`}>{opt}</button>
+                    <button key={opt} onClick={() => handleAnswer(opt)} className={`w-full p-5 rounded-2xl border-2 font-bold text-left transition-all ${btnClass}`}>{opt}</button>
                   );
                 })}
               </div>
@@ -479,13 +482,12 @@ const QuizView = ({ ctx }) => {
 
           {gameState === 'end' && (
             <div className="text-center space-y-6 relative z-10 py-4">
-              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-inner"><Trophy className="w-10 h-10 text-emerald-600"/></div>
+              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto"><Trophy className="w-10 h-10 text-emerald-600"/></div>
               <h3 className="font-serif text-3xl font-bold text-slate-900">Terminé !</h3>
               <p className="text-2xl font-black text-emerald-600">{score} / {currentQuiz.length}</p>
-              <p className="text-slate-600 font-medium pb-4">{score === 4 ? "Un vrai Maître Sommelier ! 🍷" : score >= 2 ? "De très bonnes bases ! 🍇" : "Encore un peu de pratique ! 🥂"}</p>
               <div className="flex space-x-3">
-                <button onClick={startGame} className="flex-1 py-4 bg-slate-900 text-white font-bold rounded-2xl shadow-md">Rejouer</button>
-                <button onClick={() => ctx.setView('home')} className="flex-1 py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-2xl">Quitter</button>
+                <button onClick={startGame} className="flex-1 py-4 bg-slate-900 text-white font-bold rounded-2xl">Rejouer</button>
+                <button onClick={() => ctx.setView('home')} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-2xl">Quitter</button>
               </div>
             </div>
           )}
@@ -497,6 +499,16 @@ const QuizView = ({ ctx }) => {
 
 // 3. SCANNER DE CARTE DE RESTAURANT (Rétabli !)
 const MenuConfigView = ({ ctx }) => {
+  // Petit traducteur pour avoir un bel affichage au lieu des clés techniques
+  const getFoodLabel = (f) => {
+    const labels = {
+      'ALL': 'Peu importe', 'APERITIF': 'Apéritif & Tapas',
+      'VIANDE_ROUGE': 'Viande Rouge', 'VIANDE_BLANCHE': 'Volaille & Porc',
+      'POISSON': 'Poisson & Mer', 'FROMAGE': 'Fromage'
+    };
+    return labels[f] || f;
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20">
       <div className="bg-white pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
@@ -511,12 +523,18 @@ const MenuConfigView = ({ ctx }) => {
           <h3 className="font-serif text-lg font-bold text-slate-900 flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Que mangez-vous ?</span></h3>
           <div className="flex flex-wrap gap-2">
             {['ALL', 'APERITIF', 'VIANDE_ROUGE', 'VIANDE_BLANCHE', 'POISSON', 'FROMAGE'].map(f => (
-              <button key={f} onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: f})} className={`px-4 py-2.5 rounded-xl text-sm font-bold border ${ctx.menuPrefs.food === f ? 'bg-amber-600 text-white' : 'bg-white text-slate-600'}`}>{f === 'ALL' ? 'Peu importe' : f}</button>
+              <button 
+                key={f} 
+                onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: f})} 
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors ${ctx.menuPrefs.food === f ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+              >
+                {getFoodLabel(f)}
+              </button>
             ))}
           </div>
         </div>
         <div className="pt-6 space-y-3">
-          <button onClick={() => ctx.startCamera('menu')} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold active:scale-95"><Camera className="inline w-5 h-5 mr-2" />Scanner la carte</button>
+          <button onClick={() => ctx.startCamera('menu')} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold active:scale-95 transition-transform"><Camera className="inline w-5 h-5 mr-2" />Scanner la carte</button>
         </div>
       </div>
     </div>
@@ -808,16 +826,26 @@ const AccountView = ({ ctx }) => {
   };
   const level = calculateLevel(historyLen);
 
+  // LES 8 BADGES DIVERSIFIÉS
   const bordeauxCount = ctx.scanHistory.filter(i => i.data.region?.toLowerCase().includes('bordeaux')).length;
   const bourgogneCount = ctx.scanHistory.filter(i => i.data.region?.toLowerCase().includes('bourgogne')).length;
+  const rhoneCount = ctx.scanHistory.filter(i => i.data.region?.toLowerCase().includes('rhône') || i.data.region?.toLowerCase().includes('rhone')).length;
+  const loireCount = ctx.scanHistory.filter(i => i.data.region?.toLowerCase().includes('loire')).length;
+  
   const rougeCount = ctx.scanHistory.filter(i => i.data.type_simplifie === 'ROUGE').length;
+  const blancCount = ctx.scanHistory.filter(i => i.data.type_simplifie === 'BLANC').length;
   const bullesCount = ctx.scanHistory.filter(i => i.data.type_simplifie === 'PETILLANT').length;
+  const premiumCount = ctx.scanHistory.filter(i => i.data.prix_unitaire_nombre >= 50).length;
 
   const collectionBadges = [
-    { id: 'bordeaux', name: 'Baron de Bordeaux', desc: 'Scanner 3 vins de Bordeaux', req: 3, count: bordeauxCount, icon: '🍷' },
-    { id: 'bourgogne', name: 'Duc de Bourgogne', desc: 'Scanner 3 vins de Bourgogne', req: 3, count: bourgogneCount, icon: '🍇' },
-    { id: 'rouge', name: 'Sang de la Vigne', desc: 'Scanner 10 vins Rouges', req: 10, count: rougeCount, icon: '🥩' },
-    { id: 'bulles', name: 'Maître des Bulles', desc: 'Scanner 5 Pétillants', req: 5, count: bullesCount, icon: '🥂' }
+    { id: 'bordeaux', name: 'Baron de Bordeaux', desc: '3 vins de Bordeaux', req: 3, count: bordeauxCount, icon: '🍷' },
+    { id: 'bourgogne', name: 'Duc de Bourgogne', desc: '3 vins de Bourgogne', req: 3, count: bourgogneCount, icon: '🍇' },
+    { id: 'rhone', name: 'Prince du Rhône', desc: '3 vins du Rhône', req: 3, count: rhoneCount, icon: '☀️' },
+    { id: 'loire', name: 'Seigneur de la Loire', desc: '3 vins de la Loire', req: 3, count: loireCount, icon: '🏰' },
+    { id: 'rouge', name: 'Sang de la Vigne', desc: '10 vins Rouges', req: 10, count: rougeCount, icon: '🥩' },
+    { id: 'blanc', name: "L'Or Blanc", desc: '5 vins Blancs', req: 5, count: blancCount, icon: '🧀' },
+    { id: 'bulles', name: 'Maître des Bulles', desc: '5 Pétillants', req: 5, count: bullesCount, icon: '🥂' },
+    { id: 'premium', name: 'Le Grand Cru', desc: '3 vins > 50€', req: 3, count: premiumCount, icon: '💎' }
   ];
 
   const handleAuth = async (e) => {
@@ -826,7 +854,7 @@ const AccountView = ({ ctx }) => {
     try {
       if (authMode === 'login') await signInWithEmailAndPassword(auth, email, password);
       else await createUserWithEmailAndPassword(auth, email, password);
-    } catch (err) { setAuthError("Erreur : Vérifiez vos identifiants ou le mot de passe (min 6 caractères)."); }
+    } catch (err) { setAuthError("Erreur : Vérifiez vos identifiants ou le mot de passe."); }
   };
 
   const handleLogout = async () => {
@@ -839,167 +867,76 @@ const AccountView = ({ ctx }) => {
     return (
       <div className="flex flex-col h-full bg-slate-50 pb-20 overflow-y-auto p-6">
         <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-          <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl flex items-center justify-center mb-8 shadow-lg shadow-emerald-500/30 transform rotate-3">
+          <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl flex items-center justify-center mb-8 shadow-lg transform rotate-3">
             <ShieldCheck className="w-12 h-12 text-white transform -rotate-3" />
           </div>
           <h2 className="text-3xl font-serif font-bold text-slate-900 mb-3 text-center">Sauvegardez votre cave</h2>
-          <p className="text-sm text-slate-500 text-center mb-8 font-medium">Créez un compte gratuitement pour retrouver vos précieux nectars sur tous vos appareils.</p>
-          {authError && <div className="bg-red-50 text-red-600 text-sm p-4 rounded-xl w-full mb-6 text-center font-medium border border-red-100">{authError}</div>}
-          <form onSubmit={handleAuth} className="w-full space-y-4">
-            <input type="email" placeholder="Adresse email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent font-medium shadow-sm" required />
-            <input type="password" placeholder="Mot de passe" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent font-medium shadow-sm" required />
-            <button type="submit" className="w-full py-4 mt-2 bg-slate-900 text-white rounded-2xl font-bold shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-95">
-              {authMode === 'login' ? 'Se connecter' : 'Créer mon compte'}
-            </button>
+          <form onSubmit={handleAuth} className="w-full space-y-4 mt-8">
+            <input type="email" placeholder="Adresse email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-4 rounded-2xl border outline-none focus:ring-2" required />
+            <input type="password" placeholder="Mot de passe" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-4 rounded-2xl border outline-none focus:ring-2" required />
+            <button type="submit" className="w-full py-4 mt-2 bg-slate-900 text-white rounded-2xl font-bold">{authMode === 'login' ? 'Se connecter' : 'Créer mon compte'}</button>
           </form>
-          <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="mt-8 text-slate-500 text-sm font-medium hover:text-slate-800 transition-colors">
-            {authMode === 'login' ? "Nouveau ici ? Créer un compte" : "Déjà membre ? Se connecter"}
-          </button>
+          <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="mt-8 text-slate-500 text-sm font-medium">{authMode === 'login' ? "Nouveau ici ? Créer un compte" : "Déjà membre ? Se connecter"}</button>
         </div>
       </div>
     );
   }
 
-  const exportToCSV = () => { /* Reste identique */ };
-
   const itemsInStock = ctx.scanHistory.filter(i => i.stock > 0);
   const totalBottles = itemsInStock.reduce((acc, curr) => acc + (curr.stock || 0), 0);
   const totalValue = itemsInStock.reduce((acc, curr) => acc + ((curr.data.prix_unitaire_nombre || 0) * (curr.stock || 0)), 0);
-  
   const countType = (type) => itemsInStock.filter(i => i.data.type_simplifie === type).reduce((acc, curr) => acc + curr.stock, 0);
-  const red = countType('ROUGE');
-  const white = countType('BLANC');
-  const rose = countType('ROSE');
-  const spark = countType('PETILLANT');
   const getPct = (val) => totalBottles === 0 ? 0 : Math.round((val / totalBottles) * 100);
 
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20 overflow-y-auto relative">
       <div className="bg-white pt-12 pb-6 px-6 shadow-sm z-10 flex items-center justify-between border-b border-slate-100">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-slate-900">Mon Profil</h1>
-          <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider mt-1 flex items-center"><CheckCircle className="w-3 h-3 mr-1"/> Cloud Activé</p>
-        </div>
-        <div className={`w-12 h-12 rounded-full ${level.bgColor} flex items-center justify-center shadow-inner border border-white`}>
-          <Award className={`w-6 h-6 ${level.iconColor}`} />
-        </div>
+        <div><h1 className="text-3xl font-serif font-bold text-slate-900">Mon Profil</h1></div>
+        <div className={`w-12 h-12 rounded-full ${level.bgColor} flex items-center justify-center border border-white`}><Award className={`w-6 h-6 ${level.iconColor}`} /></div>
       </div>
 
       <div className="p-4 space-y-4">
-        
-        {/* GAMIFICATION CARD CLIQUABLE */}
-        <div onClick={() => setShowBadges(true)} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-all relative overflow-hidden">
+        <div onClick={() => setShowBadges(true)} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md relative overflow-hidden">
           <div className="absolute top-4 right-4 text-slate-300"><Info className="w-5 h-5"/></div>
           <div className="flex justify-between items-end mb-3">
-             <div>
-               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Niveau Actuel</p>
-               <h3 className={`font-serif text-xl font-bold ${level.iconColor}`}>{level.name}</h3>
-             </div>
-             <p className="text-sm font-bold text-slate-700">{historyLen} <span className="text-xs text-slate-400 font-normal">scans</span></p>
+             <div><p className="text-xs text-slate-400 font-bold uppercase">Niveau Actuel</p><h3 className={`font-serif text-xl font-bold ${level.iconColor}`}>{level.name}</h3></div>
+             <p className="text-sm font-bold text-slate-700">{historyLen} scans</p>
           </div>
-          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-             <div className={`h-full ${level.bar} rounded-full transition-all duration-1000`} style={{width: `${Math.min(100, (historyLen/50)*100)}%`}}></div>
-          </div>
+          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden"><div className={`h-full ${level.bar} rounded-full`} style={{width: `${Math.min(100, (historyLen/50)*100)}%`}}></div></div>
         </div>
 
-        {/* DASHBOARD CARD COMPLET AVEC BOURSE */}
         <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center"><PieChart className="w-5 h-5 mr-2 text-indigo-500"/> Ma Cave</h3>
-            <span className="text-xs font-bold bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-100 flex items-center"><TrendingUp className="w-3 h-3 mr-1"/> +4.2% ce mois</span>
+          <h3 className="font-serif text-xl font-bold text-slate-900 mb-5 flex items-center"><PieChart className="w-5 h-5 mr-2 text-indigo-500"/> Ma Cave</h3>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-slate-50 p-4 rounded-2xl border"><p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Bouteilles</p><p className="text-3xl font-bold text-slate-800">{totalBottles}</p></div>
+            <div className="bg-slate-50 p-4 rounded-2xl border"><p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Valeur Estimée</p><p className="text-3xl font-bold text-emerald-700">{totalValue.toFixed(0)}€</p></div>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 relative overflow-hidden">
-              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Bouteilles</p>
-              <p className="text-3xl font-bold text-slate-800">{totalBottles}</p>
-              <Wine className="absolute -right-4 -bottom-4 w-20 h-20 text-slate-200/50" />
-            </div>
-            <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 relative overflow-hidden">
-              <p className="text-[10px] text-emerald-600/70 uppercase font-bold tracking-wider mb-1">Valeur Estimée</p>
-              <p className="text-3xl font-bold text-emerald-700">{totalValue.toFixed(0)}€</p>
-              <Euro className="absolute -right-4 -bottom-4 w-20 h-20 text-emerald-200/50" />
-            </div>
-          </div>
-
-          {/* LE GRAPHIQUE BOURSIER (SIMULATION) */}
-          <div className="mb-8 border border-slate-100 rounded-2xl p-4 bg-slate-50/50">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center"><BarChart3 className="w-4 h-4 mr-1 text-indigo-400"/> Évolution de la valeur</h4>
-            </div>
-            
-            <div className="h-32 flex items-end justify-between space-x-2 pt-2">
-              {[0.82, 0.85, 0.89, 0.94, 0.97, 1].map((multiplier, idx) => {
-                const isCurrentMonth = idx === 5;
-                const barHeight = Math.max(10, multiplier * 100);
-                const months = ['Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
-                
-                return (
-                  <div key={idx} className="flex-1 flex flex-col items-center group relative">
-                    {/* Tooltip */}
-                    <div className="absolute -top-8 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                      {(totalValue * multiplier).toFixed(0)}€
-                    </div>
-                    {/* Barre */}
-                    <div 
-                      style={{ height: `${barHeight}%` }} 
-                      className={`w-full rounded-t-md transition-all duration-1000 ${isCurrentMonth ? 'bg-gradient-to-t from-emerald-400 to-emerald-500 shadow-[0_0_15px_rgba(52,211,153,0.4)]' : 'bg-slate-200 hover:bg-slate-300'}`}
-                    ></div>
-                    {/* Mois */}
-                    <span className={`text-[9px] mt-2 font-bold uppercase ${isCurrentMonth ? 'text-emerald-600' : 'text-slate-400'}`}>{months[idx]}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Répartition par type</p>
-          <div className="h-4 w-full flex rounded-full overflow-hidden mb-4 shadow-inner">
-            {red > 0 && <div style={{width: `${getPct(red)}%`}} className="bg-rose-800 h-full transition-all"></div>}
-            {white > 0 && <div style={{width: `${getPct(white)}%`}} className="bg-amber-100 h-full transition-all border-r border-slate-200"></div>}
-            {rose > 0 && <div style={{width: `${getPct(rose)}%`}} className="bg-pink-300 h-full transition-all"></div>}
-            {spark > 0 && <div style={{width: `${getPct(spark)}%`}} className="bg-yellow-400 h-full transition-all"></div>}
+          <div className="h-4 w-full flex rounded-full overflow-hidden mb-4">
+            {countType('ROUGE') > 0 && <div style={{width: `${getPct(countType('ROUGE'))}%`}} className="bg-rose-800 h-full"></div>}
+            {countType('BLANC') > 0 && <div style={{width: `${getPct(countType('BLANC'))}%`}} className="bg-amber-100 h-full"></div>}
+            {countType('ROSE') > 0 && <div style={{width: `${getPct(countType('ROSE'))}%`}} className="bg-pink-300 h-full"></div>}
+            {countType('PETILLANT') > 0 && <div style={{width: `${getPct(countType('PETILLANT'))}%`}} className="bg-yellow-400 h-full"></div>}
             {totalBottles === 0 && <div className="bg-slate-200 h-full w-full"></div>}
           </div>
-          
-          <div className="grid grid-cols-2 gap-y-3 text-sm font-medium">
-            <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-rose-800 mr-3 shadow-sm"></div><span className="text-slate-700">Rouges ({getPct(red)}%)</span></div>
-            <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-amber-100 mr-3 shadow-sm border border-slate-200"></div><span className="text-slate-700">Blancs ({getPct(white)}%)</span></div>
-            <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-pink-300 mr-3 shadow-sm"></div><span className="text-slate-700">Rosés ({getPct(rose)}%)</span></div>
-            <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-yellow-400 mr-3 shadow-sm"></div><span className="text-slate-700">Pétillants ({getPct(spark)}%)</span></div>
-          </div>
         </div>
 
-        {/* ACTIONS CARD */}
         <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-3">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">Paramètres du compte</p>
-          <div className="text-sm font-medium text-slate-700 bg-slate-50 p-4 rounded-2xl flex items-center break-all border border-slate-100">
-            <Mail className="w-5 h-5 mr-3 text-slate-400 shrink-0"/> {ctx.user.email}
-          </div>
-          
-          <button onClick={exportToCSV} className="w-full flex items-center p-4 bg-indigo-50 text-indigo-700 rounded-2xl font-bold hover:bg-indigo-100 transition-colors border border-indigo-100">
-            <Download className="w-5 h-5 mr-3" /> Exporter ma cave (.csv)
-          </button>
-
-          <button onClick={handleLogout} className="w-full flex items-center p-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-colors border border-slate-200">
-            <LogOut className="w-5 h-5 mr-3" /> Se déconnecter
-          </button>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Paramètres</p>
+          <button onClick={handleLogout} className="w-full flex items-center p-4 bg-slate-100 text-slate-700 rounded-2xl font-bold"><LogOut className="w-5 h-5 mr-3" /> Se déconnecter</button>
         </div>
       </div>
 
-      {/* MODAL DES BADGES ET COLLECTIONS */}
       {showBadges && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative shadow-2xl max-h-[80vh] overflow-y-auto">
             <button onClick={() => setShowBadges(false)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"><X className="w-5 h-5"/></button>
             <h3 className="font-serif text-2xl font-bold mb-6 text-center text-slate-900">Trophées & Collections</h3>
-            
             <div className="space-y-3">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Collections Régionales & Types</p>
               {collectionBadges.map((badge) => {
                 const unlocked = badge.count >= badge.req;
                 return (
-                  <div key={badge.id} className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${unlocked ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200 opacity-70 grayscale'}`}>
+                  <div key={badge.id} className={`p-4 rounded-2xl border flex items-center justify-between ${unlocked ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200 opacity-60 grayscale'}`}>
                     <div className="flex items-center space-x-3">
                       <div className="text-2xl">{badge.icon}</div>
                       <div>
@@ -1007,11 +944,7 @@ const AccountView = ({ ctx }) => {
                         <p className="text-xs text-slate-500">{badge.desc}</p>
                       </div>
                     </div>
-                    {unlocked ? (
-                      <CheckCircle className="w-5 h-5 text-amber-500" />
-                    ) : (
-                      <span className="text-xs font-bold text-slate-400">{badge.count}/{badge.req}</span>
-                    )}
+                    {unlocked ? <CheckCircle className="w-5 h-5 text-amber-500" /> : <span className="text-xs font-bold text-slate-400">{badge.count}/{badge.req}</span>}
                   </div>
                 );
               })}
@@ -2081,6 +2014,7 @@ export default function App() {
       <div className="w-full max-w-md mx-auto h-[100dvh] bg-white sm:border-x sm:border-slate-200 overflow-hidden relative shadow-2xl text-slate-900 font-sans">
         {view === 'home' && <HomeView ctx={ctx} />}
         {view === 'manualSearch' && <ManualSearchView ctx={ctx} />}
+        {view === 'quiz' && <QuizView ctx={ctx} />}
         {view === 'menuConfig' && <MenuConfigView ctx={ctx} />}
         {view === 'recommendation' && <RecommendationView ctx={ctx} />}
         {view === 'recommendationList' && <RecommendationListView ctx={ctx} />}
@@ -2091,7 +2025,7 @@ export default function App() {
         {view === 'analyzing' && <AnalyzingView />}
         {view === 'results' && <ResultsView ctx={ctx} />}
         {view === 'error' && <ErrorView ctx={ctx} />}
-        {['home', 'cellar', 'history', 'account', 'recommendation', 'recommendationList', 'menuConfig'].includes(view) && <NavigationBar ctx={ctx} />}
+        {['home', 'cellar', 'history', 'account', 'recommendation', 'recommendationList', 'menuConfig', 'quiz'].includes(view) && <NavigationBar ctx={ctx} />}
 
         {scanAction && (
           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
