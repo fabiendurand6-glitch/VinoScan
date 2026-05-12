@@ -304,7 +304,7 @@ const NavigationBar = ({ ctx }) => (
 );
 
 const HomeView = ({ ctx }) => (
-  <div className="flex flex-col items-center justify-center h-full p-6 space-y-8 pb-20 relative bg-slate-50 overflow-hidden">
+  <div className="flex flex-col items-center justify-center h-full p-6 space-y-8 pb-20 relative bg-[#f8f5f2] overflow-hidden">
     <div className="absolute -top-32 -left-32 w-64 h-64 bg-rose-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse"></div>
     <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-amber-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse"></div>
     
@@ -316,27 +316,32 @@ const HomeView = ({ ctx }) => (
       <p className="text-slate-500 max-w-sm mx-auto text-sm font-medium">L'assistant ultime de votre cave.</p>
     </div>
 
-    <div className="w-full max-w-sm space-y-4 pt-4 relative z-10">
-      <button onClick={() => ctx.startCamera('bottle')} className="w-full flex items-center justify-center space-x-3 bg-slate-900 text-white p-5 rounded-2xl shadow-xl active:scale-95 transition-all">
-        <Camera className="w-6 h-6" /><span className="font-medium text-lg">Scanner une bouteille</span>
+    <div className="w-full max-w-sm space-y-3 pt-2 relative z-10">
+      <button onClick={() => ctx.startCamera('bottle')} className="w-full flex items-center justify-center space-x-3 bg-slate-900 text-white p-4 rounded-2xl shadow-xl active:scale-95 transition-all">
+        <Camera className="w-6 h-6" /><span className="font-bold text-lg">Scanner une bouteille</span>
+      </button>
+
+      {/* NOUVEAU : LE SCAN DE FACTURE */}
+      <button onClick={() => ctx.startCamera('receipt')} className="w-full flex items-center justify-center space-x-3 bg-white border-2 border-slate-900 text-slate-900 p-4 rounded-2xl shadow-md active:scale-95 transition-all">
+        <Receipt className="w-6 h-6" /><span className="font-bold text-lg">Scanner un ticket / facture</span>
       </button>
       
-      <div className="flex space-x-4">
-        <button onClick={() => ctx.setView('menuConfig')} className="flex-1 flex flex-col items-center justify-center space-y-2 bg-white border border-slate-100 text-amber-700 p-4 rounded-2xl shadow-sm active:scale-95">
-          <BookOpen className="w-6 h-6" /><span className="font-bold text-xs uppercase tracking-wider">Carte des vins</span>
+      <div className="flex space-x-3 pt-2">
+        <button onClick={() => ctx.setView('menuConfig')} className="flex-1 flex items-center justify-center space-x-2 bg-white border border-slate-200 text-amber-700 p-4 rounded-2xl shadow-sm active:scale-95">
+          <BookOpen className="w-5 h-5" /><span className="font-bold text-xs uppercase">Carte Vins</span>
         </button>
-        <button onClick={() => ctx.setView('quiz')} className="flex-1 flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-md active:scale-95">
-          <Gamepad2 className="w-6 h-6" /><span className="font-bold text-xs uppercase tracking-wider">Jouer & Apprendre</span>
+        <button onClick={() => ctx.setView('quiz')} className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-sm active:scale-95">
+          <Gamepad2 className="w-5 h-5" /><span className="font-bold text-xs uppercase">Mini-Jeu</span>
         </button>
       </div>
 
-      <div className="flex space-x-4 pt-2">
-        <label className="flex-1 flex flex-col items-center justify-center space-y-2 bg-white border border-slate-100 text-slate-700 p-4 rounded-2xl cursor-pointer shadow-sm active:scale-95">
-          <ImageIcon className="w-6 h-6 text-slate-400" /><span className="font-medium text-sm">Galerie</span>
+      <div className="flex space-x-3">
+        <label className="flex-1 flex flex-col items-center justify-center space-y-1 bg-white border border-slate-200 text-slate-700 py-3 rounded-2xl cursor-pointer shadow-sm active:scale-95">
+          <ImageIcon className="w-5 h-5 text-slate-400" /><span className="font-bold text-[10px] uppercase">Galerie</span>
           <input type="file" accept="image/*" className="hidden" onChange={(e) => ctx.handleFileUpload(e, 'bottle')} />
         </label>
-        <button onClick={() => ctx.setView('manualSearch')} className="flex-1 flex flex-col items-center justify-center space-y-2 bg-white border border-slate-100 text-slate-700 p-4 rounded-2xl shadow-sm active:scale-95">
-          <Search className="w-6 h-6 text-slate-400" /><span className="font-medium text-sm">Recherche</span>
+        <button onClick={() => ctx.setView('manualSearch')} className="flex-1 flex flex-col items-center justify-center space-y-1 bg-white border border-slate-200 text-slate-700 py-3 rounded-2xl shadow-sm active:scale-95">
+          <Search className="w-5 h-5 text-slate-400" /><span className="font-bold text-[10px] uppercase">Recherche</span>
         </button>
       </div>
     </div>
@@ -1821,42 +1826,81 @@ export default function App() {
 
   const capturePhoto = async () => {
     if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const mapCtx = canvas.getContext('2d');
-      mapCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const canvas = canvasRef.current; canvas.width = videoRef.current.videoWidth; canvas.height = videoRef.current.videoHeight;
+      canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
       stopCamera();
-      
-      const compressedImg = await compressImage(dataUrl);
+      const compressedImg = await compressImage(dataUrl); 
       setImageSrc(compressedImg);
-      
-      if (cameraMode === 'menu') analyzeMenu(compressedImg);
-      else analyzeImage(compressedImg);
+
+      // Aiguillage IA selon ce qu'on scanne
+      if (cameraMode === 'receipt') {
+        analyzeReceipt(compressedImg);
+      } else {
+        analyzeImage(compressedImg);
+      }
     }
   };
 
-  const handleFileUpload = async (e, mode = 'bottle') => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setCameraMode(mode);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const compressedImg = await compressImage(reader.result);
-        setImageSrc(compressedImg);
-        if (mode === 'menu') analyzeMenu(compressedImg);
-        else analyzeImage(compressedImg);
-      };
-      reader.readAsDataURL(file);
+    if (file) { 
+      const reader = new FileReader(); 
+      reader.onloadend = async () => { 
+        const compressedImg = await compressImage(reader.result); 
+        setImageSrc(compressedImg); 
+        analyzeImage(compressedImg); 
+      }; 
+      reader.readAsDataURL(file); 
     }
   };
 
-  useEffect(() => { return () => stopCamera(); }, []);
+  const SYSTEM_PROMPT = `Expert Sommelier. Réponds UNIQUEMENT en JSON. Format: {"nom":"","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
 
-  const SYSTEM_PROMPT = `Expert Sommelier. Réponds UNIQUEMENT en JSON. 
-  Format: {"nom":"","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
+  // NOUVEAU : LE MOTEUR D'ANALYSE DE FACTURES
+  const analyzeReceipt = async (base64Img) => {
+    setView('analyzing');
+    try {
+      const b64Data = base64Img.split(',')[1];
+      const prompt = `Extrait tous les vins de ce ticket de caisse ou de cette facture.
+      Réponds UNIQUEMENT par un tableau JSON pur.
+      Format attendu pour chaque vin : [{"nom":"Nom du vin", "annee":"2020", "prix_unitaire_nombre":15.5, "type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT", "region":"Bordeaux"}]`;
+
+      const result = await callGemini(prompt, b64Data);
+      let text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      let parsedArr = extractJSON(text);
+
+      if (!Array.isArray(parsedArr) || parsedArr.length === 0) {
+        setErrorMsg("Aucun vin trouvé sur cette facture.");
+        setView('error');
+        return;
+      }
+
+      let newScans = [];
+      for (let item of parsedArr) {
+        const norm = normalizeData(item);
+        const tempId = 'temp_' + Date.now() + Math.random().toString(36).substr(2, 5);
+        newScans.push({
+          id: tempId,
+          image: getGenericImageForType(norm.type_simplifie),
+          data: norm,
+          stock: 1,
+          in_history: true,
+          wishlist: false,
+          location: '',
+          timestamp: Date.now()
+        });
+      }
+
+      setScanHistory(prev => [...newScans, ...prev]);
+      showToast(`${newScans.length} vins ajoutés à la cave !`);
+      setView('cellar'); // Redirige directement vers la cave pour voir l'import masssif
+    } catch(err) {
+      setErrorMsg("Erreur de lecture de la facture. Assurez-vous que l'image est nette.");
+      setView('error');
+    }
+  };
+  
   const processAIResult = async (aiText, sourceImage, defaultImageFallback, isWishlist = false) => {
     const parsedData = normalizeData(extractJSON(aiText));
     setAnalysisResult(parsedData);
