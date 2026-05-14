@@ -1369,23 +1369,32 @@ const RecommendationView = ({ ctx }) => {
 
       <div className="p-6 space-y-10">
         
-        {/* MENU PRINCIPAL */}
-        {recMode === 'menu' && (
+{/* MENU PRINCIPAL */}
+{recMode === 'menu' && (
           <div className="space-y-6 mt-4">
-            <button onClick={() => setRecMode('buy')} className="w-full bg-[#1a1a1a] border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all active:scale-95 text-left flex items-center space-x-4">
+            <button onClick={() => setRecMode('buy')} className="w-full bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all active:scale-95 text-left flex items-center space-x-4">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center shrink-0"><ShoppingCart className="w-8 h-8 text-emerald-600" /></div>
               <div>
-                <h3 className="font-serif text-xl font-bold text-[#F5F5F5]">Acheter un vin</h3>
+                <h3 className="font-serif text-xl font-bold text-slate-900">Acheter un vin</h3>
                 <p className="text-sm text-slate-500">L'IA vous recommande le meilleur vin à acheter selon votre repas et votre budget.</p>
               </div>
             </button>
 
             <button onClick={() => setRecMode('cellar')} className="w-full bg-gradient-to-r from-indigo-800 to-purple-900 text-white rounded-3xl p-6 shadow-lg active:scale-95 transition-all text-left flex items-center space-x-4 relative overflow-hidden">
               <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-500 rounded-full mix-blend-screen filter blur-xl opacity-50"></div>
-              <div className="w-16 h-16 bg-[#1a1a1a]/20 rounded-full flex items-center justify-center shrink-0 backdrop-blur-md"><Archive className="w-8 h-8 text-white" /></div>
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center shrink-0 backdrop-blur-md"><Archive className="w-8 h-8 text-white" /></div>
               <div className="relative z-10">
                 <h3 className="font-serif text-xl font-bold text-white flex items-center">Que boire ce soir ? <Sparkles className="w-4 h-4 ml-2 text-yellow-300"/></h3>
                 <p className="text-sm text-indigo-200">Dites au sommelier ce que vous mangez, il trouvera la bouteille parfaite dans votre cave.</p>
+              </div>
+            </button>
+
+            {/* NOUVEAU BOUTON : BOUTIQUE ACCESSOIRES */}
+            <button onClick={() => setRecMode('boutique')} className="w-full bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all active:scale-95 text-left flex items-center space-x-4">
+              <div className="w-16 h-16 bg-amber-50 border border-amber-100 rounded-full flex items-center justify-center shrink-0"><ShoppingCart className="w-8 h-8 text-amber-600" /></div>
+              <div>
+                <h3 className="font-serif text-xl font-bold text-slate-900">Boutique Accessoires</h3>
+                <p className="text-sm text-slate-500">Carafes, verres, conservation... Équipez-vous comme un pro.</p>
               </div>
             </button>
           </div>
@@ -1396,7 +1405,7 @@ const RecommendationView = ({ ctx }) => {
           <div className="space-y-6 animate-in slide-in-from-right-4">
             <div className="bg-indigo-50 border border-indigo-100 rounded-3xl p-6 text-center">
               <Utensils className="w-12 h-12 text-indigo-600 mx-auto mb-4" />
-              <h3 className="font-serif text-2xl font-bold text-[#F5F5F5] mb-2">Que mangez-vous ?</h3>
+              <h3 className="font-serif text-2xl font-bold text-slate-900 mb-2">Que mangez-vous ?</h3>
               <p className="text-sm text-slate-600 mb-6">Le sommelier va analyser votre cave pour trouver l'accord parfait.</p>
               <input autoFocus type="text" placeholder="Ex: Magret de canard, Lasagnes..." value={pairingDish} onChange={e=>setPairingDish(e.target.value)} className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none mb-4 shadow-sm" />
               <button onClick={handleAskCellarSommelier} disabled={!pairingDish.trim() || isPairingLoading} className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg disabled:opacity-50 flex items-center justify-center">
@@ -1410,32 +1419,32 @@ const RecommendationView = ({ ctx }) => {
         {recMode === 'buy' && (
           <div className="space-y-10 animate-in slide-in-from-right-4">
             <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Euro className="w-5 h-5 text-emerald-600" /><span>Budget</span></h3>
+              <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Euro className="w-5 h-5 text-emerald-600" /><span>Budget</span></h3>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setFilterPrice('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'ALL' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>Peu importe</button>
-                <button onClick={() => setFilterPrice('BUDGET')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'BUDGET' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>Abordable ({"<"} 20€)</button>
-                <button onClick={() => setFilterPrice('MEDIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'MEDIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>Plaisir (20-50€)</button>
-                <button onClick={() => setFilterPrice('PREMIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'PREMIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>Exception ({">"} 50€)</button>
+                <button onClick={() => setFilterPrice('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'ALL' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Peu importe</button>
+                <button onClick={() => setFilterPrice('BUDGET')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'BUDGET' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Abordable ({"<"} 20€)</button>
+                <button onClick={() => setFilterPrice('MEDIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'MEDIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Plaisir (20-50€)</button>
+                <button onClick={() => setFilterPrice('PREMIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'PREMIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Exception ({">"} 50€)</button>
               </div>
             </div>
             
             <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Pour quel repas ?</span></h3>
+              <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Pour quel repas ?</span></h3>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setFilterFood('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'ALL' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🍽️ Peu importe</button>
-                <button onClick={() => setFilterFood('APERITIF')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'APERITIF' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🥂 Apéro & Tapas</button>
-                <button onClick={() => setFilterFood('VIANDE_ROUGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_ROUGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🥩 Viande rouge</button>
-                <button onClick={() => setFilterFood('VIANDE_BLANCHE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_BLANCHE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🍗 Viande blanche</button>
-                <button onClick={() => setFilterFood('POISSON')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'POISSON' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🐟 Poisson & Mer</button>
-                <button onClick={() => setFilterFood('FROMAGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'FROMAGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🧀 Fromage</button>
+                <button onClick={() => setFilterFood('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'ALL' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍽️ Peu importe</button>
+                <button onClick={() => setFilterFood('APERITIF')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'APERITIF' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥂 Apéro & Tapas</button>
+                <button onClick={() => setFilterFood('VIANDE_ROUGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_ROUGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥩 Viande rouge</button>
+                <button onClick={() => setFilterFood('VIANDE_BLANCHE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_BLANCHE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍗 Viande blanche</button>
+                <button onClick={() => setFilterFood('POISSON')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'POISSON' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🐟 Poisson & Mer</button>
+                <button onClick={() => setFilterFood('FROMAGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'FROMAGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🧀 Fromage</button>
               </div>
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Wine className="w-5 h-5 text-rose-800" /><span>Type de vin</span></h3>
+              <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Wine className="w-5 h-5 text-rose-800" /><span>Type de vin</span></h3>
               <div className="flex flex-wrap gap-2">
                 {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(type => (
-                  <button key={type} onClick={() => setFilterType(type)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterType === type ? 'bg-rose-900 text-white border-rose-900 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>
+                  <button key={type} onClick={() => setFilterType(type)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterType === type ? 'bg-rose-900 text-white border-rose-900 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                     {type === 'ALL' ? 'Surprenez-moi' : type === 'PETILLANT' ? 'Bulles' : type}
                   </button>
                 ))}
@@ -1448,62 +1457,71 @@ const RecommendationView = ({ ctx }) => {
           </div>
         )}
 
-      </div>
-    </div>
-  );
-};
+        {/* NOUVEAU : LA VRAIE BOUTIQUE CATÉGORISÉE */}
+        {recMode === 'boutique' && (
+          <div className="space-y-8 animate-in slide-in-from-right-4 pb-10">
+            <div className="text-center mb-6">
+              <h3 className="font-serif text-3xl font-bold text-slate-900 mb-2">La Cave Équipée</h3>
+              <p className="text-sm text-slate-500">Sélection approuvée par nos sommeliers.</p>
+            </div>
 
-const RecommendationListView = ({ ctx }) => {
-  const [sortOrder, setSortOrder] = useState('asc');
-  const sortedList = useMemo(() => {
-    if (!ctx.recommendationList) return [];
-    return [...ctx.recommendationList].sort((a, b) => {
-      const priceA = a.prix_unitaire_nombre || 0;
-      const priceB = b.prix_unitaire_nombre || 0;
-      return sortOrder === 'asc' ? priceA - priceB : priceB - priceA;
-    });
-  }, [ctx.recommendationList, sortOrder]);
+            {/* Catégorie 1 : Service */}
+            <div className="space-y-4">
+              <h4 className="font-bold text-lg text-slate-900 flex items-center"><Wine className="w-5 h-5 mr-2 text-amber-600"/> L'Art du Service</h4>
+              
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex space-x-4">
+                <div className="w-24 h-24 rounded-2xl bg-slate-100 overflow-hidden shrink-0">
+                  <img src="https://images.unsplash.com/photo-1585553616435-2dc0a54e271d?q=80&w=400&auto=format&fit=crop" className="w-full h-full object-cover" alt="Carafe" />
+                </div>
+                <div className="flex-1 flex flex-col justify-center">
+                  <h5 className="font-bold text-slate-900">Carafe à Décanter Cristal</h5>
+                  <p className="text-xs text-slate-500 mb-2">Libère les arômes des vins jeunes.</p>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-emerald-600">~45 €</span>
+                    <a href={getAmazonAffiliateLink("carafe a decanter cristal")} target="_blank" rel="noopener noreferrer" className="text-xs font-bold bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800">Voir</a>
+                  </div>
+                </div>
+              </div>
 
-  return (
-    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20">
-      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center justify-between border-b border-slate-100">
-        <div className="flex items-center">
-          <button onClick={() => ctx.setView('recommendation')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
-          <div><h1 className="text-2xl font-serif font-bold text-[#F5F5F5]">La Sélection</h1><p className="text-slate-500 text-xs mt-1 font-medium">{sortedList.length} vins trouvés</p></div>
-        </div>
-        <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} className="flex items-center space-x-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors">
-          <ArrowDownUp className="w-4 h-4" /><span>{sortOrder === 'asc' ? 'Prix croissant' : 'Prix décroissant'}</span>
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {sortedList.map((wine, index) => {
-           const imgUrl = getGenericImageForType(wine.type_simplifie);
-           return (
-             <div key={index} className="bg-[#1a1a1a] rounded-3xl p-5 shadow-sm border border-slate-100 flex space-x-5 hover:shadow-md transition-shadow">
-               <div className="w-24 h-32 bg-slate-100 rounded-2xl overflow-hidden shrink-0 shadow-inner">
-                  <img src={imgUrl} alt="Bouteille" className="w-full h-full object-cover" />
-               </div>
-               <div className="flex-1 min-w-0 flex flex-col justify-between">
-                 <div>
-                   <div className="flex justify-between items-start mb-2">
-                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{wine.type_simplifie === 'PETILLANT' ? 'Pétillant' : (wine.type_simplifie || 'VIN')}</span>
-                     <div className="flex items-end space-x-1 text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
-                       <span className="text-lg leading-none">{wine.prix_unitaire_nombre || '?'}</span><span className="text-xs">€</span>
-                     </div>
-                   </div>
-                   <h3 className="font-serif text-[#F5F5F5] text-lg leading-tight mb-1 font-bold line-clamp-2">{wine.nom}</h3>
-                   <div className="flex items-center space-x-2 text-xs text-slate-500 mb-2 font-medium">
-                     <span className="text-rose-800 font-bold">{wine.annee}</span><span>•</span><span className="truncate">{wine.region}</span>
-                   </div>
-                   <p className="text-xs text-slate-600 mb-3 line-clamp-2 leading-relaxed">{wine.description}</p>
-                 </div>
-                 <button onClick={() => ctx.processRecommendationSelection(wine)} className="w-full py-3 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-md hover:bg-slate-800 transition-colors">
-                   Découvrir ce vin
-                 </button>
-               </div>
-             </div>
-           );
-        })}
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex space-x-4">
+                <div className="w-24 h-24 rounded-2xl bg-slate-100 overflow-hidden shrink-0">
+                  <img src="https://images.unsplash.com/photo-1578339031418-410a566f1088?q=80&w=400&auto=format&fit=crop" className="w-full h-full object-cover" alt="Verres" />
+                </div>
+                <div className="flex-1 flex flex-col justify-center">
+                  <h5 className="font-bold text-slate-900">Verres de Dégustation</h5>
+                  <p className="text-xs text-slate-500 mb-2">Coffret de 6 verres universels.</p>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-emerald-600">~35 €</span>
+                    <a href={getAmazonAffiliateLink("verres de degustation vin")} target="_blank" rel="noopener noreferrer" className="text-xs font-bold bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800">Voir</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Catégorie 2 : Conservation */}
+            <div className="space-y-4 mt-8">
+              <h4 className="font-bold text-lg text-slate-900 flex items-center"><Archive className="w-5 h-5 mr-2 text-indigo-600"/> Conservation</h4>
+              
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-4 shadow-lg flex space-x-4 text-white">
+                <div className="w-24 h-24 rounded-2xl bg-white/10 overflow-hidden shrink-0">
+                  <img src="https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=400&auto=format&fit=crop" className="w-full h-full object-cover opacity-80" alt="Bouchon" />
+                </div>
+                <div className="flex-1 flex flex-col justify-center">
+                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest mb-1">Choix des Pros</span>
+                  <h5 className="font-bold">Système Coravin</h5>
+                  <p className="text-xs text-slate-300 mb-2">Servez le vin sans déboucher la bouteille.</p>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-amber-400">~199 €</span>
+                    <a href={getAmazonAffiliateLink("coravin systeme vin")} target="_blank" rel="noopener noreferrer" className="text-xs font-bold bg-amber-500 text-slate-900 px-3 py-1.5 rounded-lg shadow-md hover:bg-amber-400">Découvrir</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-[9px] text-slate-400 text-center italic mt-6">En tant que partenaire Amazon, VinoScan perçoit une commission sur les achats éligibles.</p>
+          </div>
+        )}
+
       </div>
     </div>
   );
@@ -1835,48 +1853,32 @@ const ResultsView = ({ ctx }) => {
               </a>
             </div>
             
-            {/* --- LA BOUTIQUE "NIGHT & GOLD" --- */}
-<div className="rounded-3xl shadow-lg border border-[#333] overflow-hidden mt-6" style={{ backgroundColor: 'var(--bg-card)' }}>
-  <div className="p-5 border-b border-[#333] flex items-center justify-between" style={{ backgroundColor: '#111' }}>
+{/* --- AFFILIATION CONTEXTUELLE (RESTAURÉE ET PREMIUM) --- */}
+<div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mt-6">
+  <div className="p-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
     <div className="flex items-center space-x-2">
-      <ShoppingCart className="w-5 h-5" style={{ color: 'var(--gold-primary)' }} />
-      <h3 className="text-sm font-bold uppercase tracking-widest text-[#F5F5F5]">La Boutique</h3>
+      <ShoppingCart className="w-5 h-5 text-slate-400" />
+      <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500">Sublimer ce vin</h3>
     </div>
-    <span className="text-[10px] font-bold px-2 py-1 rounded-md" style={{ backgroundColor: 'var(--gold-primary)', color: 'black' }}>SÉLECTION PREMIUM</span>
+    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-md border border-amber-100">RECOMMANDÉ</span>
   </div>
   
-  <div className="p-5 space-y-6">
-    {/* Carte Produit 1 : Carafe */}
-    <div className="rounded-2xl overflow-hidden border border-[#444] bg-[#222]">
-      <div className="h-32 bg-center bg-cover" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1585553616435-2dc0a54e271d?q=80&w=800&auto=format&fit=crop')" }}></div>
-      <div className="p-4">
-        <h4 className="font-serif text-lg font-bold mb-1" style={{ color: 'var(--gold-primary)' }}>Carafe à Décanter Cristal</h4>
-        <p className="text-xs text-gray-400 mb-4 line-clamp-2">Parfaite pour oxygéner vos vins jeunes et révéler leurs arômes cachés.</p>
-        <div className="flex justify-between items-center">
-          <span className="font-bold text-white text-lg">~45 €</span>
-          <a href={getAmazonAffiliateLink("carafe a decanter vin cristal")} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-xl text-black font-bold text-sm shadow-md active:scale-95 transition-transform" style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%)' }}>
-            Voir l'offre
-          </a>
+  <div className="p-5 space-y-4">
+    <a 
+      href={getAmazonAffiliateLink(getRecommendedAccessory(tempType).search)}
+      target="_blank" rel="noopener noreferrer"
+      className="flex items-center justify-between p-4 bg-slate-900 text-white rounded-2xl active:scale-95 transition-all shadow-lg shadow-slate-900/20"
+    >
+      <div className="flex items-center space-x-3">
+        <div className="p-2 bg-white/10 rounded-lg"><Wine className="w-5 h-5 text-amber-400" /></div>
+        <div className="text-left">
+          <p className="text-[10px] font-bold text-amber-400/80 uppercase">L'accessoire idéal</p>
+          <p className="text-sm font-bold truncate w-48">{getRecommendedAccessory(tempType).name}</p>
         </div>
       </div>
-    </div>
-
-    {/* Carte Produit 2 : Tire-Bouchon */}
-    <div className="rounded-2xl overflow-hidden border border-[#444] bg-[#222]">
-      <div className="h-32 bg-center bg-cover" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1566810237731-15b51a5dd77b?q=80&w=800&auto=format&fit=crop')" }}></div>
-      <div className="p-4">
-        <h4 className="font-serif text-lg font-bold mb-1" style={{ color: 'var(--gold-primary)' }}>Tire-Bouchon Professionnel</h4>
-        <p className="text-xs text-gray-400 mb-4 line-clamp-2">L'outil indispensable des sommeliers. Ouverture en deux temps sans effort.</p>
-        <div className="flex justify-between items-center">
-          <span className="font-bold text-white text-lg">~25 €</span>
-          <a href={getAmazonAffiliateLink("tire bouchon sommelier professionnel")} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-xl text-black font-bold text-sm shadow-md active:scale-95 transition-transform" style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%)' }}>
-            Voir l'offre
-          </a>
-        </div>
-      </div>
-    </div>
+      <ChevronRight className="w-5 h-5 text-white/50" />
+    </a>
   </div>
-  <p className="text-[9px] text-gray-500 text-center pb-4 px-10 italic">En tant que partenaire Amazon, VinoScan peut percevoir une commission sur les achats éligibles.</p>
 </div>
 
             <div className="flex flex-col space-y-3 pt-4">
@@ -2556,7 +2558,7 @@ useEffect(() => {
 
   return (
     <ErrorBoundary onReset={() => setView('home')}>
-      <div className="w-full max-w-md mx-auto h-[100dvh] bg-[#0a0a0a] sm:border-x sm:border-[#333] overflow-hidden relative shadow-2xl text-[#F5F5F5] font-sans" style={{ '--gold-primary': '#D4AF37', '--bg-card': '#1a1a1a' }}>        {view === 'home' && <HomeView ctx={ctx} />}
+      <div className="w-full max-w-md mx-auto h-[100dvh] bg-white sm:border-x sm:border-slate-200 overflow-hidden relative shadow-2xl text-slate-900 font-sans">        {view === 'home' && <HomeView ctx={ctx} />}
         {view === 'paywall' && <PaywallView ctx={ctx} />}
         {view === 'manualSearch' && <ManualSearchView ctx={ctx} />}
         {view === 'quiz' && <QuizView ctx={ctx} />}
