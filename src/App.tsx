@@ -307,7 +307,7 @@ const getRecommendedAccessory = (type) => {
 // =========================================================================
 
 const NavigationBar = ({ ctx }) => (
-  <div className="absolute bottom-0 w-full bg-white border-t border-slate-200 flex justify-around items-center pb-safe pt-2 px-1 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 h-16">
+  <div className="absolute bottom-0 w-full bg-[#1a1a1a] border-t border-slate-200 flex justify-around items-center pb-safe pt-2 px-1 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 h-16">
     <button onClick={() => ctx.setView('home')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${['home', 'manualSearch', 'menuConfig'].includes(ctx.view) ? 'text-rose-700' : 'text-slate-400 hover:text-slate-600'}`}>
       <Home className="w-5 h-5 sm:w-6 sm:h-6" /><span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">Scanner</span>
     </button>
@@ -325,6 +325,35 @@ const NavigationBar = ({ ctx }) => (
     </button>
   </div>
 );
+
+// NOUVEAU COMPOSANT : Le bouton vocal du sommelier
+const SommelierButton = ({ text }) => {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const lireTexte = (e) => {
+    e.stopPropagation(); // Évite de cliquer sur les éléments en dessous
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'fr-FR';
+    utterance.rate = 0.9;
+    utterance.onend = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
+  };
+
+  return (
+    <button 
+      onClick={lireTexte} 
+      className={`p-2 rounded-full border transition-all ${isSpeaking ? 'bg-[#D4AF37] border-[#D4AF37] text-black shadow-[0_0_15px_rgba(212,175,55,0.5)]' : 'bg-transparent border-[#D4AF37] text-[#D4AF37]'}`}
+    >
+      {isSpeaking ? <EyeOff className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+    </button>
+  );
+};
 
 const HomeView = ({ ctx }) => (
   <div className="flex flex-col items-center justify-center h-full p-6 space-y-8 pb-20 relative bg-[#f8f5f2] overflow-hidden">
@@ -345,12 +374,12 @@ const HomeView = ({ ctx }) => (
       </button>
 
       {/* NOUVEAU : LE SCAN DE FACTURE */}
-      <button onClick={() => ctx.startCamera('receipt')} className="w-full flex items-center justify-center space-x-3 bg-white border-2 border-slate-900 text-slate-900 p-4 rounded-2xl shadow-md active:scale-95 transition-all">
+      <button onClick={() => ctx.startCamera('receipt')} className="w-full flex items-center justify-center space-x-3 bg-[#1a1a1a] border-2 border-slate-900 text-slate-900 p-4 rounded-2xl shadow-md active:scale-95 transition-all">
         <Receipt className="w-6 h-6" /><span className="font-bold text-lg">Scanner un ticket / facture</span>
       </button>
       
       <div className="flex space-x-3 pt-2">
-        <button onClick={() => ctx.setView('menuConfig')} className="flex-1 flex items-center justify-center space-x-2 bg-white border border-slate-200 text-amber-700 p-4 rounded-2xl shadow-sm active:scale-95">
+        <button onClick={() => ctx.setView('menuConfig')} className="flex-1 flex items-center justify-center space-x-2 bg-[#1a1a1a] border border-slate-200 text-amber-700 p-4 rounded-2xl shadow-sm active:scale-95">
           <BookOpen className="w-5 h-5" /><span className="font-bold text-xs uppercase">Carte Vins</span>
         </button>
         <button onClick={() => ctx.setView('quiz')} className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-sm active:scale-95">
@@ -359,11 +388,11 @@ const HomeView = ({ ctx }) => (
       </div>
 
       <div className="flex space-x-3">
-        <label className="flex-1 flex flex-col items-center justify-center space-y-1 bg-white border border-slate-200 text-slate-700 py-3 rounded-2xl cursor-pointer shadow-sm active:scale-95">
+        <label className="flex-1 flex flex-col items-center justify-center space-y-1 bg-[#1a1a1a] border border-slate-200 text-slate-700 py-3 rounded-2xl cursor-pointer shadow-sm active:scale-95">
           <ImageIcon className="w-5 h-5 text-slate-400" /><span className="font-bold text-[10px] uppercase">Galerie</span>
           <input type="file" accept="image/*" className="hidden" onChange={(e) => ctx.handleFileUpload(e, 'bottle')} />
         </label>
-        <button onClick={() => ctx.setView('manualSearch')} className="flex-1 flex flex-col items-center justify-center space-y-1 bg-white border border-slate-200 text-slate-700 py-3 rounded-2xl shadow-sm active:scale-95">
+        <button onClick={() => ctx.setView('manualSearch')} className="flex-1 flex flex-col items-center justify-center space-y-1 bg-[#1a1a1a] border border-slate-200 text-slate-700 py-3 rounded-2xl shadow-sm active:scale-95">
           <Search className="w-5 h-5 text-slate-400" /><span className="font-bold text-[10px] uppercase">Recherche</span>
         </button>
       </div>
@@ -378,7 +407,7 @@ const ManualSearchView = ({ ctx }) => {
   
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20">
-      <div className="bg-white pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
         <div><h1 className="text-2xl font-serif font-bold text-slate-900">Ajouter un vin</h1><p className="text-slate-500 text-xs mt-1">Recherche mondiale</p></div>
       </div>
@@ -386,7 +415,7 @@ const ManualSearchView = ({ ctx }) => {
         <form onSubmit={handleSearch} className="space-y-4 mb-10">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Ex: Château Margaux 2015" className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-rose-500 shadow-sm text-lg"/>
+            <input autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Ex: Château Margaux 2015" className="w-full pl-12 pr-4 py-4 bg-[#1a1a1a] border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-rose-500 shadow-sm text-lg"/>
           </div>
           <button type="submit" disabled={!query.trim()} className="w-full py-4 bg-slate-900 text-white rounded-xl font-medium shadow-lg disabled:opacity-50">
             Rechercher dans la base
@@ -471,12 +500,12 @@ const QuizView = ({ ctx }) => {
 
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20">
-      <div className="bg-white pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
         <div><h1 className="text-2xl font-serif font-bold text-slate-900">Le Nez du Sommelier</h1><p className="text-slate-500 text-xs mt-1">Défiez vos connaissances</p></div>
       </div>
       <div className="p-6 flex-1 flex flex-col justify-center">
-        <div className="bg-white border border-amber-200 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+        <div className="bg-[#1a1a1a] border border-amber-200 rounded-3xl p-6 shadow-xl relative overflow-hidden">
           
           {gameState === 'idle' && (
             <div className="text-center space-y-6 relative z-10 py-4">
@@ -497,7 +526,7 @@ const QuizView = ({ ctx }) => {
               <p className="font-serif text-xl font-bold text-slate-900 min-h-[80px] leading-snug">{currentQuiz[qIndex].q}</p>
               <div className="space-y-3">
                 {currentQuiz[qIndex].options.map(opt => {
-                  let btnClass = "bg-white border-slate-200 text-slate-700 hover:bg-slate-50";
+                  let btnClass = "bg-[#1a1a1a] border-slate-200 text-slate-700 hover:bg-slate-50";
                   if (feedback && opt === currentQuiz[qIndex].ans) btnClass = "bg-emerald-500 border-emerald-500 text-white";
                   else if (feedback === 'wrong' && opt !== currentQuiz[qIndex].ans) btnClass = "bg-slate-50 border-slate-100 text-slate-400 opacity-50";
                   return (
@@ -539,7 +568,7 @@ const MenuConfigView = ({ ctx }) => {
 
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20">
-      <div className="bg-white pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
         <div>
           <h1 className="text-2xl font-serif font-bold text-slate-900">Le bon choix</h1>
@@ -554,7 +583,7 @@ const MenuConfigView = ({ ctx }) => {
               <button 
                 key={f} 
                 onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: f})} 
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors ${ctx.menuPrefs.food === f ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors ${ctx.menuPrefs.food === f ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-[#1a1a1a] text-slate-600 border-slate-200 hover:bg-slate-50'}`}
               >
                 {getFoodLabel(f)}
               </button>
@@ -704,37 +733,37 @@ const CellarView = ({ ctx }) => {
 
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20 relative">
-      <div className="bg-white pt-12 pb-4 px-4 shadow-sm z-10 sticky top-0">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-4 shadow-sm z-10 sticky top-0">
         <div className="flex justify-between items-end mb-4">
           <div><h1 className="text-3xl font-serif font-bold text-slate-900">Mes Vins</h1><p className="text-slate-500 text-sm mt-1">{totalBottles} bouteilles</p></div>
           <div className="text-right"><p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Valeur Estimée</p><div className="text-emerald-700"><span className="text-2xl font-bold">{totalValue.toFixed(0)}</span>€</div></div>
         </div>
 
         <div className="flex bg-slate-100 p-1 rounded-xl mb-4">
-          <button onClick={() => setCellarTab('STOCK')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'STOCK' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>En Cave</button>
-          <button onClick={() => setCellarTab('WISHLIST')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'WISHLIST' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Liste d'Achats</button>
+          <button onClick={() => setCellarTab('STOCK')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'STOCK' ? 'bg-[#1a1a1a] text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>En Cave</button>
+          <button onClick={() => setCellarTab('WISHLIST')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'WISHLIST' ? 'bg-[#1a1a1a] text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Liste d'Achats</button>
         </div>
 
         <div className="space-y-3">
           <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Trier & Filtrer</span>
             <div className="flex bg-slate-100 rounded-lg p-0.5 shadow-inner">
-               <button onClick={() => { setViewMode('list'); setReorgMode(false); }} className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}><List className="w-4 h-4" /></button>
-               <button onClick={() => setViewMode('shelves')} className={`p-1.5 rounded-md transition-colors ${viewMode === 'shelves' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}><LayoutGrid className="w-4 h-4" /></button>
+               <button onClick={() => { setViewMode('list'); setReorgMode(false); }} className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-[#1a1a1a] shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}><List className="w-4 h-4" /></button>
+               <button onClick={() => setViewMode('shelves')} className={`p-1.5 rounded-md transition-colors ${viewMode === 'shelves' ? 'bg-[#1a1a1a] shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}><LayoutGrid className="w-4 h-4" /></button>
             </div>
           </div>
 
           <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide">
             <Filter className="w-4 h-4 text-slate-400 shrink-0" />
             {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => (
-              <button key={t} onClick={() => setFilterType(t)} className={`px-3 py-1 rounded-full text-xs font-medium border ${filterType === t ? 'bg-slate-800 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600'}`}>{t === 'ALL' ? 'Tous' : t}</button>
+              <button key={t} onClick={() => setFilterType(t)} className={`px-3 py-1 rounded-full text-xs font-medium border ${filterType === t ? 'bg-slate-800 text-white shadow-md' : 'bg-[#1a1a1a] border-slate-200 text-slate-600'}`}>{t === 'ALL' ? 'Tous' : t}</button>
             ))}
           </div>
 
           <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
             <Utensils className="w-4 h-4 text-slate-400 shrink-0 mr-1" />
             {['ALL', 'VIANDE', 'POISSON', 'FROMAGE', 'APERITIF'].map(f => (
-              <button key={f} onClick={() => setFilterFood(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${filterFood === f ? 'bg-amber-600 text-white shadow-md border-amber-600' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+              <button key={f} onClick={() => setFilterFood(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${filterFood === f ? 'bg-amber-600 text-white shadow-md border-amber-600' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                 {f === 'ALL' ? 'Tous plats' : f}
               </button>
             ))}
@@ -759,7 +788,7 @@ const CellarView = ({ ctx }) => {
             <p className="text-[10px] text-amber-800 font-bold uppercase"><b className="text-amber-900">Astuce :</b> Glissez une bouteille pour l'organiser.</p>
             <button 
               onClick={() => { setReorgMode(!reorgMode); setSelectedBottle(null); }} 
-              className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${reorgMode ? 'bg-rose-600 text-white shadow-md' : 'bg-white border border-slate-300 text-slate-700'}`}
+              className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${reorgMode ? 'bg-rose-600 text-white shadow-md' : 'bg-[#1a1a1a] border border-slate-300 text-slate-700'}`}
             >
               <GripHorizontal className="w-3 h-3" />
               <span>{reorgMode ? 'Terminer' : 'Sur Mobile ?'}</span>
@@ -772,7 +801,7 @@ const CellarView = ({ ctx }) => {
         ) : viewMode === 'list' ? (
           <div className="space-y-4">
             {filteredItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
+              <div key={item.id} className="bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
                 <div onClick={() => ctx.openExistingWine(item, 'cellar')} className="p-4 flex items-start space-x-4 active:bg-slate-50 cursor-pointer">
                   <div className="w-16 h-24 bg-slate-100 rounded-lg overflow-hidden shrink-0 shadow-inner flex items-center justify-center">
                     <img src={item.image} onError={(e) => {e.target.onerror = null; e.target.src = fallbackImg;}} alt="Miniature" className="max-w-full max-h-full object-contain drop-shadow-md" />
@@ -827,7 +856,7 @@ const CellarView = ({ ctx }) => {
                               if (reorgMode) setSelectedBottle(bottle);
                               else ctx.openExistingWine(bottle, 'cellar');
                             }} 
-                            className={`relative flex flex-col bg-white rounded-2xl p-3 shadow-sm border border-slate-100 cursor-pointer transition-all duration-300 group ${draggedBottle === bottle.id ? 'opacity-40 scale-95' : 'hover:-translate-y-1 hover:shadow-md'} ${reorgMode ? 'ring-2 ring-amber-400 animate-pulse' : ''}`}
+                            className={`relative flex flex-col bg-[#1a1a1a] rounded-2xl p-3 shadow-sm border border-slate-100 cursor-pointer transition-all duration-300 group ${draggedBottle === bottle.id ? 'opacity-40 scale-95' : 'hover:-translate-y-1 hover:shadow-md'} ${reorgMode ? 'ring-2 ring-amber-400 animate-pulse' : ''}`}
                          >
                             {/* Image de la Bouteille */}
                             <div className="relative h-28 w-full mb-3 flex items-center justify-center">
@@ -893,7 +922,7 @@ const CellarView = ({ ctx }) => {
       {/* MODAL POUR SMARTPHONE (REORG MODE) */}
       {selectedBottle && (
         <div className="fixed inset-0 z-[100] bg-black/60 flex items-end justify-center p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl mb-safe animate-in slide-in-from-bottom-4">
+          <div className="bg-[#1a1a1a] w-full max-w-sm rounded-3xl p-6 shadow-2xl mb-safe animate-in slide-in-from-bottom-4">
              <h3 className="font-serif text-2xl font-bold text-slate-900 mb-1">Déplacer</h3>
              <p className="text-slate-500 text-sm mb-6">Où voulez-vous ranger <b>{selectedBottle.data.nom}</b> ?</p>
              <div className="space-y-2 max-h-48 overflow-y-auto mb-6 pr-2">
@@ -916,7 +945,7 @@ const CellarView = ({ ctx }) => {
       {/* MODAL KILLER APP (SOMMELIER DE CAVE) */}
       {showPairingModal && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative shadow-2xl">
+          <div className="bg-[#1a1a1a] rounded-3xl p-6 w-full max-w-sm relative shadow-2xl">
             <button onClick={() => setShowPairingModal(false)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"><X className="w-5 h-5"/></button>
             
             {!pairingResult ? (
@@ -933,7 +962,7 @@ const CellarView = ({ ctx }) => {
               <div className="space-y-4 mt-4 animate-in slide-in-from-bottom-4">
                 <h3 className="font-serif text-xl font-bold text-center text-indigo-900">Voici le choix parfait !</h3>
                 <div onClick={() => {setShowPairingModal(false); ctx.openExistingWine(pairingResult.wine, 'cellar');}} className="border border-indigo-100 bg-indigo-50 rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-shadow">
-                  <div className="w-16 h-24 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-white">
+                  <div className="w-16 h-24 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-[#1a1a1a]">
                     <img src={pairingResult.wine.image} onError={(e) => {e.target.onerror=null; e.target.src=fallbackImg;}} className="max-w-full max-h-full object-contain" />
                   </div>
                   <div>
@@ -958,7 +987,7 @@ const HistoryView = ({ ctx }) => {
 
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20">
-      <div className="bg-white pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 border-b border-slate-100">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 border-b border-slate-100">
         <h1 className="text-3xl font-serif font-bold text-slate-900">Historique</h1>
         <p className="text-slate-500 text-xs mt-1 font-medium uppercase tracking-wider">{historyItems.length} bouteilles analysées</p>
       </div>
@@ -970,7 +999,7 @@ const HistoryView = ({ ctx }) => {
           </div>
         ) : (
           historyItems.map((item) => (
-            <div key={item.id} onClick={() => ctx.openExistingWine(item, 'history')} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center space-x-4 active:scale-[0.98] transition-transform cursor-pointer relative overflow-hidden hover:shadow-md">
+            <div key={item.id} onClick={() => ctx.openExistingWine(item, 'history')} className="bg-[#1a1a1a] rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center space-x-4 active:scale-[0.98] transition-transform cursor-pointer relative overflow-hidden hover:shadow-md">
               <div className="w-14 h-16 bg-slate-100 rounded-lg overflow-hidden shrink-0 opacity-90 shadow-inner">
                 <img src={item.image} alt="Miniature" className="w-full h-full object-cover" />
               </div>
@@ -1082,7 +1111,7 @@ const AccountView = ({ ctx }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#f8f5f2] pb-20 overflow-y-auto relative">
-      <div className="bg-white pt-12 pb-6 px-6 shadow-sm border-b border-slate-200 flex justify-between items-center sticky top-0 z-10">
+      <div className="bg-[#1a1a1a] pt-12 pb-6 px-6 shadow-sm border-b border-slate-200 flex justify-between items-center sticky top-0 z-10">
         <div>
           <h1 className="text-3xl font-serif font-bold text-slate-900">Tableau de Bord</h1>
           <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 mt-1 flex items-center"><CheckCircle className="w-3 h-3 mr-1"/> Sauvegarde Cloud</p>
@@ -1093,7 +1122,7 @@ const AccountView = ({ ctx }) => {
       </div>
 
       <div className="p-5 space-y-6">
-        <div onClick={() => setShowBadges(true)} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div onClick={() => setShowBadges(true)} className="bg-[#1a1a1a] rounded-3xl p-6 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="absolute top-6 right-6 text-slate-300 group-hover:text-amber-500 transition-colors"><ChevronRight className="w-6 h-6"/></div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Votre Profil Œnologique</p>
           <h3 className={`font-serif text-2xl font-bold ${level.color} mb-4`}>{level.name}</h3>
@@ -1113,7 +1142,7 @@ const AccountView = ({ ctx }) => {
             <h3 className="font-serif text-xl font-bold text-amber-50">Valeur & Contenu</h3>
           </div>
           <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
-            <div className="bg-white/5 backdrop-blur-sm p-5 rounded-2xl border border-white/10">
+            <div className="bg-[#1a1a1a]/5 backdrop-blur-sm p-5 rounded-2xl border border-white/10">
               <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">En Cave</p>
               <p className="text-4xl font-bold text-white">{totalBottles}</p>
             </div>
@@ -1139,16 +1168,16 @@ const AccountView = ({ ctx }) => {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-[#1a1a1a] rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="p-6 border-b border-slate-50 flex items-center space-x-3 bg-slate-50/50">
-            <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100"><Settings className="w-5 h-5 text-slate-600"/></div>
+            <div className="p-2 bg-[#1a1a1a] rounded-xl shadow-sm border border-slate-100"><Settings className="w-5 h-5 text-slate-600"/></div>
             <h3 className="font-serif text-xl font-bold text-slate-900">Paramètres</h3>
           </div>
           <div className="p-4 space-y-2">
-            <button onClick={exportToCSV} className="w-full flex items-center p-4 bg-white hover:bg-slate-50 rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
+            <button onClick={exportToCSV} className="w-full flex items-center p-4 bg-[#1a1a1a] hover:bg-slate-50 rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
               <Download className="w-5 h-5 mr-4 text-slate-400" /> Exporter ma cave (.csv)
             </button>
-            <button onClick={handleLogout} className="w-full flex items-center p-4 bg-white hover:bg-slate-50 rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
+            <button onClick={handleLogout} className="w-full flex items-center p-4 bg-[#1a1a1a] hover:bg-slate-50 rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
               <LogOut className="w-5 h-5 mr-4 text-slate-400" /> Se déconnecter
             </button>
             <div className="my-4 border-t border-slate-100"></div>
@@ -1164,7 +1193,7 @@ const AccountView = ({ ctx }) => {
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/70 z-[150] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-sm relative shadow-2xl text-center">
+          <div className="bg-[#1a1a1a] rounded-3xl p-8 w-full max-w-sm relative shadow-2xl text-center">
             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <AlertTriangle className="w-10 h-10 text-red-600" />
             </div>
@@ -1180,7 +1209,7 @@ const AccountView = ({ ctx }) => {
 
       {showBadges && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative shadow-2xl max-h-[80vh] overflow-y-auto">
+          <div className="bg-[#1a1a1a] rounded-3xl p-6 w-full max-w-sm relative shadow-2xl max-h-[80vh] overflow-y-auto">
             <button onClick={() => setShowBadges(false)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"><X className="w-5 h-5"/></button>
             <h3 className="font-serif text-2xl font-bold mb-6 text-center text-slate-900">Trophées & Collections</h3>
             <div className="space-y-3">
@@ -1242,8 +1271,8 @@ const CameraView = ({ ctx }) => (
     </div>
     
     <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-black via-black/80 to-transparent z-20 flex items-center justify-center pb-8">
-      <button onClick={ctx.capturePhoto} className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full border-2 border-white/30 flex items-center justify-center active:scale-90 transition-transform hover:bg-white/20 group">
-        <div className="w-14 h-14 bg-white rounded-full group-hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.5)]"></div>
+      <button onClick={ctx.capturePhoto} className="w-20 h-20 bg-[#1a1a1a]/10 backdrop-blur-md rounded-full border-2 border-white/30 flex items-center justify-center active:scale-90 transition-transform hover:bg-[#1a1a1a]/20 group">
+        <div className="w-14 h-14 bg-[#1a1a1a] rounded-full group-hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.5)]"></div>
       </button>
     </div>
     <canvas ref={ctx.canvasRef} className="hidden" />
@@ -1328,7 +1357,7 @@ const RecommendationView = ({ ctx }) => {
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-amber-50 to-white pb-20 overflow-y-auto">
-      <div className="bg-white/80 backdrop-blur-md pt-12 pb-6 px-6 shadow-sm z-10 sticky top-0 border-b border-amber-100 flex items-center">
+      <div className="bg-[#1a1a1a]/80 backdrop-blur-md pt-12 pb-6 px-6 shadow-sm z-10 sticky top-0 border-b border-amber-100 flex items-center">
         {recMode !== 'menu' && (
           <button onClick={() => setRecMode('menu')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
         )}
@@ -1343,7 +1372,7 @@ const RecommendationView = ({ ctx }) => {
         {/* MENU PRINCIPAL */}
         {recMode === 'menu' && (
           <div className="space-y-6 mt-4">
-            <button onClick={() => setRecMode('buy')} className="w-full bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all active:scale-95 text-left flex items-center space-x-4">
+            <button onClick={() => setRecMode('buy')} className="w-full bg-[#1a1a1a] border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all active:scale-95 text-left flex items-center space-x-4">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center shrink-0"><ShoppingCart className="w-8 h-8 text-emerald-600" /></div>
               <div>
                 <h3 className="font-serif text-xl font-bold text-slate-900">Acheter un vin</h3>
@@ -1353,7 +1382,7 @@ const RecommendationView = ({ ctx }) => {
 
             <button onClick={() => setRecMode('cellar')} className="w-full bg-gradient-to-r from-indigo-800 to-purple-900 text-white rounded-3xl p-6 shadow-lg active:scale-95 transition-all text-left flex items-center space-x-4 relative overflow-hidden">
               <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-500 rounded-full mix-blend-screen filter blur-xl opacity-50"></div>
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center shrink-0 backdrop-blur-md"><Archive className="w-8 h-8 text-white" /></div>
+              <div className="w-16 h-16 bg-[#1a1a1a]/20 rounded-full flex items-center justify-center shrink-0 backdrop-blur-md"><Archive className="w-8 h-8 text-white" /></div>
               <div className="relative z-10">
                 <h3 className="font-serif text-xl font-bold text-white flex items-center">Que boire ce soir ? <Sparkles className="w-4 h-4 ml-2 text-yellow-300"/></h3>
                 <p className="text-sm text-indigo-200">Dites au sommelier ce que vous mangez, il trouvera la bouteille parfaite dans votre cave.</p>
@@ -1383,22 +1412,22 @@ const RecommendationView = ({ ctx }) => {
             <div className="space-y-4">
               <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Euro className="w-5 h-5 text-emerald-600" /><span>Budget</span></h3>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setFilterPrice('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'ALL' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Peu importe</button>
-                <button onClick={() => setFilterPrice('BUDGET')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'BUDGET' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Abordable ({"<"} 20€)</button>
-                <button onClick={() => setFilterPrice('MEDIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'MEDIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Plaisir (20-50€)</button>
-                <button onClick={() => setFilterPrice('PREMIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'PREMIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Exception ({">"} 50€)</button>
+                <button onClick={() => setFilterPrice('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'ALL' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Peu importe</button>
+                <button onClick={() => setFilterPrice('BUDGET')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'BUDGET' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Abordable ({"<"} 20€)</button>
+                <button onClick={() => setFilterPrice('MEDIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'MEDIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Plaisir (20-50€)</button>
+                <button onClick={() => setFilterPrice('PREMIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'PREMIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Exception ({">"} 50€)</button>
               </div>
             </div>
             
             <div className="space-y-4">
               <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Pour quel repas ?</span></h3>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setFilterFood('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'ALL' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍽️ Peu importe</button>
-                <button onClick={() => setFilterFood('APERITIF')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'APERITIF' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥂 Apéro & Tapas</button>
-                <button onClick={() => setFilterFood('VIANDE_ROUGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_ROUGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥩 Viande rouge</button>
-                <button onClick={() => setFilterFood('VIANDE_BLANCHE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_BLANCHE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍗 Viande blanche</button>
-                <button onClick={() => setFilterFood('POISSON')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'POISSON' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🐟 Poisson & Mer</button>
-                <button onClick={() => setFilterFood('FROMAGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'FROMAGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🧀 Fromage</button>
+                <button onClick={() => setFilterFood('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'ALL' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍽️ Peu importe</button>
+                <button onClick={() => setFilterFood('APERITIF')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'APERITIF' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥂 Apéro & Tapas</button>
+                <button onClick={() => setFilterFood('VIANDE_ROUGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_ROUGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥩 Viande rouge</button>
+                <button onClick={() => setFilterFood('VIANDE_BLANCHE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_BLANCHE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍗 Viande blanche</button>
+                <button onClick={() => setFilterFood('POISSON')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'POISSON' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🐟 Poisson & Mer</button>
+                <button onClick={() => setFilterFood('FROMAGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'FROMAGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🧀 Fromage</button>
               </div>
             </div>
 
@@ -1406,7 +1435,7 @@ const RecommendationView = ({ ctx }) => {
               <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Wine className="w-5 h-5 text-rose-800" /><span>Type de vin</span></h3>
               <div className="flex flex-wrap gap-2">
                 {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(type => (
-                  <button key={type} onClick={() => setFilterType(type)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterType === type ? 'bg-rose-900 text-white border-rose-900 shadow-md scale-105' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                  <button key={type} onClick={() => setFilterType(type)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterType === type ? 'bg-rose-900 text-white border-rose-900 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                     {type === 'ALL' ? 'Surprenez-moi' : type === 'PETILLANT' ? 'Bulles' : type}
                   </button>
                 ))}
@@ -1437,7 +1466,7 @@ const RecommendationListView = ({ ctx }) => {
 
   return (
     <div className="flex flex-col h-full bg-slate-50 pb-20">
-      <div className="bg-white pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center justify-between border-b border-slate-100">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center justify-between border-b border-slate-100">
         <div className="flex items-center">
           <button onClick={() => ctx.setView('recommendation')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
           <div><h1 className="text-2xl font-serif font-bold text-slate-900">La Sélection</h1><p className="text-slate-500 text-xs mt-1 font-medium">{sortedList.length} vins trouvés</p></div>
@@ -1450,7 +1479,7 @@ const RecommendationListView = ({ ctx }) => {
         {sortedList.map((wine, index) => {
            const imgUrl = getGenericImageForType(wine.type_simplifie);
            return (
-             <div key={index} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex space-x-5 hover:shadow-md transition-shadow">
+             <div key={index} className="bg-[#1a1a1a] rounded-3xl p-5 shadow-sm border border-slate-100 flex space-x-5 hover:shadow-md transition-shadow">
                <div className="w-24 h-32 bg-slate-100 rounded-2xl overflow-hidden shrink-0 shadow-inner">
                   <img src={imgUrl} alt="Bouteille" className="w-full h-full object-cover" />
                </div>
@@ -1579,7 +1608,7 @@ const ResultsView = ({ ctx }) => {
       {/* MODE : FAIRE DÉGUSTER CE VIN (MODAL PLEIN ÉCRAN ULTRA ROBUSTE) */}
       {showBlindTasting && (
         <div className="fixed inset-0 bg-gradient-to-b from-[#1A100C] to-[#2D1B13] z-[100] flex flex-col p-6 animate-in fade-in overflow-y-auto">
-          <button onClick={() => setShowBlindTasting(false)} className="absolute top-8 left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"><ChevronLeft className="w-6 h-6"/></button>
+          <button onClick={() => setShowBlindTasting(false)} className="absolute top-8 left-4 p-3 bg-[#1a1a1a]/10 hover:bg-[#1a1a1a]/20 rounded-full text-white transition-colors"><ChevronLeft className="w-6 h-6"/></button>
           
           <div className="mt-16 text-center flex-1 max-w-sm mx-auto w-full pb-10">
             <div className="w-20 h-20 bg-rose-900/50 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/30">
@@ -1590,15 +1619,15 @@ const ResultsView = ({ ctx }) => {
 
             {!blindResult ? (
               <div className="space-y-5 text-left">
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+                <div className="bg-[#1a1a1a]/5 p-5 rounded-2xl border border-white/10">
                   <label className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center mb-3"><div className="w-2 h-2 rounded-full bg-rose-500 mr-2"></div>L'Œil (La Robe)</label>
                   <input type="text" placeholder="Ex: Jaune paille, rubis profond..." value={blindNotes.robe} onChange={e=>setBlindNotes({...blindNotes, robe: e.target.value})} className="w-full bg-black/20 border border-white/10 text-white rounded-xl p-3 outline-none focus:border-rose-500 transition-colors" />
                 </div>
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+                <div className="bg-[#1a1a1a]/5 p-5 rounded-2xl border border-white/10">
                   <label className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center mb-3"><div className="w-2 h-2 rounded-full bg-rose-500 mr-2"></div>Le Nez (Arômes)</label>
                   <input type="text" placeholder="Ex: Fruits rouges, boisé, agrumes..." value={blindNotes.nez} onChange={e=>setBlindNotes({...blindNotes, nez: e.target.value})} className="w-full bg-black/20 border border-white/10 text-white rounded-xl p-3 outline-none focus:border-rose-500 transition-colors" />
                 </div>
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+                <div className="bg-[#1a1a1a]/5 p-5 rounded-2xl border border-white/10">
                   <label className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center mb-3"><div className="w-2 h-2 rounded-full bg-rose-500 mr-2"></div>La Bouche</label>
                   <input type="text" placeholder="Ex: Tanins fondus, belle acidité..." value={blindNotes.bouche} onChange={e=>setBlindNotes({...blindNotes, bouche: e.target.value})} className="w-full bg-black/20 border border-white/10 text-white rounded-xl p-3 outline-none focus:border-rose-500 transition-colors" />
                 </div>
@@ -1607,7 +1636,7 @@ const ResultsView = ({ ctx }) => {
                 </button>
               </div>
             ) : (
-              <div className="bg-white/10 border border-white/20 p-8 rounded-3xl animate-in zoom-in shadow-2xl">
+              <div className="bg-[#1a1a1a]/10 border border-white/20 p-8 rounded-3xl animate-in zoom-in shadow-2xl">
                 <p className="text-xs font-bold uppercase tracking-widest text-rose-300 mb-2">Note du Sommelier IA</p>
                 <div className="text-6xl mb-6 font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)]">{blindResult.note}</div>
                 <div className="bg-black/40 rounded-2xl p-4 mb-6">
@@ -1615,7 +1644,7 @@ const ResultsView = ({ ctx }) => {
                   <h3 className="text-xl font-bold text-amber-400">{nom}</h3>
                 </div>
                 <p className="text-white text-lg italic leading-relaxed mb-8">"{blindResult.commentaire}"</p>
-                <button onClick={() => setShowBlindTasting(false)} className="w-full py-4 bg-white text-slate-900 font-bold rounded-2xl hover:bg-slate-100 transition-colors">Fermer la dégustation</button>
+                <button onClick={() => setShowBlindTasting(false)} className="w-full py-4 bg-[#1a1a1a] text-slate-900 font-bold rounded-2xl hover:bg-slate-100 transition-colors">Fermer la dégustation</button>
               </div>
             )}
           </div>
@@ -1640,7 +1669,7 @@ const ResultsView = ({ ctx }) => {
       <div className="px-5 -mt-6 relative z-10 space-y-5 pb-10">
         
         {/* EN-TÊTE PRINCIPAL */}
-        <div className="bg-white rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100 p-6">
+        <div className="bg-[#1a1a1a] rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100 p-6">
           <div className="flex justify-between items-start mb-3">
             <div className="relative">
               <select value={tempType} onChange={(e) => handleTypeChange(e.target.value)} className="text-xs font-bold uppercase tracking-wider text-rose-800 bg-rose-50 border border-rose-100 px-3 py-1.5 rounded-lg outline-none cursor-pointer appearance-none pr-8 hover:bg-rose-100">
@@ -1655,12 +1684,16 @@ const ResultsView = ({ ctx }) => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">{region}</span>
           </div>
 
-          <h2 className="text-3xl font-serif font-bold text-slate-900 leading-tight mb-3">{nom}</h2>
-          
+          // On ajoute le bouton Sommelier à côté du titre
+<div className="flex justify-between items-center mb-3">
+  <h2 className="text-3xl font-serif font-bold leading-tight" style={{ color: 'var(--gold-primary)' }}>{nom}</h2>
+  {/* Bouton pour lire la description à voix haute */}
+  <SommelierButton text={`Ce vin est un ${nom}. ${description}. Il est recommandé de le boire entre ${apogee}.`} />
+</div>
           <div className="flex items-center text-slate-500 font-medium bg-slate-50 p-2 rounded-xl border border-slate-100 w-max">
             <span className="text-sm ml-2">Millésime :</span>
             <div className="relative flex items-center ml-2">
-              <input type="text" value={tempAnnee} onChange={(e) => setTempAnnee(e.target.value)} onKeyDown={ctx.handleKeyDown} onBlur={() => handleYearChange(tempAnnee)} className="bg-white border border-slate-200 text-rose-900 px-3 py-1.5 rounded-lg w-24 outline-none focus:ring-2 focus:ring-rose-200 font-bold text-lg text-center shadow-sm" />
+              <input type="text" value={tempAnnee} onChange={(e) => setTempAnnee(e.target.value)} onKeyDown={ctx.handleKeyDown} onBlur={() => handleYearChange(tempAnnee)} className="bg-[#1a1a1a] border border-slate-200 text-rose-900 px-3 py-1.5 rounded-lg w-24 outline-none focus:ring-2 focus:ring-rose-200 font-bold text-lg text-center shadow-sm" />
             </div>
           </div>
         </div>
@@ -1668,7 +1701,7 @@ const ResultsView = ({ ctx }) => {
         {/* LE GROS BOUTON INMANQUABLE : FAIRE DÉGUSTER */}
         <button onClick={() => setShowBlindTasting(true)} className="w-full bg-gradient-to-r from-rose-600 to-red-600 text-white rounded-2xl p-4 shadow-lg shadow-rose-600/30 flex items-center justify-between active:scale-95 transition-transform border border-rose-400/50">
           <div className="flex items-center">
-             <div className="bg-white/20 p-2.5 rounded-full mr-3"><EyeOff className="w-6 h-6"/></div>
+             <div className="bg-[#1a1a1a]/20 p-2.5 rounded-full mr-3"><EyeOff className="w-6 h-6"/></div>
              <div className="text-left">
                <h3 className="font-bold text-lg leading-none mb-1">Faire déguster ce vin</h3>
                <p className="text-[10px] text-rose-200 uppercase tracking-widest font-bold">Test à l'aveugle ludique</p>
@@ -1679,14 +1712,14 @@ const ResultsView = ({ ctx }) => {
 
         {/* ONGLETS */}
         <div className="flex bg-slate-200/50 p-1 rounded-xl">
-          <button onClick={() => setActiveTab('infos')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${activeTab === 'infos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Fiche Technique</button>
-          <button onClick={() => { setActiveTab('service'); fetchProtocol(); }} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${activeTab === 'service' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Service & Accords</button>
+          <button onClick={() => setActiveTab('infos')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${activeTab === 'infos' ? 'bg-[#1a1a1a] text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Fiche Technique</button>
+          <button onClick={() => { setActiveTab('service'); fetchProtocol(); }} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${activeTab === 'service' ? 'bg-[#1a1a1a] text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Service & Accords</button>
         </div>
 
         {/* ONGLET SERVICE */}
         {activeTab === 'service' && (
           <div className="animate-in fade-in space-y-5">
-            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm min-h-[200px]">
+            <div className="bg-[#1a1a1a] rounded-3xl p-6 border border-slate-100 shadow-sm min-h-[200px]">
                {isLoadingProtocol ? (
                  <div className="flex flex-col items-center justify-center h-full text-slate-400 py-10">
                    <RefreshCw className="w-8 h-8 animate-spin mb-4 text-indigo-500" />
@@ -1714,11 +1747,11 @@ const ResultsView = ({ ctx }) => {
                 <div className="w-12 h-12 bg-amber-200 rounded-2xl flex items-center justify-center shadow-sm border border-amber-300/50 transform rotate-3"><Star className="w-6 h-6 text-amber-800 fill-amber-800/20" /></div>
                 <h3 className="text-2xl font-serif font-bold text-amber-950">L'Accord Parfait</h3>
               </div>
-              <p className="text-amber-900 font-bold text-lg leading-relaxed relative z-10 bg-white/40 p-4 rounded-2xl border border-amber-100/50 backdrop-blur-sm">{accord_parfait}</p>
+              <p className="text-amber-900 font-bold text-lg leading-relaxed relative z-10 bg-[#1a1a1a]/40 p-4 rounded-2xl border border-amber-100/50 backdrop-blur-sm">{accord_parfait}</p>
               {Array.isArray(accords_mets) && accords_mets.length > 0 && (
                  <div className="mt-6 pt-5 border-t border-amber-200/60 relative z-10">
                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-amber-800/60 mb-4">Autres suggestions</h4>
-                   <div className="flex flex-wrap gap-2">{accords_mets.map((plat, index) => <span key={index} className="bg-white/60 border border-amber-200/50 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">{plat}</span>)}</div>
+                   <div className="flex flex-wrap gap-2">{accords_mets.map((plat, index) => <span key={index} className="bg-[#1a1a1a]/60 border border-amber-200/50 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">{plat}</span>)}</div>
                  </div>
               )}
             </div>
@@ -1728,7 +1761,7 @@ const ResultsView = ({ ctx }) => {
         {/* ONGLET INFOS TECHNIQUES */}
         {activeTab === 'infos' && (
           <div className="animate-in fade-in space-y-5">
-            <div className="flex items-start space-x-3 text-slate-600 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"><Info className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" /><p className="text-sm leading-relaxed font-medium">{description}</p></div>
+            <div className="flex items-start space-x-3 text-slate-600 bg-[#1a1a1a] p-4 rounded-2xl border border-slate-100 shadow-sm"><Info className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" /><p className="text-sm leading-relaxed font-medium">{description}</p></div>
 
             {currentScanObj && (
               <div className="bg-slate-900 rounded-3xl shadow-xl shadow-slate-900/20 p-6 text-white border border-slate-800 relative overflow-hidden">
@@ -1753,7 +1786,7 @@ const ResultsView = ({ ctx }) => {
               </div>
             )}
 
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+            <div className="bg-[#1a1a1a] rounded-3xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center space-x-3 mb-6"><div className="p-2 bg-indigo-50 rounded-lg"><Clock className="w-5 h-5 text-indigo-600" /></div><h3 className="font-serif text-xl font-bold text-slate-900">Temps & Apogée</h3></div>
               <div className="space-y-0 relative">
                 <div className="absolute left-5 top-2 bottom-6 w-0.5 bg-slate-100"></div>
@@ -1762,7 +1795,7 @@ const ResultsView = ({ ctx }) => {
                   <div className="-mt-1 ml-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 w-full"><p className={`text-xs font-bold uppercase tracking-wider mb-1 ${statut_apogee === 'A_GARDER' ? 'text-indigo-600' : 'text-slate-500'}`}>Garde estimée</p><p className="text-base font-bold text-slate-800">{potentiel_garde}</p></div>
                 </div>
                 <div className="flex items-start relative z-10 pb-8">
-                  <div className="w-10 flex flex-col items-center shrink-0"><div className={`w-5 h-5 rounded-full flex items-center justify-center border-4 border-white ${statut_apogee === 'APOGEE' ? 'bg-emerald-500 shadow-[0_0_0_2px_rgba(16,185,129,0.2)] scale-125' : 'bg-slate-300'} transition-all`}><div className="w-1.5 h-1.5 rounded-full bg-white"></div></div></div>
+                  <div className="w-10 flex flex-col items-center shrink-0"><div className={`w-5 h-5 rounded-full flex items-center justify-center border-4 border-white ${statut_apogee === 'APOGEE' ? 'bg-emerald-500 shadow-[0_0_0_2px_rgba(16,185,129,0.2)] scale-125' : 'bg-slate-300'} transition-all`}><div className="w-1.5 h-1.5 rounded-full bg-[#1a1a1a]"></div></div></div>
                   <div className="-mt-1.5 ml-4 bg-emerald-50 p-4 rounded-2xl border border-emerald-100 w-full shadow-sm"><p className={`text-xs font-bold uppercase tracking-wider mb-1 ${statut_apogee === 'APOGEE' ? 'text-emerald-700' : 'text-slate-500'}`}>Apogée parfaite</p><p className="text-lg font-bold text-emerald-900">Entre {apogee}</p></div>
                 </div>
                 <div className="flex items-start relative z-10">
@@ -1772,25 +1805,25 @@ const ResultsView = ({ ctx }) => {
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+            <div className="bg-[#1a1a1a] rounded-3xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center space-x-3"><div className="p-2 bg-rose-50 rounded-lg"><Edit3 className="w-5 h-5 text-rose-800" /></div><h3 className="font-serif text-xl font-bold text-slate-900">Notes & Avis</h3></div>
                 <div className="flex space-x-1 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
                   {[1, 2, 3, 4, 5].map(star => <button key={star} onClick={() => ctx.genericUpdate(scanIdToUse, { rating: star })} className="p-1 hover:scale-110 transition-transform"><Star className={`w-6 h-6 ${star <= rating ? 'fill-amber-400 text-amber-400 drop-shadow-sm' : 'text-slate-300'}`} /></button>)}
                 </div>
               </div>
-              <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} onBlur={() => ctx.genericUpdate(scanIdToUse, { notes: tempNotes })} placeholder="Arômes ressentis, occasion, personnes présentes..." className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-sm font-medium text-slate-700 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:bg-white transition-all placeholder-slate-400" />
+              <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} onBlur={() => ctx.genericUpdate(scanIdToUse, { notes: tempNotes })} placeholder="Arômes ressentis, occasion, personnes présentes..." className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-sm font-medium text-slate-700 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:bg-[#1a1a1a] transition-all placeholder-slate-400" />
             </div>
 
            {/* --- BLOC TARIF MARCHAND --- */}
-           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+           <div className="bg-[#1a1a1a] rounded-3xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center space-x-2 mb-4">
                 <Tag className="w-5 h-5 text-emerald-600" />
                 <h3 className="text-lg font-semibold text-slate-800">Tarif Marchand</h3>
               </div>
               <div className="flex items-end space-x-2 mb-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 w-max">
                 <div className="relative flex items-center">
-                  <input type="number" value={tempPrix} onChange={(e) => setTempPrix(e.target.value)} onBlur={() => ctx.updateDataField(scanIdToUse, 'prix_unitaire_nombre', Number(tempPrix))} className="text-4xl font-bold text-slate-900 bg-white border border-slate-200 rounded-xl w-24 outline-none focus:ring-2 focus:ring-emerald-200 text-center shadow-sm py-1" />
+                  <input type="number" value={tempPrix} onChange={(e) => setTempPrix(e.target.value)} onBlur={() => ctx.updateDataField(scanIdToUse, 'prix_unitaire_nombre', Number(tempPrix))} className="text-4xl font-bold text-slate-900 bg-[#1a1a1a] border border-slate-200 rounded-xl w-24 outline-none focus:ring-2 focus:ring-emerald-200 text-center shadow-sm py-1" />
                   <Edit3 className="absolute right-2 top-2 w-3 h-3 text-slate-400 pointer-events-none" />
                 </div>
                 <span className="text-4xl font-bold text-slate-900 mb-1">€</span>
@@ -1802,54 +1835,52 @@ const ResultsView = ({ ctx }) => {
               </a>
             </div>
             
-            {/* --- NOUVELLE SECTION AFFILIATION (100% ACCESSOIRES) --- */}
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mt-6">
-              <div className="p-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                <div className="flex items-center space-x-2">
-                  <ShoppingCart className="w-5 h-5 text-slate-400" />
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500">La Boutique du Sommelier</h3>
-                </div>
-                <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm">SÉLECTION PREMIUM</span>
-              </div>
-              
-              <div className="p-5 space-y-4">
-                {/* Lien 1 : Accessoire spécifique */}
-                <a 
-                  href={getAmazonAffiliateLink(getRecommendedAccessory(tempType).search)}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center justify-between p-4 bg-slate-900 text-white rounded-2xl active:scale-95 transition-all shadow-lg shadow-slate-900/20"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-white/10 rounded-lg"><Wine className="w-5 h-5 text-amber-400" /></div>
-                    <div className="text-left">
-                      <p className="text-[10px] font-bold text-amber-400/80 uppercase">Sublimer ce vin</p>
-                      <p className="text-sm font-bold truncate w-48">{getRecommendedAccessory(tempType).name}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-white/50" />
-                </a>
+            {/* --- LA BOUTIQUE "NIGHT & GOLD" --- */}
+<div className="rounded-3xl shadow-lg border border-[#333] overflow-hidden mt-6" style={{ backgroundColor: 'var(--bg-card)' }}>
+  <div className="p-5 border-b border-[#333] flex items-center justify-between" style={{ backgroundColor: '#111' }}>
+    <div className="flex items-center space-x-2">
+      <ShoppingCart className="w-5 h-5" style={{ color: 'var(--gold-primary)' }} />
+      <h3 className="text-sm font-bold uppercase tracking-widest text-[#F5F5F5]">La Boutique</h3>
+    </div>
+    <span className="text-[10px] font-bold px-2 py-1 rounded-md" style={{ backgroundColor: 'var(--gold-primary)', color: 'black' }}>SÉLECTION PREMIUM</span>
+  </div>
+  
+  <div className="p-5 space-y-6">
+    {/* Carte Produit 1 : Carafe */}
+    <div className="rounded-2xl overflow-hidden border border-[#444] bg-[#222]">
+      <div className="h-32 bg-center bg-cover" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1585553616435-2dc0a54e271d?q=80&w=800&auto=format&fit=crop')" }}></div>
+      <div className="p-4">
+        <h4 className="font-serif text-lg font-bold mb-1" style={{ color: 'var(--gold-primary)' }}>Carafe à Décanter Cristal</h4>
+        <p className="text-xs text-gray-400 mb-4 line-clamp-2">Parfaite pour oxygéner vos vins jeunes et révéler leurs arômes cachés.</p>
+        <div className="flex justify-between items-center">
+          <span className="font-bold text-white text-lg">~45 €</span>
+          <a href={getAmazonAffiliateLink("carafe a decanter vin cristal")} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-xl text-black font-bold text-sm shadow-md active:scale-95 transition-transform" style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%)' }}>
+            Voir l'offre
+          </a>
+        </div>
+      </div>
+    </div>
 
-                {/* Lien 2 : Accessoire Premium */}
-                <a 
-                  href={getAmazonAffiliateLink("Coravin système de préservation du vin")}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center justify-between p-4 bg-amber-50 text-amber-900 rounded-2xl border border-amber-100 active:scale-95 transition-all"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-amber-200/50 rounded-lg"><ChefHat className="w-5 h-5 text-amber-700" /></div>
-                    <div className="text-left">
-                      <p className="text-[10px] font-bold text-amber-700/60 uppercase">Matériel de Pro</p>
-                      <p className="text-sm font-bold truncate w-48">Système de préservation (Coravin)</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-amber-300" />
-                </a>
-              </div>
-              <p className="text-[9px] text-slate-400 text-center pb-4 px-10 italic">En tant que partenaire Amazon, VinoScan peut percevoir une commission sur les achats éligibles.</p>
-            </div>
+    {/* Carte Produit 2 : Tire-Bouchon */}
+    <div className="rounded-2xl overflow-hidden border border-[#444] bg-[#222]">
+      <div className="h-32 bg-center bg-cover" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1566810237731-15b51a5dd77b?q=80&w=800&auto=format&fit=crop')" }}></div>
+      <div className="p-4">
+        <h4 className="font-serif text-lg font-bold mb-1" style={{ color: 'var(--gold-primary)' }}>Tire-Bouchon Professionnel</h4>
+        <p className="text-xs text-gray-400 mb-4 line-clamp-2">L'outil indispensable des sommeliers. Ouverture en deux temps sans effort.</p>
+        <div className="flex justify-between items-center">
+          <span className="font-bold text-white text-lg">~25 €</span>
+          <a href={getAmazonAffiliateLink("tire bouchon sommelier professionnel")} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-xl text-black font-bold text-sm shadow-md active:scale-95 transition-transform" style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%)' }}>
+            Voir l'offre
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p className="text-[9px] text-gray-500 text-center pb-4 px-10 italic">En tant que partenaire Amazon, VinoScan peut percevoir une commission sur les achats éligibles.</p>
+</div>
 
             <div className="flex flex-col space-y-3 pt-4">
-               {currentScanObj && currentScanObj.in_history !== false && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'history'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-white text-slate-500 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200"><EyeOff className="w-5 h-5" /><span>Retirer de l'historique</span></button>}
+               {currentScanObj && currentScanObj.in_history !== false && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'history'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-[#1a1a1a] text-slate-500 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200"><EyeOff className="w-5 h-5" /><span>Retirer de l'historique</span></button>}
                {currentScanObj && currentScanObj.stock > 0 && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'cellar'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 transition-colors border border-red-100"><Archive className="w-5 h-5" /><span>Sortir de la cave</span></button>}
             </div>
           </div>
@@ -1867,7 +1898,7 @@ const PaywallView = ({ ctx }) => (
     <div className="absolute bottom-0 left-0 w-64 h-64 bg-rose-500/10 rounded-full mix-blend-screen filter blur-3xl pointer-events-none"></div>
     
     {/* Bouton fermer */}
-    <button onClick={() => ctx.setView('home')} className="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white/70 hover:bg-white/20 transition-colors z-20">
+    <button onClick={() => ctx.setView('home')} className="absolute top-6 right-6 p-2 bg-[#1a1a1a]/10 rounded-full text-white/70 hover:bg-[#1a1a1a]/20 transition-colors z-20">
       <X className="w-6 h-6"/>
     </button>
     
@@ -1885,15 +1916,15 @@ const PaywallView = ({ ctx }) => (
       
       {/* Liste des avantages */}
       <div className="w-full space-y-4 mb-10">
-        <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+        <div className="flex items-center space-x-4 bg-[#1a1a1a]/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
           <div className="p-2 bg-amber-500/20 rounded-xl"><Camera className="w-6 h-6 text-amber-400"/></div>
           <div><h4 className="font-bold text-white text-lg">Scans Illimités</h4><p className="text-xs text-white/50">Ne soyez plus jamais bloqué</p></div>
         </div>
-        <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+        <div className="flex items-center space-x-4 bg-[#1a1a1a]/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
           <div className="p-2 bg-amber-500/20 rounded-xl"><Receipt className="w-6 h-6 text-amber-400"/></div>
           <div><h4 className="font-bold text-white text-lg">Import de Factures</h4><p className="text-xs text-white/50">Ajoutez des dizaines de vins d'un coup</p></div>
         </div>
-        <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+        <div className="flex items-center space-x-4 bg-[#1a1a1a]/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
           <div className="p-2 bg-amber-500/20 rounded-xl"><Wine className="w-6 h-6 text-amber-400"/></div>
           <div><h4 className="font-bold text-white text-lg">Sommelier Privé</h4><p className="text-xs text-white/50">Accords mets & vins d'exception</p></div>
         </div>
@@ -2525,8 +2556,7 @@ useEffect(() => {
 
   return (
     <ErrorBoundary onReset={() => setView('home')}>
-      <div className="w-full max-w-md mx-auto h-[100dvh] bg-white sm:border-x sm:border-slate-200 overflow-hidden relative shadow-2xl text-slate-900 font-sans">
-        {view === 'home' && <HomeView ctx={ctx} />}
+      <div className="w-full max-w-md mx-auto h-[100dvh] bg-[#0a0a0a] sm:border-x sm:border-[#333] overflow-hidden relative shadow-2xl text-[#F5F5F5] font-sans" style={{ '--gold-primary': '#D4AF37', '--bg-card': '#1a1a1a' }}>        {view === 'home' && <HomeView ctx={ctx} />}
         {view === 'paywall' && <PaywallView ctx={ctx} />}
         {view === 'manualSearch' && <ManualSearchView ctx={ctx} />}
         {view === 'quiz' && <QuizView ctx={ctx} />}
@@ -2544,7 +2574,7 @@ useEffect(() => {
 
         {scanAction && (
           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="bg-[#1a1a1a] rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
               <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6"><AlertTriangle className="w-10 h-10 text-red-600" /></div>
               <h3 className="text-2xl font-serif font-bold text-center text-slate-900 mb-2">{scanAction.type === 'history' ? "Retirer de l'historique ?" : "Retirer de la cave ?"}</h3>
               <p className="text-slate-500 font-medium text-center mb-8">{scanAction.type === 'history' ? "Ce vin n'apparaîtra plus dans votre historique de scans." : "Le stock de ce vin passera à 0 et il n'apparaîtra plus dans votre cave."}</p>
