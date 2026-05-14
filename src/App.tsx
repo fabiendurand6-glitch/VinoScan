@@ -374,7 +374,7 @@ const HomeView = ({ ctx }) => (
       </button>
 
       {/* NOUVEAU : LE SCAN DE FACTURE */}
-      <button onClick={() => ctx.startCamera('receipt')} className="w-full flex items-center justify-center space-x-3 bg-[#1a1a1a] border-2 border-slate-900 text-slate-900 p-4 rounded-2xl shadow-md active:scale-95 transition-all">
+      <button onClick={() => ctx.startCamera('receipt')} className="w-full flex items-center justify-center space-x-3 bg-[#1a1a1a] border-2 border-slate-900 text-[#F5F5F5] p-4 rounded-2xl shadow-md active:scale-95 transition-all">
         <Receipt className="w-6 h-6" /><span className="font-bold text-lg">Scanner un ticket / facture</span>
       </button>
       
@@ -409,7 +409,7 @@ const ManualSearchView = ({ ctx }) => {
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
-        <div><h1 className="text-2xl font-serif font-bold text-slate-900">Ajouter un vin</h1><p className="text-slate-500 text-xs mt-1">Recherche mondiale</p></div>
+        <div><h1 className="text-2xl font-serif font-bold text-[#F5F5F5]">Ajouter un vin</h1><p className="text-slate-500 text-xs mt-1">Recherche mondiale</p></div>
       </div>
       <div className="p-6">
         <form onSubmit={handleSearch} className="space-y-4 mb-10">
@@ -502,7 +502,7 @@ const QuizView = ({ ctx }) => {
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
-        <div><h1 className="text-2xl font-serif font-bold text-slate-900">Le Nez du Sommelier</h1><p className="text-slate-500 text-xs mt-1">Défiez vos connaissances</p></div>
+        <div><h1 className="text-2xl font-serif font-bold text-[#F5F5F5]">Le Nez du Sommelier</h1><p className="text-slate-500 text-xs mt-1">Défiez vos connaissances</p></div>
       </div>
       <div className="p-6 flex-1 flex flex-col justify-center">
         <div className="bg-[#1a1a1a] border border-amber-200 rounded-3xl p-6 shadow-xl relative overflow-hidden">
@@ -510,7 +510,7 @@ const QuizView = ({ ctx }) => {
           {gameState === 'idle' && (
             <div className="text-center space-y-6 relative z-10 py-4">
               <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto"><Gamepad2 className="w-10 h-10 text-amber-600"/></div>
-              <h3 className="font-serif text-2xl font-bold text-slate-900">Prêt à jouer ?</h3>
+              <h3 className="font-serif text-2xl font-bold text-[#F5F5F5]">Prêt à jouer ?</h3>
               <p className="text-slate-500 font-medium">4 questions aléatoires pour tester votre palais.</p>
               <button onClick={startGame} className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform text-lg">Démarrer le Quiz</button>
             </div>
@@ -523,7 +523,7 @@ const QuizView = ({ ctx }) => {
                 <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Question {qIndex + 1}/{currentQuiz.length}</span>
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Score : {score}</span>
               </div>
-              <p className="font-serif text-xl font-bold text-slate-900 min-h-[80px] leading-snug">{currentQuiz[qIndex].q}</p>
+              <p className="font-serif text-xl font-bold text-[#F5F5F5] min-h-[80px] leading-snug">{currentQuiz[qIndex].q}</p>
               <div className="space-y-3">
                 {currentQuiz[qIndex].options.map(opt => {
                   let btnClass = "bg-[#1a1a1a] border-slate-200 text-slate-700 hover:bg-[#0a0a0a]";
@@ -540,7 +540,7 @@ const QuizView = ({ ctx }) => {
           {gameState === 'end' && (
             <div className="text-center space-y-6 relative z-10 py-4">
               <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto"><Trophy className="w-10 h-10 text-emerald-600"/></div>
-              <h3 className="font-serif text-3xl font-bold text-slate-900">Terminé !</h3>
+              <h3 className="font-serif text-3xl font-bold text-[#F5F5F5]">Terminé !</h3>
               <p className="text-2xl font-black text-emerald-600">{score} / {currentQuiz.length}</p>
               <div className="flex space-x-3">
                 <button onClick={startGame} className="flex-1 py-4 bg-slate-900 text-white font-bold rounded-2xl">Rejouer</button>
@@ -571,13 +571,13 @@ const MenuConfigView = ({ ctx }) => {
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
         <div>
-          <h1 className="text-2xl font-serif font-bold text-slate-900">Le bon choix</h1>
+          <h1 className="text-2xl font-serif font-bold text-[#F5F5F5]">Le bon choix</h1>
           <p className="text-slate-500 text-xs mt-1 font-medium">Scanner un menu de restaurant</p>
         </div>
       </div>
       <div className="p-6 space-y-8 overflow-y-auto">
         <div className="space-y-4">
-          <h3 className="font-serif text-lg font-bold text-slate-900 flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Que mangez-vous ?</span></h3>
+          <h3 className="font-serif text-lg font-bold text-[#F5F5F5] flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Que mangez-vous ?</span></h3>
           <div className="flex flex-wrap gap-2">
             {['ALL', 'APERITIF', 'VIANDE_ROUGE', 'VIANDE_BLANCHE', 'POISSON', 'FROMAGE'].map(f => (
               <button 
@@ -735,13 +735,13 @@ const CellarView = ({ ctx }) => {
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 relative">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-4 shadow-sm z-10 sticky top-0">
         <div className="flex justify-between items-end mb-4">
-          <div><h1 className="text-3xl font-serif font-bold text-slate-900">Mes Vins</h1><p className="text-slate-500 text-sm mt-1">{totalBottles} bouteilles</p></div>
+          <div><h1 className="text-3xl font-serif font-bold text-[#F5F5F5]">Mes Vins</h1><p className="text-slate-500 text-sm mt-1">{totalBottles} bouteilles</p></div>
           <div className="text-right"><p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Valeur Estimée</p><div className="text-emerald-700"><span className="text-2xl font-bold">{totalValue.toFixed(0)}</span>€</div></div>
         </div>
 
         <div className="flex bg-slate-100 p-1 rounded-xl mb-4">
-          <button onClick={() => setCellarTab('STOCK')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'STOCK' ? 'bg-[#1a1a1a] text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>En Cave</button>
-          <button onClick={() => setCellarTab('WISHLIST')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'WISHLIST' ? 'bg-[#1a1a1a] text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Liste d'Achats</button>
+          <button onClick={() => setCellarTab('STOCK')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'STOCK' ? 'bg-[#1a1a1a] text-[#F5F5F5] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>En Cave</button>
+          <button onClick={() => setCellarTab('WISHLIST')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${cellarTab === 'WISHLIST' ? 'bg-[#1a1a1a] text-[#F5F5F5] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Liste d'Achats</button>
         </div>
 
         <div className="space-y-3">
@@ -811,7 +811,7 @@ const CellarView = ({ ctx }) => {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{item.data.type_simplifie}</span>
                       <span className="text-xs font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded">{item.data.annee}</span>
                     </div>
-                    <h3 className="font-serif text-slate-900 truncate font-bold leading-tight mb-1">{item.data.nom}</h3>
+                    <h3 className="font-serif text-[#F5F5F5] truncate font-bold leading-tight mb-1">{item.data.nom}</h3>
                     {item.location && <p className="text-xs text-slate-500 font-medium flex items-center mt-1"><MapPin className="w-3 h-3 mr-1"/> {item.location}</p>}
                     <div className="mt-3 flex items-center justify-between">
                       {getApogeeBadge(item.data.statut_apogee)}
@@ -923,7 +923,7 @@ const CellarView = ({ ctx }) => {
       {selectedBottle && (
         <div className="fixed inset-0 z-[100] bg-black/60 flex items-end justify-center p-4 backdrop-blur-sm animate-in fade-in">
           <div className="bg-[#1a1a1a] w-full max-w-sm rounded-3xl p-6 shadow-2xl mb-safe animate-in slide-in-from-bottom-4">
-             <h3 className="font-serif text-2xl font-bold text-slate-900 mb-1">Déplacer</h3>
+             <h3 className="font-serif text-2xl font-bold text-[#F5F5F5] mb-1">Déplacer</h3>
              <p className="text-slate-500 text-sm mb-6">Où voulez-vous ranger <b>{selectedBottle.data.nom}</b> ?</p>
              <div className="space-y-2 max-h-48 overflow-y-auto mb-6 pr-2">
                {existingLocations.length > 0 ? existingLocations.map(loc => (
@@ -951,7 +951,7 @@ const CellarView = ({ ctx }) => {
             {!pairingResult ? (
               <div className="space-y-4 mt-4">
                 <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-2"><Utensils className="w-8 h-8 text-indigo-600"/></div>
-                <h3 className="font-serif text-2xl font-bold text-center text-slate-900">Que mangez-vous ?</h3>
+                <h3 className="font-serif text-2xl font-bold text-center text-[#F5F5F5]">Que mangez-vous ?</h3>
                 <p className="text-sm text-center text-slate-500">Dites au sommelier ce que vous avez prévu, il trouvera la bouteille parfaite dans votre stock.</p>
                 <input autoFocus type="text" placeholder="Ex: Magret de canard..." value={pairingDish} onChange={e=>setPairingDish(e.target.value)} className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
                 <button onClick={handleAskCellarSommelier} disabled={!pairingDish.trim() || isPairingLoading} className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg flex items-center justify-center">
@@ -967,7 +967,7 @@ const CellarView = ({ ctx }) => {
                   </div>
                   <div>
                     <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">{pairingResult.wine.data.type_simplifie}</span>
-                    <h4 className="font-bold text-slate-900 leading-tight mb-2">{pairingResult.wine.data.nom}</h4>
+                    <h4 className="font-bold text-[#F5F5F5] leading-tight mb-2">{pairingResult.wine.data.nom}</h4>
                     <p className="text-xs text-slate-600 italic">"{pairingResult.explication}"</p>
                   </div>
                 </div>
@@ -988,7 +988,7 @@ const HistoryView = ({ ctx }) => {
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 border-b border-slate-100">
-        <h1 className="text-3xl font-serif font-bold text-slate-900">Historique</h1>
+        <h1 className="text-3xl font-serif font-bold text-[#F5F5F5]">Historique</h1>
         <p className="text-slate-500 text-xs mt-1 font-medium uppercase tracking-wider">{historyItems.length} bouteilles analysées</p>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -1008,7 +1008,7 @@ const HistoryView = ({ ctx }) => {
                   <span className="text-xs text-slate-400 font-medium">{String(item.dateStr || '').split(' ')[0]}</span>
                   {item.stock > 0 && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">En cave</span>}
                 </div>
-                <h3 className="font-serif text-slate-900 truncate font-bold text-base leading-tight">{item.data.nom}</h3>
+                <h3 className="font-serif text-[#F5F5F5] truncate font-bold text-base leading-tight">{item.data.nom}</h3>
               </div>
               <ChevronRight className="w-5 h-5 text-slate-300" />
             </div>
@@ -1095,7 +1095,7 @@ const AccountView = ({ ctx }) => {
           <div className="w-24 h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl flex items-center justify-center mb-8 shadow-xl">
             <ShieldCheck className="w-12 h-12 text-amber-400" />
           </div>
-          <h2 className="text-3xl font-serif font-bold text-slate-900 mb-3 text-center">Sécurisez votre cave</h2>
+          <h2 className="text-3xl font-serif font-bold text-[#F5F5F5] mb-3 text-center">Sécurisez votre cave</h2>
           <p className="text-slate-500 text-center mb-8 font-medium">Créez un compte pour sauvegarder vos données dans le cloud.</p>
           <form onSubmit={handleAuth} className="w-full space-y-4">
             <input type="email" placeholder="Adresse email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 shadow-sm" required />
@@ -1113,7 +1113,7 @@ const AccountView = ({ ctx }) => {
     <div className="flex flex-col h-full bg-[#f8f5f2] pb-20 overflow-y-auto relative">
       <div className="bg-[#1a1a1a] pt-12 pb-6 px-6 shadow-sm border-b border-slate-200 flex justify-between items-center sticky top-0 z-10">
         <div>
-          <h1 className="text-3xl font-serif font-bold text-slate-900">Tableau de Bord</h1>
+          <h1 className="text-3xl font-serif font-bold text-[#F5F5F5]">Tableau de Bord</h1>
           <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 mt-1 flex items-center"><CheckCircle className="w-3 h-3 mr-1"/> Sauvegarde Cloud</p>
         </div>
         <div className={`w-14 h-14 rounded-full ${level.bg} flex items-center justify-center border-2 border-white shadow-md`}>
@@ -1171,7 +1171,7 @@ const AccountView = ({ ctx }) => {
         <div className="bg-[#1a1a1a] rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="p-6 border-b border-slate-50 flex items-center space-x-3 bg-[#0a0a0a]/50">
             <div className="p-2 bg-[#1a1a1a] rounded-xl shadow-sm border border-slate-100"><Settings className="w-5 h-5 text-slate-600"/></div>
-            <h3 className="font-serif text-xl font-bold text-slate-900">Paramètres</h3>
+            <h3 className="font-serif text-xl font-bold text-[#F5F5F5]">Paramètres</h3>
           </div>
           <div className="p-4 space-y-2">
             <button onClick={exportToCSV} className="w-full flex items-center p-4 bg-[#1a1a1a] hover:bg-[#0a0a0a] rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
@@ -1197,7 +1197,7 @@ const AccountView = ({ ctx }) => {
             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <AlertTriangle className="w-10 h-10 text-red-600" />
             </div>
-            <h3 className="font-serif text-2xl font-bold text-slate-900 mb-2">Êtes-vous sûr ?</h3>
+            <h3 className="font-serif text-2xl font-bold text-[#F5F5F5] mb-2">Êtes-vous sûr ?</h3>
             <p className="text-slate-500 font-medium mb-8 text-sm leading-relaxed">Cette action va supprimer définitivement l'ensemble de votre historique de scans et vider votre cave. C'est irréversible.</p>
             <div className="space-y-3">
               <button onClick={handleClearHistory} className="w-full py-4 bg-red-600 text-white font-bold rounded-2xl shadow-lg hover:bg-red-700 active:scale-95 transition-all">Oui, tout effacer</button>
@@ -1211,7 +1211,7 @@ const AccountView = ({ ctx }) => {
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
           <div className="bg-[#1a1a1a] rounded-3xl p-6 w-full max-w-sm relative shadow-2xl max-h-[80vh] overflow-y-auto">
             <button onClick={() => setShowBadges(false)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200"><X className="w-5 h-5"/></button>
-            <h3 className="font-serif text-2xl font-bold mb-6 text-center text-slate-900">Trophées & Collections</h3>
+            <h3 className="font-serif text-2xl font-bold mb-6 text-center text-[#F5F5F5]">Trophées & Collections</h3>
             <div className="space-y-3">
               {collectionBadges.map((badge) => {
                 const unlocked = badge.count >= badge.req;
@@ -1220,7 +1220,7 @@ const AccountView = ({ ctx }) => {
                     <div className="flex items-center space-x-3">
                       <span className="text-2xl">{badge.icon}</span>
                       <div>
-                        <h4 className="font-bold text-sm text-slate-900">{badge.name}</h4>
+                        <h4 className="font-bold text-sm text-[#F5F5F5]">{badge.name}</h4>
                         <p className="text-[10px] font-medium text-slate-500">{badge.req} vins requis</p>
                       </div>
                     </div>
@@ -1287,7 +1287,7 @@ const AnalyzingView = () => (
       <div className="absolute inset-2 border-4 border-rose-400 rounded-full border-t-transparent animate-[spin_1.5s_linear_infinite]"></div>
       <Wine className="w-14 h-14 text-rose-900 animate-pulse" />
     </div>
-    <h2 className="text-3xl font-serif font-bold text-slate-900 mb-3 z-10">Analyse en cours</h2>
+    <h2 className="text-3xl font-serif font-bold text-[#F5F5F5] mb-3 z-10">Analyse en cours</h2>
     <p className="text-slate-500 text-sm mt-2 text-center font-medium z-10">Notre sommelier travaille sur votre demande...</p>
   </div>
 );
@@ -1295,7 +1295,7 @@ const AnalyzingView = () => (
 const ErrorView = ({ ctx }) => (
   <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#0a0a0a]">
     <div className="w-24 h-24 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-8 shadow-inner"><AlertCircle className="w-12 h-12" /></div>
-    <h2 className="text-3xl font-serif font-bold text-slate-900 mb-4">Erreur</h2>
+    <h2 className="text-3xl font-serif font-bold text-[#F5F5F5] mb-4">Erreur</h2>
     <p className="text-slate-600 mb-10 font-medium">{ctx.errorMsg}</p>
     <button onClick={ctx.goBack} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-colors shadow-lg">Retourner à l'accueil</button>
   </div>
@@ -1363,7 +1363,7 @@ const RecommendationView = ({ ctx }) => {
         )}
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-gradient-to-br from-amber-200 to-amber-400 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200/50 transform -rotate-3"><Sparkles className="w-6 h-6 text-amber-900" /></div>
-          <div><h1 className="text-3xl font-serif font-bold text-slate-900">Le Sommelier</h1><p className="text-slate-500 text-sm font-medium">Laissez l'IA vous conseiller</p></div>
+          <div><h1 className="text-3xl font-serif font-bold text-[#F5F5F5]">Le Sommelier</h1><p className="text-slate-500 text-sm font-medium">Laissez l'IA vous conseiller</p></div>
         </div>
       </div>
 
@@ -1375,7 +1375,7 @@ const RecommendationView = ({ ctx }) => {
             <button onClick={() => setRecMode('buy')} className="w-full bg-[#1a1a1a] border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all active:scale-95 text-left flex items-center space-x-4">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center shrink-0"><ShoppingCart className="w-8 h-8 text-emerald-600" /></div>
               <div>
-                <h3 className="font-serif text-xl font-bold text-slate-900">Acheter un vin</h3>
+                <h3 className="font-serif text-xl font-bold text-[#F5F5F5]">Acheter un vin</h3>
                 <p className="text-sm text-slate-500">L'IA vous recommande le meilleur vin à acheter selon votre repas et votre budget.</p>
               </div>
             </button>
@@ -1396,7 +1396,7 @@ const RecommendationView = ({ ctx }) => {
           <div className="space-y-6 animate-in slide-in-from-right-4">
             <div className="bg-indigo-50 border border-indigo-100 rounded-3xl p-6 text-center">
               <Utensils className="w-12 h-12 text-indigo-600 mx-auto mb-4" />
-              <h3 className="font-serif text-2xl font-bold text-slate-900 mb-2">Que mangez-vous ?</h3>
+              <h3 className="font-serif text-2xl font-bold text-[#F5F5F5] mb-2">Que mangez-vous ?</h3>
               <p className="text-sm text-slate-600 mb-6">Le sommelier va analyser votre cave pour trouver l'accord parfait.</p>
               <input autoFocus type="text" placeholder="Ex: Magret de canard, Lasagnes..." value={pairingDish} onChange={e=>setPairingDish(e.target.value)} className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none mb-4 shadow-sm" />
               <button onClick={handleAskCellarSommelier} disabled={!pairingDish.trim() || isPairingLoading} className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg disabled:opacity-50 flex items-center justify-center">
@@ -1410,7 +1410,7 @@ const RecommendationView = ({ ctx }) => {
         {recMode === 'buy' && (
           <div className="space-y-10 animate-in slide-in-from-right-4">
             <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Euro className="w-5 h-5 text-emerald-600" /><span>Budget</span></h3>
+              <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Euro className="w-5 h-5 text-emerald-600" /><span>Budget</span></h3>
               <div className="flex flex-wrap gap-2">
                 <button onClick={() => setFilterPrice('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'ALL' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>Peu importe</button>
                 <button onClick={() => setFilterPrice('BUDGET')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'BUDGET' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>Abordable ({"<"} 20€)</button>
@@ -1420,7 +1420,7 @@ const RecommendationView = ({ ctx }) => {
             </div>
             
             <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Pour quel repas ?</span></h3>
+              <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Pour quel repas ?</span></h3>
               <div className="flex flex-wrap gap-2">
                 <button onClick={() => setFilterFood('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'ALL' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🍽️ Peu importe</button>
                 <button onClick={() => setFilterFood('APERITIF')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'APERITIF' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🥂 Apéro & Tapas</button>
@@ -1432,7 +1432,7 @@ const RecommendationView = ({ ctx }) => {
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Wine className="w-5 h-5 text-rose-800" /><span>Type de vin</span></h3>
+              <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Wine className="w-5 h-5 text-rose-800" /><span>Type de vin</span></h3>
               <div className="flex flex-wrap gap-2">
                 {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(type => (
                   <button key={type} onClick={() => setFilterType(type)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterType === type ? 'bg-rose-900 text-white border-rose-900 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>
@@ -1469,7 +1469,7 @@ const RecommendationListView = ({ ctx }) => {
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center justify-between border-b border-slate-100">
         <div className="flex items-center">
           <button onClick={() => ctx.setView('recommendation')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
-          <div><h1 className="text-2xl font-serif font-bold text-slate-900">La Sélection</h1><p className="text-slate-500 text-xs mt-1 font-medium">{sortedList.length} vins trouvés</p></div>
+          <div><h1 className="text-2xl font-serif font-bold text-[#F5F5F5]">La Sélection</h1><p className="text-slate-500 text-xs mt-1 font-medium">{sortedList.length} vins trouvés</p></div>
         </div>
         <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} className="flex items-center space-x-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors">
           <ArrowDownUp className="w-4 h-4" /><span>{sortOrder === 'asc' ? 'Prix croissant' : 'Prix décroissant'}</span>
@@ -1491,7 +1491,7 @@ const RecommendationListView = ({ ctx }) => {
                        <span className="text-lg leading-none">{wine.prix_unitaire_nombre || '?'}</span><span className="text-xs">€</span>
                      </div>
                    </div>
-                   <h3 className="font-serif text-slate-900 text-lg leading-tight mb-1 font-bold line-clamp-2">{wine.nom}</h3>
+                   <h3 className="font-serif text-[#F5F5F5] text-lg leading-tight mb-1 font-bold line-clamp-2">{wine.nom}</h3>
                    <div className="flex items-center space-x-2 text-xs text-slate-500 mb-2 font-medium">
                      <span className="text-rose-800 font-bold">{wine.annee}</span><span>•</span><span className="truncate">{wine.region}</span>
                    </div>
@@ -1644,7 +1644,7 @@ const ResultsView = ({ ctx }) => {
                   <h3 className="text-xl font-bold text-amber-400">{nom}</h3>
                 </div>
                 <p className="text-white text-lg italic leading-relaxed mb-8">"{blindResult.commentaire}"</p>
-                <button onClick={() => setShowBlindTasting(false)} className="w-full py-4 bg-[#1a1a1a] text-slate-900 font-bold rounded-2xl hover:bg-slate-100 transition-colors">Fermer la dégustation</button>
+                <button onClick={() => setShowBlindTasting(false)} className="w-full py-4 bg-[#1a1a1a] text-[#F5F5F5] font-bold rounded-2xl hover:bg-slate-100 transition-colors">Fermer la dégustation</button>
               </div>
             )}
           </div>
@@ -1712,8 +1712,8 @@ const ResultsView = ({ ctx }) => {
 
         {/* ONGLETS */}
         <div className="flex bg-slate-200/50 p-1 rounded-xl">
-          <button onClick={() => setActiveTab('infos')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${activeTab === 'infos' ? 'bg-[#1a1a1a] text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Fiche Technique</button>
-          <button onClick={() => { setActiveTab('service'); fetchProtocol(); }} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${activeTab === 'service' ? 'bg-[#1a1a1a] text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Service & Accords</button>
+          <button onClick={() => setActiveTab('infos')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${activeTab === 'infos' ? 'bg-[#1a1a1a] text-[#F5F5F5] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Fiche Technique</button>
+          <button onClick={() => { setActiveTab('service'); fetchProtocol(); }} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${activeTab === 'service' ? 'bg-[#1a1a1a] text-[#F5F5F5] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Service & Accords</button>
         </div>
 
         {/* ONGLET SERVICE */}
@@ -1727,7 +1727,7 @@ const ResultsView = ({ ctx }) => {
                  </div>
                ) : protocol ? (
                  <div className="space-y-6">
-                   <h3 className="font-serif text-xl font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2">Protocole de Service</h3>
+                   <h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-4 border-b border-slate-100 pb-2">Protocole de Service</h3>
                    <div className="flex items-start space-x-4">
                      <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center shrink-0"><Clock className="w-6 h-6 text-indigo-600"/></div>
                      <div><p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Température & Aération</p><p className="font-bold text-slate-800">{protocol.temperature}</p><p className="text-sm text-slate-600">{protocol.carafage}</p></div>
@@ -1787,7 +1787,7 @@ const ResultsView = ({ ctx }) => {
             )}
 
             <div className="bg-[#1a1a1a] rounded-3xl shadow-sm border border-slate-100 p-6">
-              <div className="flex items-center space-x-3 mb-6"><div className="p-2 bg-indigo-50 rounded-lg"><Clock className="w-5 h-5 text-indigo-600" /></div><h3 className="font-serif text-xl font-bold text-slate-900">Temps & Apogée</h3></div>
+              <div className="flex items-center space-x-3 mb-6"><div className="p-2 bg-indigo-50 rounded-lg"><Clock className="w-5 h-5 text-indigo-600" /></div><h3 className="font-serif text-xl font-bold text-[#F5F5F5]">Temps & Apogée</h3></div>
               <div className="space-y-0 relative">
                 <div className="absolute left-5 top-2 bottom-6 w-0.5 bg-slate-100"></div>
                 <div className="flex items-start relative z-10 pb-8">
@@ -1807,7 +1807,7 @@ const ResultsView = ({ ctx }) => {
 
             <div className="bg-[#1a1a1a] rounded-3xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center space-x-3"><div className="p-2 bg-rose-50 rounded-lg"><Edit3 className="w-5 h-5 text-rose-800" /></div><h3 className="font-serif text-xl font-bold text-slate-900">Notes & Avis</h3></div>
+                <div className="flex items-center space-x-3"><div className="p-2 bg-rose-50 rounded-lg"><Edit3 className="w-5 h-5 text-rose-800" /></div><h3 className="font-serif text-xl font-bold text-[#F5F5F5]">Notes & Avis</h3></div>
                 <div className="flex space-x-1 bg-[#0a0a0a] p-1.5 rounded-xl border border-slate-100">
                   {[1, 2, 3, 4, 5].map(star => <button key={star} onClick={() => ctx.genericUpdate(scanIdToUse, { rating: star })} className="p-1 hover:scale-110 transition-transform"><Star className={`w-6 h-6 ${star <= rating ? 'fill-amber-400 text-amber-400 drop-shadow-sm' : 'text-slate-300'}`} /></button>)}
                 </div>
@@ -1823,10 +1823,10 @@ const ResultsView = ({ ctx }) => {
               </div>
               <div className="flex items-end space-x-2 mb-4 bg-[#0a0a0a] p-4 rounded-2xl border border-slate-100 w-max">
                 <div className="relative flex items-center">
-                  <input type="number" value={tempPrix} onChange={(e) => setTempPrix(e.target.value)} onBlur={() => ctx.updateDataField(scanIdToUse, 'prix_unitaire_nombre', Number(tempPrix))} className="text-4xl font-bold text-slate-900 bg-[#1a1a1a] border border-slate-200 rounded-xl w-24 outline-none focus:ring-2 focus:ring-emerald-200 text-center shadow-sm py-1" />
+                  <input type="number" value={tempPrix} onChange={(e) => setTempPrix(e.target.value)} onBlur={() => ctx.updateDataField(scanIdToUse, 'prix_unitaire_nombre', Number(tempPrix))} className="text-4xl font-bold text-[#F5F5F5] bg-[#1a1a1a] border border-slate-200 rounded-xl w-24 outline-none focus:ring-2 focus:ring-emerald-200 text-center shadow-sm py-1" />
                   <Edit3 className="absolute right-2 top-2 w-3 h-3 text-slate-400 pointer-events-none" />
                 </div>
-                <span className="text-4xl font-bold text-slate-900 mb-1">€</span>
+                <span className="text-4xl font-bold text-[#F5F5F5] mb-1">€</span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-2">/ Bouteille</span>
               </div>
               
@@ -2576,7 +2576,7 @@ useEffect(() => {
           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <div className="bg-[#1a1a1a] rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
               <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6"><AlertTriangle className="w-10 h-10 text-red-600" /></div>
-              <h3 className="text-2xl font-serif font-bold text-center text-slate-900 mb-2">{scanAction.type === 'history' ? "Retirer de l'historique ?" : "Retirer de la cave ?"}</h3>
+              <h3 className="text-2xl font-serif font-bold text-center text-[#F5F5F5] mb-2">{scanAction.type === 'history' ? "Retirer de l'historique ?" : "Retirer de la cave ?"}</h3>
               <p className="text-slate-500 font-medium text-center mb-8">{scanAction.type === 'history' ? "Ce vin n'apparaîtra plus dans votre historique de scans." : "Le stock de ce vin passera à 0 et il n'apparaîtra plus dans votre cave."}</p>
               <div className="flex space-x-3">
                 <button onClick={() => setScanAction(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-colors">Annuler</button>
