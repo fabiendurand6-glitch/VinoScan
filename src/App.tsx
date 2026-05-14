@@ -65,7 +65,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-50">
+        <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#0a0a0a]">
           <AlertTriangle className="w-16 h-16 text-red-500 mb-4" />
           <h2 className="text-xl font-bold text-slate-800 mb-2">Oups, un problème technique</h2>
           <p className="text-sm text-slate-600 mb-6">L'application a rencontré une erreur inattendue.</p>
@@ -406,7 +406,7 @@ const ManualSearchView = ({ ctx }) => {
   const handleSearch = (e) => { e.preventDefault(); if(query.trim()) ctx.searchWineText(query); };
   
   return (
-    <div className="flex flex-col h-full bg-slate-50 pb-20">
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
         <div><h1 className="text-2xl font-serif font-bold text-slate-900">Ajouter un vin</h1><p className="text-slate-500 text-xs mt-1">Recherche mondiale</p></div>
@@ -499,7 +499,7 @@ const QuizView = ({ ctx }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 pb-20">
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
         <div><h1 className="text-2xl font-serif font-bold text-slate-900">Le Nez du Sommelier</h1><p className="text-slate-500 text-xs mt-1">Défiez vos connaissances</p></div>
@@ -519,16 +519,16 @@ const QuizView = ({ ctx }) => {
           {/* SÉCURITÉ : On vérifie bien que currentQuiz[qIndex] existe avant d'afficher pour éviter l'écran blanc */}
           {gameState === 'playing' && currentQuiz.length > 0 && currentQuiz[qIndex] && (
             <div className="space-y-6 relative z-10">
-              <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="flex justify-between items-center bg-[#0a0a0a] p-3 rounded-xl border border-slate-100">
                 <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Question {qIndex + 1}/{currentQuiz.length}</span>
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Score : {score}</span>
               </div>
               <p className="font-serif text-xl font-bold text-slate-900 min-h-[80px] leading-snug">{currentQuiz[qIndex].q}</p>
               <div className="space-y-3">
                 {currentQuiz[qIndex].options.map(opt => {
-                  let btnClass = "bg-[#1a1a1a] border-slate-200 text-slate-700 hover:bg-slate-50";
+                  let btnClass = "bg-[#1a1a1a] border-slate-200 text-slate-700 hover:bg-[#0a0a0a]";
                   if (feedback && opt === currentQuiz[qIndex].ans) btnClass = "bg-emerald-500 border-emerald-500 text-white";
-                  else if (feedback === 'wrong' && opt !== currentQuiz[qIndex].ans) btnClass = "bg-slate-50 border-slate-100 text-slate-400 opacity-50";
+                  else if (feedback === 'wrong' && opt !== currentQuiz[qIndex].ans) btnClass = "bg-[#0a0a0a] border-slate-100 text-slate-400 opacity-50";
                   return (
                     <button key={opt} onClick={() => handleAnswer(opt)} className={`w-full p-5 rounded-2xl border-2 font-bold text-left transition-all ${btnClass}`}>{opt}</button>
                   );
@@ -567,7 +567,7 @@ const MenuConfigView = ({ ctx }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 pb-20">
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
         <div>
@@ -583,7 +583,7 @@ const MenuConfigView = ({ ctx }) => {
               <button 
                 key={f} 
                 onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: f})} 
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors ${ctx.menuPrefs.food === f ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-[#1a1a1a] text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors ${ctx.menuPrefs.food === f ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-[#1a1a1a] text-slate-600 border-slate-200 hover:bg-[#0a0a0a]'}`}
               >
                 {getFoodLabel(f)}
               </button>
@@ -732,7 +732,7 @@ const CellarView = ({ ctx }) => {
   const fallbackImg = "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=400&auto=format&fit=crop";
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 pb-20 relative">
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 relative">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-4 shadow-sm z-10 sticky top-0">
         <div className="flex justify-between items-end mb-4">
           <div><h1 className="text-3xl font-serif font-bold text-slate-900">Mes Vins</h1><p className="text-slate-500 text-sm mt-1">{totalBottles} bouteilles</p></div>
@@ -763,7 +763,7 @@ const CellarView = ({ ctx }) => {
           <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
             <Utensils className="w-4 h-4 text-slate-400 shrink-0 mr-1" />
             {['ALL', 'VIANDE', 'POISSON', 'FROMAGE', 'APERITIF'].map(f => (
-              <button key={f} onClick={() => setFilterFood(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${filterFood === f ? 'bg-amber-600 text-white shadow-md border-amber-600' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+              <button key={f} onClick={() => setFilterFood(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${filterFood === f ? 'bg-amber-600 text-white shadow-md border-amber-600' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>
                 {f === 'ALL' ? 'Tous plats' : f}
               </button>
             ))}
@@ -802,7 +802,7 @@ const CellarView = ({ ctx }) => {
           <div className="space-y-4">
             {filteredItems.map((item) => (
               <div key={item.id} className="bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
-                <div onClick={() => ctx.openExistingWine(item, 'cellar')} className="p-4 flex items-start space-x-4 active:bg-slate-50 cursor-pointer">
+                <div onClick={() => ctx.openExistingWine(item, 'cellar')} className="p-4 flex items-start space-x-4 active:bg-[#0a0a0a] cursor-pointer">
                   <div className="w-16 h-24 bg-slate-100 rounded-lg overflow-hidden shrink-0 shadow-inner flex items-center justify-center">
                     <img src={item.image} onError={(e) => {e.target.onerror = null; e.target.src = fallbackImg;}} alt="Miniature" className="max-w-full max-h-full object-contain drop-shadow-md" />
                   </div>
@@ -879,7 +879,7 @@ const CellarView = ({ ctx }) => {
                                <h4 className="text-xs font-bold text-slate-800 leading-tight line-clamp-2 mb-1">
                                  {bottle.data.nom}
                                </h4>
-                               <span className="text-[10px] font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 mt-1">
+                               <span className="text-[10px] font-medium text-slate-500 bg-[#0a0a0a] px-2 py-0.5 rounded-md border border-slate-100 mt-1">
                                  {bottle.data.annee}
                                </span>
                             </div>
@@ -892,7 +892,7 @@ const CellarView = ({ ctx }) => {
                           key={`empty-${i}`}
                           onDragOver={handleDragOver}
                           onDrop={(e) => handleDrop(e, shelfName === 'Vins non rangés' ? '' : shelfName)}
-                          className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 min-h-[160px]"
+                          className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl bg-[#0a0a0a]/50 min-h-[160px]"
                         >
                            <div className="w-8 h-8 rounded-full border-2 border-slate-200"></div>
                         </div>
@@ -927,17 +927,17 @@ const CellarView = ({ ctx }) => {
              <p className="text-slate-500 text-sm mb-6">Où voulez-vous ranger <b>{selectedBottle.data.nom}</b> ?</p>
              <div className="space-y-2 max-h-48 overflow-y-auto mb-6 pr-2">
                {existingLocations.length > 0 ? existingLocations.map(loc => (
-                 <button key={loc} onClick={() => handleMoveBottleClick(loc)} className="w-full text-left p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-100 text-slate-700 font-bold transition-colors shadow-sm">
+                 <button key={loc} onClick={() => handleMoveBottleClick(loc)} className="w-full text-left p-4 rounded-2xl bg-[#0a0a0a] hover:bg-slate-100 border border-slate-100 text-slate-700 font-bold transition-colors shadow-sm">
                    <MapPin className="w-4 h-4 inline mr-3 opacity-50" /> {loc}
                  </button>
-               )) : <p className="text-slate-400 text-sm italic text-center py-4 bg-slate-50 rounded-xl">Aucune étagère existante.</p>}
-               <button onClick={() => handleMoveBottleClick('')} className="w-full text-left p-4 rounded-2xl bg-slate-50 border text-slate-500 italic hover:bg-slate-100">Retirer de l'étagère</button>
+               )) : <p className="text-slate-400 text-sm italic text-center py-4 bg-[#0a0a0a] rounded-xl">Aucune étagère existante.</p>}
+               <button onClick={() => handleMoveBottleClick('')} className="w-full text-left p-4 rounded-2xl bg-[#0a0a0a] border text-slate-500 italic hover:bg-slate-100">Retirer de l'étagère</button>
              </div>
              <div className="flex space-x-2 border-t border-slate-100 pt-6">
-               <input type="text" placeholder="Nouvelle étagère..." value={newShelfName} onChange={(e) => setNewShelfName(e.target.value)} className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 outline-none focus:ring-2 focus:ring-rose-200 transition-all font-medium" />
+               <input type="text" placeholder="Nouvelle étagère..." value={newShelfName} onChange={(e) => setNewShelfName(e.target.value)} className="flex-1 bg-[#0a0a0a] border border-slate-200 rounded-2xl px-4 py-4 outline-none focus:ring-2 focus:ring-rose-200 transition-all font-medium" />
                <button onClick={() => handleMoveBottleClick(newShelfName)} disabled={!newShelfName.trim()} className="px-6 py-4 bg-slate-900 text-white rounded-2xl font-bold disabled:opacity-50">Créer</button>
              </div>
-             <button onClick={() => { setSelectedBottle(null); setNewShelfName(''); }} className="mt-4 w-full py-4 text-slate-500 font-bold hover:bg-slate-50 rounded-2xl">Annuler</button>
+             <button onClick={() => { setSelectedBottle(null); setNewShelfName(''); }} className="mt-4 w-full py-4 text-slate-500 font-bold hover:bg-[#0a0a0a] rounded-2xl">Annuler</button>
           </div>
         </div>
       )}
@@ -986,7 +986,7 @@ const HistoryView = ({ ctx }) => {
   const historyItems = ctx.scanHistory.filter(item => item.in_history !== false);
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 pb-20">
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 border-b border-slate-100">
         <h1 className="text-3xl font-serif font-bold text-slate-900">Historique</h1>
         <p className="text-slate-500 text-xs mt-1 font-medium uppercase tracking-wider">{historyItems.length} bouteilles analysées</p>
@@ -1169,15 +1169,15 @@ const AccountView = ({ ctx }) => {
         </div>
 
         <div className="bg-[#1a1a1a] rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b border-slate-50 flex items-center space-x-3 bg-slate-50/50">
+          <div className="p-6 border-b border-slate-50 flex items-center space-x-3 bg-[#0a0a0a]/50">
             <div className="p-2 bg-[#1a1a1a] rounded-xl shadow-sm border border-slate-100"><Settings className="w-5 h-5 text-slate-600"/></div>
             <h3 className="font-serif text-xl font-bold text-slate-900">Paramètres</h3>
           </div>
           <div className="p-4 space-y-2">
-            <button onClick={exportToCSV} className="w-full flex items-center p-4 bg-[#1a1a1a] hover:bg-slate-50 rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
+            <button onClick={exportToCSV} className="w-full flex items-center p-4 bg-[#1a1a1a] hover:bg-[#0a0a0a] rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
               <Download className="w-5 h-5 mr-4 text-slate-400" /> Exporter ma cave (.csv)
             </button>
-            <button onClick={handleLogout} className="w-full flex items-center p-4 bg-[#1a1a1a] hover:bg-slate-50 rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
+            <button onClick={handleLogout} className="w-full flex items-center p-4 bg-[#1a1a1a] hover:bg-[#0a0a0a] rounded-2xl transition-colors text-slate-700 font-bold border border-transparent hover:border-slate-100">
               <LogOut className="w-5 h-5 mr-4 text-slate-400" /> Se déconnecter
             </button>
             <div className="my-4 border-t border-slate-100"></div>
@@ -1216,7 +1216,7 @@ const AccountView = ({ ctx }) => {
               {collectionBadges.map((badge) => {
                 const unlocked = badge.count >= badge.req;
                 return (
-                  <div key={badge.id} className={`p-4 rounded-2xl border flex items-center justify-between ${unlocked ? 'bg-amber-50 border-amber-200 shadow-sm' : 'bg-slate-50 border-slate-200 opacity-60 grayscale'}`}>
+                  <div key={badge.id} className={`p-4 rounded-2xl border flex items-center justify-between ${unlocked ? 'bg-amber-50 border-amber-200 shadow-sm' : 'bg-[#0a0a0a] border-slate-200 opacity-60 grayscale'}`}>
                     <div className="flex items-center space-x-3">
                       <span className="text-2xl">{badge.icon}</span>
                       <div>
@@ -1280,7 +1280,7 @@ const CameraView = ({ ctx }) => (
 );
 
 const AnalyzingView = () => (
-  <div className="flex flex-col items-center justify-center h-full p-6 bg-slate-50 relative overflow-hidden">
+  <div className="flex flex-col items-center justify-center h-full p-6 bg-[#0a0a0a] relative overflow-hidden">
     <div className="absolute inset-0 bg-gradient-to-b from-rose-50/50 to-white/50"></div>
     <div className="relative w-40 h-40 flex items-center justify-center mb-8 z-10">
       <div className="absolute inset-0 border-4 border-rose-100 rounded-full animate-[spin_3s_linear_infinite]"></div>
@@ -1293,7 +1293,7 @@ const AnalyzingView = () => (
 );
 
 const ErrorView = ({ ctx }) => (
-  <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-slate-50">
+  <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#0a0a0a]">
     <div className="w-24 h-24 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-8 shadow-inner"><AlertCircle className="w-12 h-12" /></div>
     <h2 className="text-3xl font-serif font-bold text-slate-900 mb-4">Erreur</h2>
     <p className="text-slate-600 mb-10 font-medium">{ctx.errorMsg}</p>
@@ -1412,22 +1412,22 @@ const RecommendationView = ({ ctx }) => {
             <div className="space-y-4">
               <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Euro className="w-5 h-5 text-emerald-600" /><span>Budget</span></h3>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setFilterPrice('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'ALL' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Peu importe</button>
-                <button onClick={() => setFilterPrice('BUDGET')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'BUDGET' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Abordable ({"<"} 20€)</button>
-                <button onClick={() => setFilterPrice('MEDIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'MEDIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Plaisir (20-50€)</button>
-                <button onClick={() => setFilterPrice('PREMIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'PREMIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Exception ({">"} 50€)</button>
+                <button onClick={() => setFilterPrice('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'ALL' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>Peu importe</button>
+                <button onClick={() => setFilterPrice('BUDGET')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'BUDGET' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>Abordable ({"<"} 20€)</button>
+                <button onClick={() => setFilterPrice('MEDIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'MEDIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>Plaisir (20-50€)</button>
+                <button onClick={() => setFilterPrice('PREMIUM')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === 'PREMIUM' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>Exception ({">"} 50€)</button>
               </div>
             </div>
             
             <div className="space-y-4">
               <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Utensils className="w-5 h-5 text-amber-600" /><span>Pour quel repas ?</span></h3>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setFilterFood('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'ALL' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍽️ Peu importe</button>
-                <button onClick={() => setFilterFood('APERITIF')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'APERITIF' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥂 Apéro & Tapas</button>
-                <button onClick={() => setFilterFood('VIANDE_ROUGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_ROUGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🥩 Viande rouge</button>
-                <button onClick={() => setFilterFood('VIANDE_BLANCHE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_BLANCHE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🍗 Viande blanche</button>
-                <button onClick={() => setFilterFood('POISSON')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'POISSON' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🐟 Poisson & Mer</button>
-                <button onClick={() => setFilterFood('FROMAGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'FROMAGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>🧀 Fromage</button>
+                <button onClick={() => setFilterFood('ALL')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'ALL' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🍽️ Peu importe</button>
+                <button onClick={() => setFilterFood('APERITIF')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'APERITIF' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🥂 Apéro & Tapas</button>
+                <button onClick={() => setFilterFood('VIANDE_ROUGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_ROUGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🥩 Viande rouge</button>
+                <button onClick={() => setFilterFood('VIANDE_BLANCHE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'VIANDE_BLANCHE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🍗 Viande blanche</button>
+                <button onClick={() => setFilterFood('POISSON')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'POISSON' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🐟 Poisson & Mer</button>
+                <button onClick={() => setFilterFood('FROMAGE')} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === 'FROMAGE' ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>🧀 Fromage</button>
               </div>
             </div>
 
@@ -1435,7 +1435,7 @@ const RecommendationView = ({ ctx }) => {
               <h3 className="font-serif text-xl font-bold text-slate-900 flex items-center space-x-2"><Wine className="w-5 h-5 text-rose-800" /><span>Type de vin</span></h3>
               <div className="flex flex-wrap gap-2">
                 {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(type => (
-                  <button key={type} onClick={() => setFilterType(type)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterType === type ? 'bg-rose-900 text-white border-rose-900 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                  <button key={type} onClick={() => setFilterType(type)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterType === type ? 'bg-rose-900 text-white border-rose-900 shadow-md scale-105' : 'bg-[#1a1a1a] border-slate-200 text-slate-600 hover:bg-[#0a0a0a]'}`}>
                     {type === 'ALL' ? 'Surprenez-moi' : type === 'PETILLANT' ? 'Bulles' : type}
                   </button>
                 ))}
@@ -1465,7 +1465,7 @@ const RecommendationListView = ({ ctx }) => {
   }, [ctx.recommendationList, sortOrder]);
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 pb-20">
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center justify-between border-b border-slate-100">
         <div className="flex items-center">
           <button onClick={() => ctx.setView('recommendation')} className="mr-4 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200"><ChevronLeft className="w-5 h-5" /></button>
@@ -1603,7 +1603,7 @@ const ResultsView = ({ ctx }) => {
   const { nom, region, description, potentiel_garde, apogee, declin, statut_apogee, comparateur, accords_mets, accord_parfait } = displayData;
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 overflow-y-auto pb-8 relative">
+    <div className="flex flex-col h-full bg-[#0a0a0a] overflow-y-auto pb-8 relative">
       
       {/* MODE : FAIRE DÉGUSTER CE VIN (MODAL PLEIN ÉCRAN ULTRA ROBUSTE) */}
       {showBlindTasting && (
@@ -1690,7 +1690,7 @@ const ResultsView = ({ ctx }) => {
   {/* Bouton pour lire la description à voix haute */}
   <SommelierButton text={`Ce vin est un ${nom}. ${description}. Il est recommandé de le boire entre ${apogee}.`} />
 </div>
-          <div className="flex items-center text-slate-500 font-medium bg-slate-50 p-2 rounded-xl border border-slate-100 w-max">
+          <div className="flex items-center text-slate-500 font-medium bg-[#0a0a0a] p-2 rounded-xl border border-slate-100 w-max">
             <span className="text-sm ml-2">Millésime :</span>
             <div className="relative flex items-center ml-2">
               <input type="text" value={tempAnnee} onChange={(e) => setTempAnnee(e.target.value)} onKeyDown={ctx.handleKeyDown} onBlur={() => handleYearChange(tempAnnee)} className="bg-[#1a1a1a] border border-slate-200 text-rose-900 px-3 py-1.5 rounded-lg w-24 outline-none focus:ring-2 focus:ring-rose-200 font-bold text-lg text-center shadow-sm" />
@@ -1736,7 +1736,7 @@ const ResultsView = ({ ctx }) => {
                      <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center shrink-0"><Wine className="w-6 h-6 text-amber-600"/></div>
                      <div><p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Choix du Verre</p><p className="font-bold text-slate-800">{protocol.verre}</p></div>
                    </div>
-                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 border-l-4 border-l-amber-500 italic text-sm text-slate-700">"{protocol.conseil}"</div>
+                   <div className="bg-[#0a0a0a] p-4 rounded-xl border border-slate-100 border-l-4 border-l-amber-500 italic text-sm text-slate-700">"{protocol.conseil}"</div>
                  </div>
                ) : null}
             </div>
@@ -1792,7 +1792,7 @@ const ResultsView = ({ ctx }) => {
                 <div className="absolute left-5 top-2 bottom-6 w-0.5 bg-slate-100"></div>
                 <div className="flex items-start relative z-10 pb-8">
                   <div className="w-10 flex flex-col items-center shrink-0"><div className={`w-4 h-4 rounded-full border-4 border-white ${statut_apogee === 'A_GARDER' ? 'bg-indigo-500 shadow-[0_0_0_2px_rgba(99,102,241,0.2)] scale-125' : 'bg-slate-300'} transition-all`}></div></div>
-                  <div className="-mt-1 ml-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 w-full"><p className={`text-xs font-bold uppercase tracking-wider mb-1 ${statut_apogee === 'A_GARDER' ? 'text-indigo-600' : 'text-slate-500'}`}>Garde estimée</p><p className="text-base font-bold text-slate-800">{potentiel_garde}</p></div>
+                  <div className="-mt-1 ml-4 bg-[#0a0a0a] p-4 rounded-2xl border border-slate-100 w-full"><p className={`text-xs font-bold uppercase tracking-wider mb-1 ${statut_apogee === 'A_GARDER' ? 'text-indigo-600' : 'text-slate-500'}`}>Garde estimée</p><p className="text-base font-bold text-slate-800">{potentiel_garde}</p></div>
                 </div>
                 <div className="flex items-start relative z-10 pb-8">
                   <div className="w-10 flex flex-col items-center shrink-0"><div className={`w-5 h-5 rounded-full flex items-center justify-center border-4 border-white ${statut_apogee === 'APOGEE' ? 'bg-emerald-500 shadow-[0_0_0_2px_rgba(16,185,129,0.2)] scale-125' : 'bg-slate-300'} transition-all`}><div className="w-1.5 h-1.5 rounded-full bg-[#1a1a1a]"></div></div></div>
@@ -1808,11 +1808,11 @@ const ResultsView = ({ ctx }) => {
             <div className="bg-[#1a1a1a] rounded-3xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center space-x-3"><div className="p-2 bg-rose-50 rounded-lg"><Edit3 className="w-5 h-5 text-rose-800" /></div><h3 className="font-serif text-xl font-bold text-slate-900">Notes & Avis</h3></div>
-                <div className="flex space-x-1 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+                <div className="flex space-x-1 bg-[#0a0a0a] p-1.5 rounded-xl border border-slate-100">
                   {[1, 2, 3, 4, 5].map(star => <button key={star} onClick={() => ctx.genericUpdate(scanIdToUse, { rating: star })} className="p-1 hover:scale-110 transition-transform"><Star className={`w-6 h-6 ${star <= rating ? 'fill-amber-400 text-amber-400 drop-shadow-sm' : 'text-slate-300'}`} /></button>)}
                 </div>
               </div>
-              <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} onBlur={() => ctx.genericUpdate(scanIdToUse, { notes: tempNotes })} placeholder="Arômes ressentis, occasion, personnes présentes..." className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-sm font-medium text-slate-700 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:bg-[#1a1a1a] transition-all placeholder-slate-400" />
+              <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} onBlur={() => ctx.genericUpdate(scanIdToUse, { notes: tempNotes })} placeholder="Arômes ressentis, occasion, personnes présentes..." className="w-full bg-[#0a0a0a] border border-slate-200 rounded-2xl p-5 text-sm font-medium text-slate-700 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:bg-[#1a1a1a] transition-all placeholder-slate-400" />
             </div>
 
            {/* --- BLOC TARIF MARCHAND --- */}
@@ -1821,7 +1821,7 @@ const ResultsView = ({ ctx }) => {
                 <Tag className="w-5 h-5 text-emerald-600" />
                 <h3 className="text-lg font-semibold text-slate-800">Tarif Marchand</h3>
               </div>
-              <div className="flex items-end space-x-2 mb-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 w-max">
+              <div className="flex items-end space-x-2 mb-4 bg-[#0a0a0a] p-4 rounded-2xl border border-slate-100 w-max">
                 <div className="relative flex items-center">
                   <input type="number" value={tempPrix} onChange={(e) => setTempPrix(e.target.value)} onBlur={() => ctx.updateDataField(scanIdToUse, 'prix_unitaire_nombre', Number(tempPrix))} className="text-4xl font-bold text-slate-900 bg-[#1a1a1a] border border-slate-200 rounded-xl w-24 outline-none focus:ring-2 focus:ring-emerald-200 text-center shadow-sm py-1" />
                   <Edit3 className="absolute right-2 top-2 w-3 h-3 text-slate-400 pointer-events-none" />
@@ -1880,7 +1880,7 @@ const ResultsView = ({ ctx }) => {
 </div>
 
             <div className="flex flex-col space-y-3 pt-4">
-               {currentScanObj && currentScanObj.in_history !== false && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'history'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-[#1a1a1a] text-slate-500 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200"><EyeOff className="w-5 h-5" /><span>Retirer de l'historique</span></button>}
+               {currentScanObj && currentScanObj.in_history !== false && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'history'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-[#1a1a1a] text-slate-500 rounded-2xl font-bold hover:bg-[#0a0a0a] transition-colors border border-slate-200"><EyeOff className="w-5 h-5" /><span>Retirer de l'historique</span></button>}
                {currentScanObj && currentScanObj.stock > 0 && <button onClick={() => ctx.setScanAction({id: scanIdToUse, type: 'cellar'})} className="w-full flex items-center justify-center space-x-2 py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 transition-colors border border-red-100"><Archive className="w-5 h-5" /><span>Sortir de la cave</span></button>}
             </div>
           </div>
