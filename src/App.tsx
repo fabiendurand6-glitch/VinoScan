@@ -307,20 +307,20 @@ const getRecommendedAccessory = (type) => {
 // =========================================================================
 
 const NavigationBar = ({ ctx }) => (
-  <div className="absolute bottom-0 w-full bg-[#1a1a1a] border-t border-slate-200 flex justify-around items-center pb-safe pt-2 px-1 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 h-16">
-    <button onClick={() => ctx.setView('home')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${['home', 'manualSearch', 'menuConfig'].includes(ctx.view) ? 'text-rose-700' : 'text-slate-400 hover:text-slate-600'}`}>
+  <div className="absolute bottom-0 w-full bg-[#1a1a1a] border-t border-[#333] flex justify-around items-center pb-safe pt-2 px-1 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] z-20 h-16">
+    <button onClick={() => ctx.setView('home')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${['home', 'manualSearch', 'menuConfig'].includes(ctx.view) ? 'text-[#D4AF37]' : 'text-slate-500 hover:text-slate-300'}`}>
       <Home className="w-5 h-5 sm:w-6 sm:h-6" /><span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">Scanner</span>
     </button>
-    <button onClick={() => ctx.setView('cellar')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${ctx.view === 'cellar' ? 'text-rose-700' : 'text-slate-400 hover:text-slate-600'}`}>
+    <button onClick={() => ctx.setView('cellar')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${ctx.view === 'cellar' ? 'text-[#D4AF37]' : 'text-slate-500 hover:text-slate-300'}`}>
       <Archive className="w-5 h-5 sm:w-6 sm:h-6" /><span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">Cave</span>
     </button>
-    <button onClick={() => ctx.setView('recommendation')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${['recommendation', 'recommendationList'].includes(ctx.view) ? 'text-amber-600' : 'text-slate-400 hover:text-slate-600'}`}>
+    <button onClick={() => ctx.setView('recommendation')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${['recommendation', 'recommendationList'].includes(ctx.view) ? 'text-[#D4AF37]' : 'text-slate-500 hover:text-slate-300'}`}>
       <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" /><span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">Conseil</span>
     </button>
-    <button onClick={() => ctx.setView('history')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${ctx.view === 'history' ? 'text-rose-700' : 'text-slate-400 hover:text-slate-600'}`}>
+    <button onClick={() => ctx.setView('history')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${ctx.view === 'history' ? 'text-[#D4AF37]' : 'text-slate-500 hover:text-slate-300'}`}>
       <History className="w-5 h-5 sm:w-6 sm:h-6" /><span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">Histo</span>
     </button>
-    <button onClick={() => ctx.setView('account')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${ctx.view === 'account' ? 'text-rose-700' : 'text-slate-400 hover:text-slate-600'}`}>
+    <button onClick={() => ctx.setView('account')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${ctx.view === 'account' ? 'text-[#D4AF37]' : 'text-slate-500 hover:text-slate-300'}`}>
       <User className="w-5 h-5 sm:w-6 sm:h-6" /><span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">Profil</span>
     </button>
   </div>
@@ -356,43 +356,42 @@ const SommelierButton = ({ text }) => {
 };
 
 const HomeView = ({ ctx }) => (
-  <div className="flex flex-col items-center justify-center h-full p-6 space-y-8 pb-20 relative bg-[#f8f5f2] overflow-hidden">
-    <div className="absolute -top-32 -left-32 w-64 h-64 bg-rose-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse"></div>
-    <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-amber-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse"></div>
+  <div className="flex flex-col items-center justify-center h-full p-6 space-y-8 pb-20 relative bg-[#0a0a0a] overflow-hidden">
+    <div className="absolute -top-32 -left-32 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl opacity-50 animate-pulse"></div>
+    <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-rose-500/10 rounded-full blur-3xl opacity-50 animate-pulse"></div>
     
     <div className="text-center space-y-4 relative z-10">
-      <div className="mx-auto w-28 h-28 bg-gradient-to-br from-rose-800 to-rose-950 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
-        <Wine className="w-14 h-14 text-rose-100" />
+      <div className="mx-auto w-28 h-28 bg-[#1a1a1a] rounded-full flex items-center justify-center shadow-xl border border-[#333]">
+        <Wine className="w-14 h-14 text-[#D4AF37]" />
       </div>
-      <h1 className="text-5xl font-serif text-slate-800 tracking-tight font-bold">VinoScan</h1>
-      <p className="text-slate-500 max-w-sm mx-auto text-sm font-medium">L'assistant ultime de votre cave.</p>
+      <h1 className="text-5xl font-serif tracking-tight font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#AA7C11]">VinoScan</h1>
+      <p className="text-slate-400 max-w-sm mx-auto text-sm font-medium">L'assistant ultime de votre cave.</p>
     </div>
 
     <div className="w-full max-w-sm space-y-3 pt-2 relative z-10">
-      <button onClick={() => ctx.startCamera('bottle')} className="w-full flex items-center justify-center space-x-3 bg-slate-900 text-white p-4 rounded-2xl shadow-xl active:scale-95 transition-all">
+      <button onClick={() => ctx.startCamera('bottle')} className="w-full flex items-center justify-center space-x-3 bg-[#D4AF37] text-black p-4 rounded-2xl shadow-lg active:scale-95 transition-all hover:bg-[#AA7C11]">
         <Camera className="w-6 h-6" /><span className="font-bold text-lg">Scanner une bouteille</span>
       </button>
 
-      {/* NOUVEAU : LE SCAN DE FACTURE */}
-      <button onClick={() => ctx.startCamera('receipt')} className="w-full flex items-center justify-center space-x-3 bg-[#1a1a1a] border-2 border-slate-900 text-[#F5F5F5] p-4 rounded-2xl shadow-md active:scale-95 transition-all">
-        <Receipt className="w-6 h-6" /><span className="font-bold text-lg">Scanner un ticket / facture</span>
+      <button onClick={() => ctx.startCamera('receipt')} className="w-full flex items-center justify-center space-x-3 bg-[#1a1a1a] border border-[#333] text-white p-4 rounded-2xl shadow-md active:scale-95 transition-all hover:border-[#D4AF37]/50">
+        <Receipt className="w-6 h-6 text-slate-300" /><span className="font-bold text-lg">Scanner une facture</span>
       </button>
       
       <div className="flex space-x-3 pt-2">
-        <button onClick={() => ctx.setView('menuConfig')} className="flex-1 flex items-center justify-center space-x-2 bg-[#1a1a1a] border border-slate-200 text-amber-700 p-4 rounded-2xl shadow-sm active:scale-95">
+        <button onClick={() => ctx.setView('menuConfig')} className="flex-1 flex items-center justify-center space-x-2 bg-[#1a1a1a] border border-[#333] text-amber-500 p-4 rounded-2xl shadow-sm active:scale-95">
           <BookOpen className="w-5 h-5" /><span className="font-bold text-xs uppercase">Carte Vins</span>
         </button>
-        <button onClick={() => ctx.setView('quiz')} className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-sm active:scale-95">
+        <button onClick={() => ctx.setView('quiz')} className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-br from-amber-600 to-amber-800 text-white p-4 rounded-2xl shadow-sm active:scale-95">
           <Gamepad2 className="w-5 h-5" /><span className="font-bold text-xs uppercase">Mini-Jeu</span>
         </button>
       </div>
 
       <div className="flex space-x-3">
-        <label className="flex-1 flex flex-col items-center justify-center space-y-1 bg-[#1a1a1a] border border-slate-200 text-slate-700 py-3 rounded-2xl cursor-pointer shadow-sm active:scale-95">
+        <label className="flex-1 flex flex-col items-center justify-center space-y-1 bg-[#1a1a1a] border border-[#333] text-slate-300 py-3 rounded-2xl cursor-pointer shadow-sm active:scale-95 hover:border-[#D4AF37]/50">
           <ImageIcon className="w-5 h-5 text-slate-400" /><span className="font-bold text-[10px] uppercase">Galerie</span>
           <input type="file" accept="image/*" className="hidden" onChange={(e) => ctx.handleFileUpload(e, 'bottle')} />
         </label>
-        <button onClick={() => ctx.setView('manualSearch')} className="flex-1 flex flex-col items-center justify-center space-y-1 bg-[#1a1a1a] border border-slate-200 text-slate-700 py-3 rounded-2xl shadow-sm active:scale-95">
+        <button onClick={() => ctx.setView('manualSearch')} className="flex-1 flex flex-col items-center justify-center space-y-1 bg-[#1a1a1a] border border-[#333] text-slate-300 py-3 rounded-2xl shadow-sm active:scale-95 hover:border-[#D4AF37]/50">
           <Search className="w-5 h-5 text-slate-400" /><span className="font-bold text-[10px] uppercase">Recherche</span>
         </button>
       </div>
@@ -987,30 +986,31 @@ const HistoryView = ({ ctx }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20">
-      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 border-b border-slate-100">
-        <h1 className="text-3xl font-serif font-bold text-[#F5F5F5]">Historique</h1>
-        <p className="text-slate-500 text-xs mt-1 font-medium uppercase tracking-wider">{historyItems.length} bouteilles analysées</p>
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 border-b border-[#333]">
+        <h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Historique</h1>
+        <p className="text-slate-400 text-xs mt-1 font-medium uppercase tracking-wider">{historyItems.length} bouteilles analysées</p>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {historyItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-50">
-            <History className="w-16 h-16 mb-4 text-slate-300" />
-            <p className="text-slate-500 font-medium">Aucun historique.</p>
+            <History className="w-16 h-16 mb-4 text-slate-500" />
+            <p className="text-slate-400 font-medium">Aucun historique.</p>
           </div>
         ) : (
           historyItems.map((item) => (
-            <div key={item.id} onClick={() => ctx.openExistingWine(item, 'history')} className="bg-[#1a1a1a] rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center space-x-4 active:scale-[0.98] transition-transform cursor-pointer relative overflow-hidden hover:shadow-md">
-              <div className="w-14 h-16 bg-slate-100 rounded-lg overflow-hidden shrink-0 opacity-90 shadow-inner">
+            <div key={item.id} onClick={() => ctx.openExistingWine(item, 'history')} className="bg-[#1a1a1a] rounded-2xl p-4 shadow-sm border border-[#333] flex items-center space-x-4 active:scale-[0.98] transition-transform cursor-pointer relative overflow-hidden hover:border-[#D4AF37]/50">
+              <div className="w-14 h-16 bg-[#0a0a0a] rounded-lg overflow-hidden shrink-0 opacity-90 shadow-inner">
                 <img src={item.image} alt="Miniature" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0 pr-4">
                 <div className="flex justify-between items-start mb-1">
                   <span className="text-xs text-slate-400 font-medium">{String(item.dateStr || '').split(' ')[0]}</span>
-                  {item.stock > 0 && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">En cave</span>}
+                  {item.stock > 0 && <span className="text-[10px] font-bold text-emerald-400 bg-emerald-900/30 border border-emerald-800/50 px-2 py-0.5 rounded-full">En cave</span>}
                 </div>
-                <h3 className="font-serif text-[#F5F5F5] truncate font-bold text-base leading-tight">{item.data.nom}</h3>
+                {/* CORRECTION DU TEXTE ICI : text-white au lieu de text-slate-900 */}
+                <h3 className="font-serif text-white truncate font-bold text-base leading-tight">{item.data.nom}</h3>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-300" />
+              <ChevronRight className="w-5 h-5 text-slate-500" />
             </div>
           ))
         )}
@@ -1028,7 +1028,7 @@ const AccountView = ({ ctx }) => {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // Statistiques globales (Sécurisées)
+  // Statistiques
   const historyItems = ctx.scanHistory.filter(i => i.in_history !== false);
   const historyLen = historyItems.length;
   const itemsInStock = ctx.scanHistory.filter(i => i.stock > 0);
@@ -1038,9 +1038,15 @@ const AccountView = ({ ctx }) => {
   const countType = (type) => itemsInStock.filter(i => i.data?.type_simplifie === type).reduce((acc, curr) => acc + parseInt(curr.stock || 0), 0);
   const getPct = (val) => totalBottles === 0 ? 0 : Math.round((val / totalBottles) * 100);
 
-  // Appel de notre nouvelle fonction Premium pour l'avatar
-  const premium = getPremiumProfile(historyLen);
+  // LA CORRECTION DU CRASH EST ICI : La fonction est DANS le composant
+  const getPremiumProfile = (len) => {
+    if (len >= 50) return { name: "Maître Sommelier", level: 4, color: "#D4AF37", bg: "bg-[#1a1a1a]", bar: "bg-[#D4AF37]", req: 50 };
+    if (len >= 20) return { name: "Grand Connaisseur", level: 3, color: "#D4AF37", bg: "bg-[#1a1a1a]", bar: "bg-[#D4AF37]", req: 20 };
+    if (len >= 5) return { name: "Amateur Éclairé", level: 2, color: "#D4AF37", bg: "bg-[#1a1a1a]", bar: "bg-[#D4AF37]", req: 5 };
+    return { name: "Novice Curieux", level: 1, color: "#F5F5F5", bg: "bg-[#1a1a1a]", bar: "bg-slate-400", req: 0 };
+  };
 
+  const premium = getPremiumProfile(historyLen);
   const getCount = (r) => ctx.scanHistory.filter(i => String(i.data?.region || '').toLowerCase().includes(r)).length;
   
   const collectionBadges = [
@@ -1073,29 +1079,24 @@ const AccountView = ({ ctx }) => {
     if (ctx.setScanHistory) {
       ctx.setScanHistory([]);
       setShowDeleteConfirm(false);
-      if(ctx.showToast) ctx.showToast("Historique et cave effacés avec succès.");
+      if(ctx.showToast) ctx.showToast("Historique et cave effacés.");
     }
   };
 
-  const exportToCSV = () => {
-    if(ctx.showToast) ctx.showToast("Fonction d'export bientôt disponible !");
-  };
-
-  // 1. ÉCRAN DE CONNEXION (Si non connecté)
   if (!ctx.user || ctx.user.isAnonymous) {
     return (
       <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto p-6 relative">
         <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full relative z-10">
-          <div className="w-24 h-24 bg-gradient-to-br from-[#1A1A1A] to-slate-900 rounded-3xl flex items-center justify-center mb-8 shadow-xl border border-[#333]">
+          <div className="w-24 h-24 bg-[#1a1a1a] rounded-3xl flex items-center justify-center mb-8 shadow-xl border border-[#333]">
             <ShieldCheck className="w-12 h-12 text-[#D4AF37]" />
           </div>
           <h2 className="text-3xl font-serif font-bold text-white mb-3 text-center">Sécurisez votre cave</h2>
-          <p className="text-slate-400 text-center mb-8 font-medium">Créez un compte pour sauvegarder vos données dans le cloud.</p>
+          <p className="text-slate-400 text-center mb-8 font-medium">Sauvegardez vos données dans le cloud.</p>
           <form onSubmit={handleAuth} className="w-full space-y-4">
-            <input type="email" placeholder="Adresse email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-4 rounded-2xl bg-[#1A1A1A] text-white border border-[#333] outline-none focus:ring-2 focus:ring-[#D4AF37] shadow-sm" required />
-            <input type="password" placeholder="Mot de passe" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-4 rounded-2xl bg-[#1A1A1A] text-white border border-[#333] outline-none focus:ring-2 focus:ring-[#D4AF37] shadow-sm" required />
+            <input type="email" placeholder="Adresse email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-4 rounded-2xl bg-[#1A1A1A] text-white border border-[#333] outline-none focus:border-[#D4AF37]" required />
+            <input type="password" placeholder="Mot de passe" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-4 rounded-2xl bg-[#1A1A1A] text-white border border-[#333] outline-none focus:border-[#D4AF37]" required />
             {authError && <p className="text-red-500 text-xs text-center font-bold">{authError}</p>}
-            <button type="submit" className="w-full py-4 bg-[#D4AF37] text-black rounded-2xl font-bold shadow-lg active:scale-95 transition-transform hover:bg-[#AA7C11]">{authMode === 'login' ? 'Se connecter' : 'Créer mon compte'}</button>
+            <button type="submit" className="w-full py-4 bg-[#D4AF37] text-black rounded-2xl font-bold active:scale-95 transition-transform hover:bg-[#AA7C11]">{authMode === 'login' ? 'Se connecter' : 'Créer mon compte'}</button>
           </form>
           <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="mt-6 text-slate-400 text-sm font-bold underline decoration-slate-600 underline-offset-4 hover:text-white transition-colors">{authMode === 'login' ? "Créer un compte gratuit" : "Déjà membre ? Se connecter"}</button>
         </div>
@@ -1103,135 +1104,113 @@ const AccountView = ({ ctx }) => {
     );
   }
 
-  // 2. TABLEAU DE BORD PREMIUM (Si connecté)
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto relative" style={{'--gold-primary': '#D4AF37'}}>
-      
-      {/* HEADER : Plus premium, avec avatar soigné */}
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto relative">
       <div className="bg-[#1A1A1A] pt-12 pb-6 px-6 shadow-xl border-b border-[#333] flex justify-between items-center sticky top-0 z-10">
         <div>
           <h1 className="text-3xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#AA7C11]">Tableau de Bord</h1>
           <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 mt-1 flex items-center"><CheckCircle className="w-3 h-3 mr-1"/> SAUVEGARDE CLOUD</p>
         </div>
-        <div className={`w-16 h-16 rounded-full ${premium.bg} flex items-center justify-center border-4 border-slate-800 shadow-2xl relative`}>
-          {premium.avatarImg ? (
-            <img src={premium.avatarImg} alt="Avatar" className="w-full h-full rounded-full object-cover" />
-          ) : (
-            <Award className={`w-8 h-8 ${premium.color}`} />
-          )}
-          <span className="absolute -bottom-1 -right-1 bg-[#D4AF37] text-black font-black text-sm px-2.5 py-0.5 rounded-md shadow-md">Lvl.{premium.level}</span>
+        <div className={`w-14 h-14 rounded-full ${premium.bg} flex items-center justify-center border-2 border-[#333]`}>
+          <Award className="w-7 h-7" style={{color: premium.color}} />
         </div>
       </div>
 
       <div className="p-5 space-y-6">
-        {/* CARTE PROFIL : Épurée, lisible, premium */}
-        <div onClick={() => setShowBadges(true)} className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg cursor-pointer hover:shadow-amber-500/20 transition-shadow relative overflow-hidden group">
-          <div className="absolute top-6 right-6 text-slate-500 group-hover:text-[#D4AF37] transition-colors"><ChevronRight className="w-6 h-6"/></div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Votre Profil Œnologique</p>
-          <h3 className={`font-serif text-3xl font-bold mb-4`} style={{color: premium.color}}>{premium.name}</h3>
+        {/* CARTE PROFIL */}
+        <div onClick={() => setShowBadges(true)} className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] cursor-pointer">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Votre Profil Œnologique</p>
+          <h3 className="font-serif text-3xl font-bold mb-4" style={{color: premium.color}}>{premium.name}</h3>
           <div className="flex justify-between items-end mb-2">
             <span className="text-sm font-medium text-white">{historyLen} vins découverts</span>
-            <span className="text-xs font-bold text-slate-500">Prochain palier : {premium.req === 50 ? 'Niveau Max' : premium.req === 0 ? 5 : premium.req === 5 ? 20 : 50}</span>
+            <span className="text-xs font-bold text-slate-500">Palier : {premium.req === 50 ? 'Max' : premium.req === 0 ? 5 : premium.req === 5 ? 20 : 50}</span>
           </div>
-          <div className="h-3 w-full bg-[#0a0a0a] rounded-full overflow-hidden shadow-inner">
-              <div className={`h-full ${premium.bar} rounded-full transition-all duration-1000`} style={{width: `${Math.min(100, (historyLen / (premium.req === 50 ? 50 : premium.req === 0 ? 5 : premium.req === 5 ? 20 : 50)) * 100)}%`}}></div>
+          <div className="h-2 w-full bg-[#0a0a0a] rounded-full overflow-hidden">
+              <div className={`h-full ${premium.bar} rounded-full`} style={{width: `${Math.min(100, (historyLen / (premium.req === 50 ? 50 : premium.req === 0 ? 5 : premium.req === 5 ? 20 : 50)) * 100)}%`}}></div>
           </div>
         </div>
 
-        {/* SECTION VALEUR & CONTENU (LISIBILITÉ MAXIMALE) */}
-        <div className="bg-[#1A100C] rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden border border-[#2D1B13]">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-[#3A2318] rounded-full mix-blend-screen filter blur-3xl opacity-50"></div>
-          <div className="flex items-center space-x-3 mb-6 relative z-10">
-            <div className="p-2 bg-amber-500/20 rounded-xl border border-amber-500/30"><BarChart3 className="w-5 h-5 text-amber-400"/></div>
-            <h3 className="font-serif text-xl font-bold text-amber-50">Valeur & Contenu</h3>
+        {/* VALEUR & CONTENU */}
+        <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333]">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-[#D4AF37]/20 rounded-xl"><BarChart3 className="w-5 h-5 text-[#D4AF37]"/></div>
+            <h3 className="font-serif text-xl font-bold text-white">Valeur & Contenu</h3>
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
-            <div className="bg-[#2a2a2a]/40 backdrop-blur-sm p-5 rounded-2xl border border-white/10">
-              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">En Cave</p>
-              <p className="text-5xl font-extrabold text-white">{totalBottles}</p>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-[#0a0a0a] p-5 rounded-2xl border border-[#333]">
+              <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">En Cave</p>
+              <p className="text-4xl font-extrabold text-white">{totalBottles}</p>
             </div>
-            <div className="bg-gradient-to-br from-emerald-900/40 to-emerald-800/40 backdrop-blur-sm p-5 rounded-2xl border border-emerald-500/30">
-              <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-widest mb-1">Capital Estimé</p>
-              <p className="text-5xl font-extrabold text-emerald-400">{totalValue.toFixed(0)}€</p>
+            <div className="bg-emerald-900/20 p-5 rounded-2xl border border-emerald-900/50">
+              <p className="text-[10px] text-emerald-500 uppercase font-bold mb-1">Capital Estimé</p>
+              <p className="text-4xl font-extrabold text-emerald-400">{totalValue.toFixed(0)}€</p>
             </div>
           </div>
-          <div className="relative z-10">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Répartition de la cave</p>
-            <div className="h-3 w-full flex rounded-full overflow-hidden mb-5 bg-black shadow-inner">
+          <div>
+            <div className="h-2 w-full flex rounded-full overflow-hidden mb-4 bg-black">
               {countType('ROUGE') > 0 && <div style={{width: `${getPct(countType('ROUGE'))}%`}} className="bg-rose-600 h-full"></div>}
-              {countType('BLANC') > 0 && <div style={{width: `${getPct(countType('BLANC'))}%`}} className="bg-amber-200 h-full border-l border-black/20"></div>}
-              {countType('ROSE') > 0 && <div style={{width: `${getPct(countType('ROSE'))}%`}} className="bg-pink-400 h-full border-l border-black/20"></div>}
-              {countType('PETILLANT') > 0 && <div style={{width: `${getPct(countType('PETILLANT'))}%`}} className="bg-yellow-500 h-full border-l border-black/20"></div>}
+              {countType('BLANC') > 0 && <div style={{width: `${getPct(countType('BLANC'))}%`}} className="bg-amber-200 h-full"></div>}
+              {countType('ROSE') > 0 && <div style={{width: `${getPct(countType('ROSE'))}%`}} className="bg-pink-400 h-full"></div>}
+              {countType('PETILLANT') > 0 && <div style={{width: `${getPct(countType('PETILLANT'))}%`}} className="bg-yellow-500 h-full"></div>}
             </div>
-            <div className="grid grid-cols-2 gap-y-4 text-xs font-medium">
-              <div className="flex items-center"><div className="w-3.5 h-3.5 rounded-full bg-rose-600 mr-3 shadow-[0_0_8px_rgba(225,29,72,0.6)]"></div><span className="text-slate-300">Rouges ({getPct(countType('ROUGE'))}%)</span></div>
-              <div className="flex items-center"><div className="w-3.5 h-3.5 rounded-full bg-amber-200 mr-3 shadow-[0_0_8px_rgba(253,230,138,0.6)]"></div><span className="text-slate-300">Blancs ({getPct(countType('BLANC'))}%)</span></div>
-              <div className="flex items-center"><div className="w-3.5 h-3.5 rounded-full bg-pink-400 mr-3 shadow-[0_0_8px_rgba(244,114,182,0.6)]"></div><span className="text-slate-300">Rosés ({getPct(countType('ROSE'))}%)</span></div>
-              <div className="flex items-center"><div className="w-3.5 h-3.5 rounded-full bg-yellow-500 mr-3 shadow-[0_0_8px_rgba(234,179,8,0.6)]"></div><span className="text-slate-300">Bulles ({getPct(countType('PETILLANT'))}%)</span></div>
+            <div className="grid grid-cols-2 gap-y-2 text-xs font-medium text-slate-400">
+              <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-rose-600 mr-2"></div>Rouges ({getPct(countType('ROUGE'))}%)</div>
+              <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-amber-200 mr-2"></div>Blancs ({getPct(countType('BLANC'))}%)</div>
+              <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-pink-400 mr-2"></div>Rosés ({getPct(countType('ROSE'))}%)</div>
+              <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>Bulles ({getPct(countType('PETILLANT'))}%)</div>
             </div>
           </div>
         </div>
 
-        {/* SECTION PARAMÈTRES */}
-        <div className="bg-[#1A1A1A] rounded-3xl shadow-xl border border-[#333] overflow-hidden">
-          <div className="p-6 border-b border-[#333] flex items-center space-x-3 bg-[#111]">
-            <div className="p-2 bg-[#1A1A1A] rounded-xl shadow-lg border border-[#333]"><SlidersHorizontal className="w-5 h-5 text-slate-400"/></div>
-            <h3 className="font-serif text-xl font-bold text-white">Paramètres</h3>
-          </div>
-          <div className="p-4 space-y-3">
-            <button onClick={exportToCSV} className="w-full flex items-center p-4 bg-[#1A1A1A] hover:bg-[#222] rounded-2xl transition-colors text-white font-bold border border-[#333]">
-              <div className="w-10 h-10 bg-[#0a0a0a] rounded-xl flex items-center justify-center mr-4 shrink-0 border border-[#333]"><Download className="w-5 h-5 text-[#D4AF37]" /></div> Exporter ma cave (.csv)
+        {/* PARAMÈTRES */}
+        <div className="bg-[#1A1A1A] rounded-3xl border border-[#333] overflow-hidden">
+          <div className="p-4 space-y-2">
+            <button onClick={() => ctx.showToast("Bientôt disponible")} className="w-full flex items-center p-4 hover:bg-[#222] rounded-2xl text-white font-bold transition-colors">
+              <Download className="w-5 h-5 mr-4 text-slate-500" /> Exporter ma cave (.csv)
             </button>
-            <button onClick={handleLogout} className="w-full flex items-center p-4 bg-[#1A1A1A] hover:bg-[#222] rounded-2xl transition-colors text-white font-bold border border-[#333]">
-              <div className="w-10 h-10 bg-[#0a0a0a] rounded-xl flex items-center justify-center mr-4 shrink-0 border border-[#333]"><LogOut className="w-5 h-5 text-[#D4AF37]" /></div> Se déconnecter
+            <button onClick={handleLogout} className="w-full flex items-center p-4 hover:bg-[#222] rounded-2xl text-white font-bold transition-colors">
+              <LogOut className="w-5 h-5 mr-4 text-slate-500" /> Se déconnecter
             </button>
-            <div className="my-4 border-t border-[#333]"></div>
-            <div className="px-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-3 ml-2">Zone de Danger</p>
-              <button onClick={() => setShowDeleteConfirm(true)} className="w-full flex items-center p-4 bg-red-950/30 hover:bg-red-950/60 rounded-2xl transition-colors text-red-400 font-bold border border-red-900/50">
-                <div className="w-10 h-10 bg-red-950/50 rounded-xl flex items-center justify-center mr-4 shrink-0 border border-red-900/50"><Trash2 className="w-5 h-5 text-red-500" /></div> Effacer tout l'historique
-              </button>
-            </div>
+            <div className="border-t border-[#333] my-2"></div>
+            <button onClick={() => setShowDeleteConfirm(true)} className="w-full flex items-center p-4 text-red-500 hover:bg-red-950/30 rounded-2xl font-bold transition-colors">
+              <Trash2 className="w-5 h-5 mr-4" /> Effacer l'historique
+            </button>
           </div>
         </div>
       </div>
 
-      {/* MODAL : SUPPRESSION */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/80 z-[150] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in">
-          <div className="bg-[#1A1A1A] rounded-3xl p-8 w-full max-w-sm relative shadow-2xl border border-[#333] text-center">
-            <div className="w-20 h-20 bg-red-950 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-900">
-              <AlertTriangle className="w-10 h-10 text-red-500" />
-            </div>
-            <h3 className="font-serif text-2xl font-bold text-white mb-2">Êtes-vous sûr ?</h3>
-            <p className="text-slate-400 font-medium mb-8 text-sm leading-relaxed">Cette action va supprimer définitivement l'ensemble de votre historique de scans et vider votre cave. C'est irréversible.</p>
+        <div className="fixed inset-0 bg-black/80 z-[150] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#1a1a1a] border border-[#333] rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl">
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">Êtes-vous sûr ?</h3>
+            <p className="text-slate-400 text-sm mb-6">Cette action est irréversible et videra votre cave.</p>
             <div className="space-y-3">
-              <button onClick={handleClearHistory} className="w-full py-4 bg-red-600 text-white font-bold rounded-2xl shadow-lg hover:bg-red-700 active:scale-95 transition-all">Oui, tout effacer</button>
-              <button onClick={() => setShowDeleteConfirm(false)} className="w-full py-4 bg-[#222] text-white font-bold rounded-2xl hover:bg-[#333] transition-colors border border-[#444]">Annuler</button>
+              <button onClick={handleClearHistory} className="w-full py-3 bg-red-600 text-white font-bold rounded-xl">Oui, effacer</button>
+              <button onClick={() => setShowDeleteConfirm(false)} className="w-full py-3 bg-[#333] text-white font-bold rounded-xl">Annuler</button>
             </div>
           </div>
         </div>
       )}
-
-      {/* MODAL : BADGES & TROPHÉES */}
+      
       {showBadges && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in">
-          <div className="bg-[#1A1A1A] rounded-3xl p-6 w-full max-w-sm relative shadow-2xl border border-[#333] max-h-[80vh] overflow-y-auto">
-            <button onClick={() => setShowBadges(false)} className="absolute top-4 right-4 p-2 bg-[#333] rounded-full text-slate-300 hover:bg-[#444] transition-colors"><X className="w-5 h-5"/></button>
-            <h3 className="font-serif text-2xl font-bold mb-6 text-center text-[#D4AF37]">Trophées & Collections</h3>
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#1a1a1a] border border-[#333] rounded-3xl p-6 w-full max-w-sm max-h-[80vh] overflow-y-auto">
+            <button onClick={() => setShowBadges(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white"><X className="w-6 h-6"/></button>
+            <h3 className="font-serif text-2xl font-bold mb-6 text-center text-[#D4AF37]">Trophées</h3>
             <div className="space-y-3">
               {collectionBadges.map((badge) => {
                 const unlocked = badge.count >= badge.req;
                 return (
-                  <div key={badge.id} className={`p-4 rounded-2xl border flex items-center justify-between ${unlocked ? 'bg-[#222] border-[#D4AF37]/50 shadow-md' : 'bg-[#111] border-[#333] opacity-50 grayscale'}`}>
+                  <div key={badge.id} className={`p-4 rounded-xl flex items-center justify-between ${unlocked ? 'bg-[#222] border border-[#D4AF37]/50' : 'bg-[#0a0a0a] border border-[#333] opacity-50'}`}>
                     <div className="flex items-center space-x-3">
                       <span className="text-2xl">{badge.icon}</span>
                       <div>
                         <h4 className={`font-bold text-sm ${unlocked ? 'text-white' : 'text-slate-500'}`}>{badge.name}</h4>
-                        <p className="text-[10px] font-medium text-slate-500">{badge.req} vins requis</p>
+                        <p className="text-[10px] text-slate-500">{badge.req} requis</p>
                       </div>
                     </div>
-                    {unlocked ? <CheckCircle className="w-5 h-5 text-[#D4AF37]" /> : <span className="text-xs font-bold text-slate-500 bg-[#222] px-2 py-1 rounded-md">{badge.count}/{badge.req}</span>}
+                    {unlocked && <CheckCircle className="w-5 h-5 text-[#D4AF37]" />}
                   </div>
                 );
               })}
