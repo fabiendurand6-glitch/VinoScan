@@ -603,8 +603,8 @@ const MenuConfigView = ({ ctx }) => {
 // ==========================================
 // Assure-toi que la ligne juste en dessous de ce commentaire est bien : 
 
-// CAVE MODERNE ET ÉLÉGANTE (LISIBILITÉ MAXIMALE & DRAG AND DROP)
-// CAVE MODERNE ET ÉLÉGANTE (100% DARK THEME ET RÉPARÉE)
+
+// CAVE MODERNE ET ÉLÉGANTE (100% NIGHT & GOLD - VERSION COMPLÈTE CORRIGÉE)
 const CellarView = ({ ctx }) => {
   const [cellarTab, setCellarTab] = useState('STOCK');
   const [filterType, setFilterType] = useState('ALL');
@@ -658,6 +658,7 @@ const CellarView = ({ ctx }) => {
   const totalValue = filteredItems.reduce((acc, curr) => acc + ((curr.data.prix_unitaire_nombre || 0) * (cellarTab === 'STOCK' ? (parseInt(curr.stock) || 0) : 1)), 0);
 
   const handleDragStart = (e, bottle) => { e.dataTransfer.setData('text/plain', bottle.id); setDraggedBottle(bottle.id); };
+  
   const handleDrop = (e, targetShelf, targetBottleId = null) => {
     e.preventDefault();
     const draggedId = e.dataTransfer.getData('text/plain');
@@ -677,6 +678,7 @@ const CellarView = ({ ctx }) => {
       ctx.genericUpdate(draggedId, { location: targetShelf });
     }
   };
+  
   const handleDragOver = (e) => { e.preventDefault(); };
 
   const handleMoveBottleClick = (locName) => {
@@ -688,7 +690,34 @@ const CellarView = ({ ctx }) => {
     }
   };
 
-  const handleAskCellarSommelier = async () => { /* Logique gérée par App.jsx via ctx si besoin, ou omise ici pour faire simple */ };
+  // RECONNEXION DU CERVEAU DE RECHERCHE DE CAVE
+  const handleAskCellarSommelier = async () => {
+    if (!pairingDish.trim()) return;
+    setIsPairingLoading(true);
+    try {
+      const inStockWines = ctx.scanHistory.filter(w => w.stock > 0);
+      if (inStockWines.length === 0) throw new Error("Cave vide");
+      
+      const inventoryString = inStockWines.map(w => `[ID: ${w.id}] ${w.data.nom} ${w.data.annee} (${w.data.type_simplifie})`).join('\n');
+      const prompt = `Tu es le Sommelier privé. L'utilisateur mange : "${pairingDish}".
+      Voici les vins EXACTS dans sa cave :
+      ${inventoryString}
+      Choisis LE MEILLEUR vin PARMI CETTE LISTE UNIQUEMENT pour ce plat.
+      Réponds en JSON strict : {"chosen_id": "ID_ici", "explication": "Pourquoi ce choix (max 20 mots)"}`;
+
+      const result = await callGemini(prompt);
+      const parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
+      const chosenWine = inStockWines.find(w => w.id === parsed.chosen_id);
+      if(!chosenWine) throw new Error("Erreur IA");
+
+      setPairingResult({ wine: chosenWine, explication: parsed.explication });
+    } catch (e) {
+      ctx.setErrorMsg("Impossible de trouver un accord correspondant dans votre stock actuel."); 
+      ctx.setView('error');
+    } finally { 
+      setIsPairingLoading(false); 
+    }
+  };
 
   const getApogeeBadge = (statut) => {
     switch(statut) {
@@ -728,19 +757,27 @@ const CellarView = ({ ctx }) => {
               <button key={t} onClick={() => setFilterType(t)} className={`px-3 py-1 rounded-full text-xs font-medium border ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t === 'ALL' ? 'Tous' : t}</button>
             ))}
           </div>
+
+          <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
+            <Utensils className="w-4 h-4 text-slate-500 shrink-0 mr-1" />
+            {['ALL', 'VIANDE', 'POISSON', 'FROMAGE', 'APERITIF'].map(f => (
+              <button key={f} onClick={() => setFilterFood(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${filterFood === f ? 'bg-amber-600/20 text-amber-500 border-amber-600/50' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>
+                {f === 'ALL' ? 'Tous plats' : f}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {cellarTab === 'STOCK' && totalBottles > 0 && (
-          <button onClick={() => {setShowPairingModal(true); setPairingResult(null); setPairingDish('');}} className="w-full bg-gradient-to-r from-[#1A1A1A] to-[#0a0a0a] border border-[#D4AF37]/30 text-white rounded-3xl p-6 shadow-lg flex items-center justify-between active:scale-95 transition-transform mb-4">
-            <div className="text-left flex-1 pr-4">
-              <h3 className="font-serif text-xl font-bold flex items-center mb-1"><Sparkles className="w-5 h-5 mr-2 text-[#D4AF37]"/> Que boire ce soir ?</h3>
-              <p className="text-xs text-slate-400">Demandez au sommelier d'explorer votre cave.</p>
+        
+        {cellarTab === 'STOCK' && totalBottles > 0 && (
+          <button onClick={() => {setShowPairingModal(true); setPairingResult(null); setPairingDish('');}} className="w-full bg-gradient-to-r from-[#1A1A1A] to-[#0a0a0a] border border-[#D4AF37]/30 text-white rounded-2xl p-4 shadow-lg flex items-center justify-between active:scale-95 transition-transform mb-4">
+            <div className="text-left">
+              <h3 className="font-bold text-lg flex items-center"><Sparkles className="w-5 h-5 mr-2 text-[#D4AF37]"/> Que boire ce soir ?</h3>
+              <p className="text-xs text-slate-400">Demander au sommelier d'explorer votre cave</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center shrink-0">
-              <ChevronRight className="w-5 h-5 text-[#D4AF37]" />
-            </div>
+            <ChevronRight className="w-6 h-6 text-[#D4AF37]/50" />
           </button>
         )}
 
@@ -822,9 +859,70 @@ const CellarView = ({ ctx }) => {
           </div>
         )}
       </div>
+
+      {/* MODAL SMARTPHONE REORGANISATION (RANGEMENT) */}
+      {selectedBottle && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-end justify-center p-4 backdrop-blur-sm">
+          <div className="bg-[#1A1A1A] w-full max-w-sm rounded-3xl p-6 shadow-2xl mb-safe border border-[#333]">
+             <h3 className="font-serif text-2xl font-bold text-white mb-1">Ranger la bouteille</h3>
+             <p className="text-slate-400 text-sm mb-6">Où déplacer <b>{selectedBottle.data.nom}</b> ?</p>
+             <div className="space-y-2 max-h-48 overflow-y-auto mb-6 pr-2">
+               {existingLocations.length > 0 ? existingLocations.map(loc => (
+                 <button key={loc} onClick={() => handleMoveBottleClick(loc)} className="w-full text-left p-4 rounded-2xl bg-[#0a0a0a] border border-[#333] text-[#F5F5F5] font-bold transition-colors">
+                   <MapPin className="w-4 h-4 inline mr-3 text-[#D4AF37]" /> {loc}
+                 </button>
+               )) : <p className="text-slate-500 text-sm italic text-center py-4 bg-[#0a0a0a] rounded-xl border border-[#333]">Aucune étagère.</p>}
+               <button onClick={() => handleMoveBottleClick('')} className="w-full text-left p-4 rounded-2xl bg-[#0a0a0a] border border-[#333] text-slate-500 italic">Retirer de l'étagère</button>
+             </div>
+             <div className="flex space-x-2 border-t border-[#333] pt-6">
+               <input type="text" placeholder="Nouvelle étagère..." value={newShelfName} onChange={(e) => setNewShelfName(e.target.value)} className="flex-1 bg-[#0a0a0a] border border-[#333] text-white rounded-2xl px-4 py-4 outline-none focus:border-[#D4AF37] font-medium" />
+               <button onClick={() => handleMoveBottleClick(newShelfName)} disabled={!newShelfName.trim()} className="px-6 py-4 bg-[#D4AF37] text-black rounded-2xl font-bold disabled:opacity-50">Créer</button>
+             </div>
+             <button onClick={() => { setSelectedBottle(null); setNewShelfName(''); }} className="mt-4 w-full py-4 text-slate-400 font-bold hover:bg-[#222] rounded-2xl transition-colors">Annuler</button>
+          </div>
+        </div>
+      )}
+
+      {/* FENÊTRE POP-UP (MODAL) DU SOMMELIER DE CAVE - ENTIÈREMENT RÉTABLIE ET HABILLÉE EN NOIR & OR */}
+      {showPairingModal && (
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#1A1A1A] border border-[#333] rounded-3xl p-6 w-full max-w-sm relative shadow-2xl text-white">
+            <button onClick={() => setShowPairingModal(false)} className="absolute top-4 right-4 p-2 bg-[#0a0a0a] border border-[#333] rounded-full text-slate-400 hover:text-white transition-colors"><X className="w-5 h-5"/></button>
+            
+            {!pairingResult ? (
+              <div className="space-y-4 mt-4">
+                <div className="w-16 h-16 bg-[#0a0a0a] border border-[#D4AF37]/40 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg"><Utensils className="w-8 h-8 text-[#D4AF37]"/></div>
+                <h3 className="font-serif text-2xl font-bold text-center text-[#F5F5F5]">Que mangez-vous ?</h3>
+                <p className="text-sm text-center text-slate-400">Le sommelier va fouiller votre stock pour dégoter la bouteille idéale.</p>
+                <input autoFocus type="text" placeholder="Ex: Côte de bœuf, Risotto..." value={pairingDish} onChange={e=>setPairingDish(e.target.value)} className="w-full p-4 bg-[#0a0a0a] border border-[#333] text-white rounded-xl focus:border-[#D4AF37] outline-none shadow-inner" />
+                <button onClick={handleAskCellarSommelier} disabled={!pairingDish.trim() || isPairingLoading} className="w-full py-4 bg-[#D4AF37] text-black font-bold rounded-xl shadow-lg flex items-center justify-center disabled:opacity-50 hover:bg-[#AA7C11] transition-colors">
+                  {isPairingLoading ? <RefreshCw className="w-5 h-5 animate-spin"/> : "Fouiller ma cave"}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4 mt-4 animate-in slide-in-from-bottom-4">
+                <h3 className="font-serif text-xl font-bold text-center text-[#D4AF37]">L'accord parfait trouvé !</h3>
+                <div onClick={() => {setShowPairingModal(false); ctx.openExistingWine(pairingResult.wine, 'cellar');}} className="border border-[#333] bg-[#0a0a0a] rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:border-[#D4AF37]/50 transition-all shadow-xl">
+                  <div className="w-16 h-24 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-[#1A1A1A] border border-[#222]">
+                    <img src={pairingResult.wine.image} onError={(e) => {e.target.onerror=null; e.target.src=fallbackImg;}} className="max-w-full max-h-full object-contain" alt="Selected Wine" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-wider bg-[#1A1A1A] px-2 py-0.5 rounded border border-[#333]">{pairingResult.wine.data.type_simplifie}</span>
+                    <h4 className="font-bold text-white leading-tight mb-2 truncate mt-1">{pairingResult.wine.data.nom}</h4>
+                    <p className="text-xs text-slate-400 italic">"{pairingResult.explication}"</p>
+                  </div>
+                </div>
+                {pairingResult.wine.location && <p className="text-xs text-center font-bold text-slate-500 uppercase tracking-wider"><MapPin className="w-3 h-3 inline mr-1 text-[#D4AF37]" />{pairingResult.wine.location}</p>}
+                <button onClick={() => setShowPairingModal(false)} className="w-full py-3 bg-[#333] text-white font-bold rounded-xl mt-4 border border-[#444] hover:bg-[#444] transition-colors">Fermer</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 const HistoryView = ({ ctx }) => {
   const historyItems = ctx.scanHistory.filter(item => item.in_history !== false);
 
