@@ -1261,6 +1261,138 @@ const AccountView = ({ ctx }) => {
   );
 };
 // =========================================================================
+// FICHE DE RÉSULTATS DÉCOUVERTE (LE COMPOSANT MANQUANT)
+// =========================================================================
+const ResultsView = ({ ctx }) => {
+  let currentItem = ctx.scanHistory.find(s => s.id === ctx.currentScanId);
+  if (!currentItem && ctx.analysisResult) currentItem = ctx.scanHistory.find(s => s.data?.nom === ctx.analysisResult.nom);
+  if (!currentItem) return null;
+  
+  const d = currentItem.data;
+  const [activeTab, setActiveTab] = useState('infos');
+  const [protocol, setProtocol] = useState(null); 
+  const [isLoadingProtocol, setIsLoadingProtocol] = useState(false);
+
+  const [tempLocation, setTempLocation] = useState(currentItem?.location || '');
+  const [tempNotes, setTempNotes] = useState(currentItem?.notes || '');
+  const [tempPrix, setTempPrix] = useState(d?.prix_unitaire_nombre || '');
+
+  const fetchProtocol = async () => {
+    if (protocol) return;
+    setIsLoadingProtocol(true);
+    try {
+      // Appel de secours pour le protocole sans faire planter l'application
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY || ""}`;
+      const prompt = `Agis comme un Maître Sommelier. Donne le protocole de service pour ce vin : "${d.nom} ${d.annee}". Réponds en JSON strict : {"temperature": "ex: 16°C", "carafage": "ex: Oui, 2h avant", "verre": "ex: Verre type Bordeaux", "conseil": "Une phrase d'expert"}`;
+      const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } };
+      const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const resJson = await response.json();
+      const txt = resJson.candidates[0].content.parts[0].text;
+      
+      let parsed = null;
+      try { parsed = JSON.parse(txt); } catch(e) {
+        const match = txt.match(/```json\n([\s\S]*?)\n```/);
+        parsed = JSON.parse(match[1]);
+      }
+      setProtocol(parsed);
+    } catch(e) {
+      setProtocol({ temperature: "14-16°C", carafage: "Non requis", verre: "Verre classique", conseil: "Prêt à servir." });
+    } finally { setIsLoadingProtocol(false); }
+  };
+
+  const existingLocations = Array.from(new Set(ctx.scanHistory.map(s => s.location).filter(Boolean))).sort();
+  const fallbackImg = "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=800&q=80";
+
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none">
+      <div className="bg-[#1a1a1a] p-4 flex justify-between z-20 sticky top-0 border-b border-[#333]">
+        <div className="p-2 rounded-full border transition-all shadow-md bg-[#1A1A1A] border-[#333] text-[#D4AF37]">
+           <Sparkles className="w-5 h-5" />
+        </div>
+        <button onClick={ctx.goBack} className="p-3 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-white transition-colors"><X className="w-5 h-5"/></button>
+      </div>
+
+      <div className="p-5">
+        <div className="bg-[#1A1A1A] rounded-3xl border border-[#333] flex overflow-hidden h-60 shadow-xl group">
+          <div className="flex-1 p-5 flex flex-col justify-between min-w-0">
+            <div>
+              <h2 className="text-3xl font-serif font-bold text-white leading-tight truncate group-hover:text-[#D4AF37] transition-colors">{d.nom}</h2>
+              <p className="text-[10px] text-[#D4AF37] uppercase font-bold tracking-widest mt-1">{d.type_simplifie} • {d.annee} • {d.region}</p>
+            </div>
+            <p className="text-xs text-slate-400 italic line-clamp-3 mt-4 border-t border-[#222] pt-3">Accord : {d.accord_parfait}</p>
+          </div>
+          <div className="w-32 bg-[#0a0a0a] p-3 flex justify-center items-center border-l border-[#333] shrink-0">
+            <img src={currentItem.image || fallbackImg} className="max-h-full object-contain drop-shadow-[0_10px_15px_rgba(212,175,55,0.15)] group-hover:scale-105 transition-transform duration-500" alt="wine"/>
+          </div>
+        </div>
+
+        <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333] mt-6">
+          <button onClick={() => setActiveTab('infos')} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'infos' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Fiche Cru</button>
+          <button onClick={() => { setActiveTab('service'); fetchProtocol(); }} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'service' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Service IA</button>
+          <button onClick={() => setActiveTab('cave')} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'cave' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Rangement</button>
+        </div>
+
+        {activeTab === 'infos' && (
+          <div className="space-y-5 mt-5 animate-in fade-in">
+            <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md"><p className="text-sm text-slate-300 leading-relaxed font-medium">{d.description}</p></div>
+            <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] flex justify-between items-center shadow-md">
+              <div><p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Valeur Estimée</p><span className="text-3xl font-black text-emerald-400 mt-1 block">{d.prix_unitaire_nombre}€</span></div>
+              <div className="text-right"><p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Potentiel Garde</p><span className="text-sm font-bold text-[#D4AF37] mt-1 block">{d.potentiel_garde}</span></div>
+            </div>
+            <button onClick={() => setActiveTab('cave')} className="w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black font-black text-sm rounded-full shadow-lg flex items-center justify-center space-x-2"><Archive className="w-4 h-4"/><span>Gérer mon stock pour ce flacon</span></button>
+          </div>
+        )}
+
+        {activeTab === 'service' && (
+          <div className="space-y-5 mt-5 animate-in fade-in">
+            <div className="bg-[#1A1A1A] p-6 rounded-3xl border border-[#333] shadow-md">
+              {isLoadingProtocol ? (
+                <div className="text-center text-slate-400 py-6"><RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#D4AF37]"/><p className="font-bold text-xs">Le sommelier calcule le protocole...</p></div>
+              ) : protocol ? (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4 border-b border-[#222] pb-3"><div className="p-2 bg-[#0a0a0a] rounded-lg border border-[#333] text-[#D4AF37]"><Clock className="w-4 h-4"/></div><div><span className="text-[10px] text-slate-500 block uppercase font-bold">Aération optimale</span><p className="font-bold text-white text-sm">{protocol.carafage}</p></div></div>
+                  <div className="flex items-center space-x-4 border-b border-[#222] pb-3"><div className="p-2 bg-[#0a0a0a] rounded-lg border border-[#333] text-[#D4AF37]"><Wine className="w-4 h-4"/></div><div><span className="text-[10px] text-slate-500 block uppercase font-bold">Verrerie idéale</span><p className="font-bold text-white text-sm">{protocol.verre}</p></div></div>
+                  <div className="flex items-center space-x-4"><div className="p-2 bg-[#0a0a0a] rounded-lg border border-[#333] text-[#D4AF37]"><Tag className="w-4 h-4"/></div><div><span className="text-[10px] text-slate-500 block uppercase font-bold">Température parfaite</span><p className="font-bold text-white text-sm">{protocol.temperature}</p></div></div>
+                  <div className="p-3 bg-[#0a0a0a] border-l-2 border-[#D4AF37] rounded-r-xl text-xs text-slate-400 italic">"{protocol.conseil}"</div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'cave' && (
+          <div className="space-y-5 mt-5 animate-in fade-in">
+            <div className="bg-[#1A1A1A] p-6 rounded-3xl border border-[#333] shadow-md">
+              <div className="flex items-center justify-between bg-[#0a0a0a] p-3 rounded-2xl border border-[#333]">
+                <span className="text-sm font-bold text-slate-400 ml-2">Stock en cave :</span>
+                <div className="flex items-center space-x-4">
+                  <button onClick={() => ctx.updateStock(currentItem.id, currentItem.stock, -1)} className="w-10 h-10 bg-[#1A1A1A] border border-[#333] text-white font-bold rounded-lg flex items-center justify-center shadow-sm">-</button>
+                  <span className="text-xl font-black text-[#D4AF37] w-6 text-center">{currentItem.stock}</span>
+                  <button onClick={() => ctx.updateStock(currentItem.id, currentItem.stock, 1)} className="w-10 h-10 bg-[#D4AF37] text-black font-bold rounded-lg flex items-center justify-center shadow-lg">+</button>
+                </div>
+              </div>
+              {currentItem.stock === 0 && (
+                <button onClick={() => ctx.genericUpdate(currentItem.id, { wishlist: !currentItem.wishlist })} className="w-full py-4 bg-[#0a0a0a] border border-[#333] text-slate-300 rounded-2xl font-bold flex items-center justify-center mt-4 transition-all"><Heart className={`w-4 h-4 mr-2 ${currentItem.wishlist ? 'text-pink-500 fill-current' : 'text-slate-500'}`} /><span>{currentItem.wishlist ? 'Retirer des souhaits' : 'Ajouter aux souhaits d\'achat'}</span></button>
+              )}
+              <div className="space-y-2 mt-4">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Ranger à l'emplacement :</label>
+                <input type="text" value={tempLocation} onChange={(e) => setTempLocation(e.target.value)} onBlur={() => ctx.genericUpdate(currentItem.id, { location: tempLocation })} placeholder="Ex: Étagère du haut..." className="w-full bg-[#0a0a0a] border border-[#333] text-white rounded-xl p-3.5 text-sm font-medium outline-none focus:border-[#D4AF37]" />
+              </div>
+            </div>
+
+            <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2 ml-1">Notes privées :</label>
+              <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} onBlur={() => ctx.genericUpdate(currentItem.id, { notes: tempNotes })} placeholder="Avis personnel..." className="w-full bg-[#0a0a0a] border border-[#333] text-white rounded-2xl p-4 text-sm h-24 outline-none focus:border-[#D4AF37] resize-none" />
+            </div>
+
+            <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-4 bg-red-950/20 text-red-400 font-bold rounded-2xl border border-red-900/40 hover:bg-red-900 hover:text-white transition-colors">Supprimer définitivement ce vin</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+// =========================================================================
 // CAMÉRA ET ANALYSE
 // =========================================================================
 
