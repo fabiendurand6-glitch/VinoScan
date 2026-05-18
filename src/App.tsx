@@ -6,15 +6,11 @@ import {
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInWithCustomToken
-} from 'firebase/auth';
-import { 
-  getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc 
-} from 'firebase/firestore';
+import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
 
 // =========================================================================
-// CONFIGURATION SÉCURISÉE & OPTIMISATION (CACHE)
+// CONFIGURATION SÉCURISÉE (CORRIGÉE : SANS LE CACHE QUI FAIT CRASHER VERCEL)
 // =========================================================================
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
@@ -30,12 +26,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-
-// Optimisation Firebase : Activation du Cache Hors-Ligne
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-});
-
+const db = getFirestore(app); // <-- On revient au standard, adieu les crashs sur Vercel !
 const appId = 'vinoscan-app-8d4af';
 
 const checkGlobalCache = async (wineKey) => {
@@ -57,13 +48,8 @@ const saveToGlobalCache = async (wineKey, data) => {
 // FILET DE SÉCURITÉ ANTI-CRASH
 // =========================================================================
 class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, errorMsg: '' };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, errorMsg: String(error) };
-  }
+  constructor(props) { super(props); this.state = { hasError: false, errorMsg: '' }; }
+  static getDerivedStateFromError(error) { return { hasError: true, errorMsg: String(error) }; }
   render() {
     if (this.state.hasError) {
       return (
@@ -82,24 +68,25 @@ class ErrorBoundary extends React.Component {
 }
 
 // =========================================================================
-// MOTEUR IA INTELLIGENT
+// MOTEUR IA INTELLIGENT (AVEC DÉTECTION DE CLÉ MANQUANTE)
 // =========================================================================
 const callGemini = async (prompt, b64Data = null) => {
+  if (!apiKey || apiKey === "") {
+    throw new Error("Clé API Gemini introuvable. Veuillez ajouter VITE_GEMINI_API_KEY dans l'environnement Vercel.");
+  }
+  
   const model = 'gemini-2.5-flash'; 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const parts = [{ text: prompt }];
   if (b64Data) parts.push({ inlineData: { mimeType: "image/jpeg", data: b64Data } });
   
-  const payload = {
-    contents: [{ role: "user", parts }],
-    generationConfig: { responseMimeType: "application/json" }
-  };
+  const payload = { contents: [{ role: "user", parts }], generationConfig: { responseMimeType: "application/json" } };
 
   try {
     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      throw new Error(`Erreur serveur (${response.status}) : ${errData.error?.message || 'Inconnue'}`);
+      throw new Error(`Erreur IA (${response.status}) : ${errData.error?.message || 'Surcharge serveur'}`);
     }
     return await response.json();
   } catch (err) { throw new Error(err.message); }
@@ -112,7 +99,7 @@ const extractJSON = (text) => {
     if (match && match[1]) return JSON.parse(match[1]);
     const objMatch = text.match(/\{[\s\S]*\}/);
     if (objMatch) return JSON.parse(objMatch[0]);
-    throw new Error("Impossible de lire les données JSON.");
+    throw new Error("Impossible de lire les données du Sommelier.");
   }
 };
 
@@ -131,24 +118,17 @@ const getGenericImageForType = (type) => {
   }
 };
 
-// =========================================================================
-// MOTEUR DE TEMPS (Calcul dynamique des apogées)
-// =========================================================================
 const recalculateDates = (anneeStr, baseGardeMin = 2, baseGardeMax = 5) => {
   const currentYear = new Date().getFullYear();
   const millesimeMatch = String(anneeStr).match(/\d{4}/);
-  
   if (!millesimeMatch) return { potentiel_garde: "À consommer rapidement", apogee: "Prêt à boire", declin: "Dans les 2-3 ans", statut_apogee: "APOGEE" };
-
   const annee = parseInt(millesimeMatch[0], 10);
   const apogeeStart = annee + baseGardeMin;
   const apogeeEnd = annee + baseGardeMax;
   const declinYear = apogeeEnd + 1;
-
   let statut = "APOGEE";
   if (currentYear < apogeeStart) statut = "A_GARDER";
   else if (currentYear >= declinYear) statut = "DECLIN";
-
   return { potentiel_garde: `${baseGardeMin} à ${baseGardeMax} ans`, apogee: `${apogeeStart} - ${apogeeEnd}`, declin: `À partir de ${declinYear}`, statut_apogee: statut };
 };
 
@@ -187,21 +167,11 @@ const normalizeData = (data) => {
     }
 
     let accord_parfait = data.accord_parfait ? String(data.accord_parfait) : safeAccordsMets[0];
-    let safeTagsAccords = Array.isArray(data.tags_accords) ? data.tags_accords.filter(Boolean).map(item => String(item)) : [];
-    
-    let safeComparateur = [];
-    if (Array.isArray(data.comparateur)) {
-      safeComparateur = data.comparateur.filter(Boolean).map(c => {
-        if (typeof c === 'object') return { site: String(c.site || 'Marchand'), prix: String(c.prix || '?') };
-        return { site: 'Marchand', prix: String(c) };
-      });
-    }
-
     let prix_unitaire_nombre = Number(data.prix_unitaire_nombre) || extractPrice(data.prix_moyen) || 0;
 
-    return { nom, annee, region, type, type_simplifie, prix_unitaire_nombre, description, accord_parfait, accords_mets: safeAccordsMets, tags_accords: safeTagsAccords, comparateur: safeComparateur, baseGardeMin: gardeMin, baseGardeMax: gardeMax, ...dynamicDates };
+    return { nom, annee, region, type, type_simplifie, prix_unitaire_nombre, description, accord_parfait, accords_mets: safeAccordsMets, baseGardeMin: gardeMin, baseGardeMax: gardeMax, ...dynamicDates };
   } catch (e) {
-    return { nom: 'Erreur d\'analyse', type_simplifie: 'AUTRE', accords_mets: ['Aucun accord trouvé'], tags_accords: [], comparateur: [] };
+    return { nom: 'Erreur d\'analyse', type_simplifie: 'AUTRE', accords_mets: ['Aucun accord trouvé'] };
   }
 };
 
@@ -221,23 +191,11 @@ const compressImage = (base64Str, maxWidth = 800, quality = 0.6) => {
   });
 };
 
-// =========================================================================
-// OUTILS D'AFFILIATION
-// =========================================================================
 const getAmazonAffiliateLink = (query) => {
   const trackingTag = "vinoscan-21"; 
   const baseUrl = "https://www.amazon.fr/s?k=";
   const searchTerms = encodeURIComponent(query);
   return `${baseUrl}${searchTerms}&tag=${trackingTag}`;
-};
-
-const getRecommendedAccessory = (type) => {
-  switch(type) {
-    case 'ROUGE': return { name: "Carafe à décanter en cristal", search: "carafe a decanter vin rouge cristal" };
-    case 'BLANC': return { name: "Seau à glace design", search: "seau a glace vin inox" };
-    case 'PETILLANT': return { name: "Coffret de flûtes à Champagne", search: "verres flutes champagne cristal" };
-    default: return { name: "Tire-bouchon sommelier pro", search: "tire bouchon sommelier professionnel" };
-  }
 };
 
 // =========================================================================
@@ -270,8 +228,7 @@ const SommelierButton = ({ text }) => {
     e.stopPropagation(); 
     if (isSpeaking) {
       window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-      return;
+      setIsSpeaking(false); return;
     }
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'fr-FR'; utterance.rate = 0.9; utterance.onend = () => setIsSpeaking(false);
@@ -357,13 +314,7 @@ const allQuestions = [
   { q: "Quel cépage donne souvent des arômes de litchi et de rose ?", options: ["Chardonnay", "Gewürztraminer", "Sauvignon Blanc"], ans: "Gewürztraminer" },
   { q: "Quelle région est célèbre pour son 'Vin Jaune' ?", options: ["Bourgogne", "Alsace", "Jura"], ans: "Jura" },
   { q: "Qu'appelle-t-on la 'Part des Anges' ?", options: ["Le vin évaporé en fût", "Le vin offert au clergé", "Le fond de la bouteille"], ans: "Le vin évaporé en fût" },
-  { q: "Quel est le cépage rouge emblématique de la Bourgogne ?", options: ["Merlot", "Pinot Noir", "Syrah"], ans: "Pinot Noir" },
-  { q: "Comment s'appelle l'art d'assembler différents vins ?", options: ["Le soutirage", "Le coupage", "L'assemblage"], ans: "L'assemblage" },
-  { q: "Lequel de ces cépages est blanc ?", options: ["Cabernet Franc", "Viognier", "Gamay"], ans: "Viognier" },
-  { q: "Quel vin est traditionnellement muté à l'alcool ?", options: ["Le Porto", "Le Champagne", "Le Beaujolais"], ans: "Le Porto" },
-  { q: "Que signifie 'Blanc de Blancs' pour un Champagne ?", options: ["Fait avec du raisin blanc", "Sans ajout de sucre", "Vieilli en cuve inox"], ans: "Fait avec du raisin blanc" },
-  { q: "Quel est le grand cépage rouge de la rive droite à Bordeaux ?", options: ["Cabernet Sauvignon", "Merlot", "Malbec"], ans: "Merlot" },
-  { q: "Laquelle de ces maladies attaque la vigne ?", options: ["Le Phylloxéra", "La Rouille", "Le Mildiou Noir"], ans: "Le Phylloxéra" }
+  { q: "Quel est le cépage rouge emblématique de la Bourgogne ?", options: ["Merlot", "Pinot Noir", "Syrah"], ans: "Pinot Noir" }
 ];
 
 const QuizView = ({ ctx }) => {
@@ -446,10 +397,7 @@ const MenuConfigView = ({ ctx }) => {
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center border-b border-[#333]">
         <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button>
-        <div>
-          <h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Le bon choix</h1>
-          <p className="text-slate-400 text-xs mt-1 font-medium">Scanner un menu de restaurant</p>
-        </div>
+        <div><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Le bon choix</h1><p className="text-slate-400 text-xs mt-1 font-medium">Scanner un menu de restaurant</p></div>
       </div>
       <div className="p-6 space-y-8 overflow-y-auto">
         <div className="space-y-4">
@@ -488,8 +436,7 @@ const RecommendationView = ({ ctx }) => {
       const inStockWines = ctx.scanHistory.filter(w => w.stock > 0);
       if (inStockWines.length === 0) {
         ctx.setErrorMsg("Votre cave est vide ! Ajoutez des vins avant de demander conseil.");
-        ctx.setView('error');
-        return;
+        ctx.setView('error'); return;
       }
       const inventoryString = inStockWines.map(w => `[ID: ${w.id}] ${w.data.nom} ${w.data.annee} (${w.data.type_simplifie})`).join('\n');
       const prompt = `Tu es le Sommelier privé. L'utilisateur mange : "${pairingDish}". Voici les vins dans sa cave : ${inventoryString}. Choisis LE MEILLEUR vin PARMI CETTE LISTE UNIQUEMENT pour ce plat. Réponds en JSON strict : {"chosen_id": "ID_ici", "explication": "Pourquoi ce choix (max 20 mots)"}`;
@@ -523,23 +470,17 @@ const RecommendationView = ({ ctx }) => {
       </div>
 
       <div className="p-6 space-y-10">
-        
         {recMode === 'menu' && (
           <div className="space-y-6 mt-4">
             <button onClick={() => setRecMode('buy')} className="w-full bg-[#1A1A1A] border border-[#333] rounded-3xl p-6 shadow-lg hover:border-[#D4AF37]/50 transition-all active:scale-95 text-left flex items-center space-x-5 group">
               <div className="w-14 h-14 bg-[#0a0a0a] border border-[#333] group-hover:border-[#D4AF37]/50 rounded-full flex items-center justify-center shrink-0 transition-colors"><ShoppingCart className="w-6 h-6 text-emerald-500" /></div>
               <div><h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-1">Acheter un vin</h3><p className="text-xs text-slate-400 leading-relaxed">Le meilleur vin à acheter selon votre repas et votre budget.</p></div>
             </button>
-
             <button onClick={() => setRecMode('cellar')} className="w-full bg-[#1A1A1A] border border-[#D4AF37]/50 rounded-3xl p-6 shadow-[0_0_20px_rgba(212,175,55,0.1)] active:scale-95 transition-all text-left flex items-center space-x-5 relative overflow-hidden group">
               <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#D4AF37]/10 rounded-full blur-3xl opacity-50"></div>
               <div className="w-14 h-14 bg-[#0a0a0a] border border-[#D4AF37]/30 rounded-full flex items-center justify-center shrink-0 relative z-10"><Archive className="w-6 h-6 text-[#D4AF37]" /></div>
-              <div className="relative z-10">
-                <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center mb-1">Que boire ce soir ? <Sparkles className="w-4 h-4 ml-2 text-[#D4AF37]"/></h3>
-                <p className="text-xs text-slate-400 leading-relaxed group-hover:text-slate-300">Trouvez la bouteille parfaite parmi celles déjà dans votre cave.</p>
-              </div>
+              <div className="relative z-10"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center mb-1">Que boire ce soir ? <Sparkles className="w-4 h-4 ml-2 text-[#D4AF37]"/></h3><p className="text-xs text-slate-400 leading-relaxed group-hover:text-slate-300">Trouvez la bouteille parfaite parmi celles déjà dans votre cave.</p></div>
             </button>
-
             <button onClick={() => setRecMode('boutique')} className="w-full bg-[#1A1A1A] border border-[#333] rounded-3xl p-6 shadow-lg hover:border-[#D4AF37]/50 transition-all active:scale-95 text-left flex items-center space-x-5 group">
               <div className="w-14 h-14 bg-[#0a0a0a] border border-[#333] group-hover:border-[#D4AF37]/50 rounded-full flex items-center justify-center shrink-0 transition-colors"><Wine className="w-6 h-6 text-amber-500" /></div>
               <div><h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-1">La Boutique</h3><p className="text-xs text-slate-400 leading-relaxed">Carafes, verres, conservation... Équipez-vous comme un pro.</p></div>
@@ -550,9 +491,7 @@ const RecommendationView = ({ ctx }) => {
         {recMode === 'cellar' && (
           <div className="space-y-6 animate-in slide-in-from-right-4">
             <div className="bg-[#1A1A1A] border border-[#D4AF37]/30 rounded-3xl p-8 text-center shadow-lg">
-              <div className="w-20 h-20 bg-[#0a0a0a] rounded-full flex items-center justify-center mx-auto mb-6 border border-[#333]">
-                <Utensils className="w-10 h-10 text-[#D4AF37]" />
-              </div>
+              <div className="w-20 h-20 bg-[#0a0a0a] rounded-full flex items-center justify-center mx-auto mb-6 border border-[#333]"><Utensils className="w-10 h-10 text-[#D4AF37]" /></div>
               <h3 className="font-serif text-2xl font-bold text-[#F5F5F5] mb-3">Que mangez-vous ?</h3>
               <p className="text-sm text-slate-400 mb-8">Le sommelier va analyser votre cave pour trouver l'accord parfait.</p>
               <input autoFocus type="text" placeholder="Ex: Magret de canard, Lasagnes..." value={pairingDish} onChange={e=>setPairingDish(e.target.value)} className="w-full p-5 bg-[#0a0a0a] border border-[#333] text-white rounded-xl focus:border-[#D4AF37] outline-none mb-6 shadow-inner transition-colors" />
@@ -565,56 +504,23 @@ const RecommendationView = ({ ctx }) => {
 
         {recMode === 'buy' && (
           <div className="space-y-10 animate-in slide-in-from-right-4">
-            <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Euro className="w-5 h-5 text-[#D4AF37]" /><span>Budget</span></h3>
-              <div className="flex flex-wrap gap-2">
-                {['ALL', 'BUDGET', 'MEDIUM', 'PREMIUM'].map(price => {
-                  const labels = { ALL: 'Peu importe', BUDGET: 'Abordable (< 20€)', MEDIUM: 'Plaisir (20-50€)', PREMIUM: 'Exception (> 50€)' };
-                  return <button key={price} onClick={() => setFilterPrice(price)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === price ? 'bg-[#D4AF37] text-black border-[#D4AF37] shadow-md scale-105' : 'bg-[#1A1A1A] border-[#333] text-slate-400 hover:text-[#F5F5F5]'}`}>{labels[price]}</button>
-                })}
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Utensils className="w-5 h-5 text-[#D4AF37]" /><span>Pour quel repas ?</span></h3>
-              <div className="flex flex-wrap gap-2">
-                {['ALL', 'APERITIF', 'VIANDE_ROUGE', 'VIANDE_BLANCHE', 'POISSON', 'FROMAGE'].map(food => {
-                  const labels = { ALL: '🍽️ Peu importe', APERITIF: '🥂 Apéro', VIANDE_ROUGE: '🥩 Viande rouge', VIANDE_BLANCHE: '🍗 Viande blanche', POISSON: '🐟 Poisson & Mer', FROMAGE: '🧀 Fromage' };
-                  return <button key={food} onClick={() => setFilterFood(food)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === food ? 'bg-[#D4AF37] text-black border-[#D4AF37] shadow-md scale-105' : 'bg-[#1A1A1A] border-[#333] text-slate-400 hover:text-[#F5F5F5]'}`}>{labels[food]}</button>
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Wine className="w-5 h-5 text-[#D4AF37]" /><span>Type de vin</span></h3>
-              <div className="flex flex-wrap gap-2">
-                {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(type => (
-                  <button key={type} onClick={() => setFilterType(type)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterType === type ? 'bg-[#D4AF37] text-black border-[#D4AF37] shadow-md scale-105' : 'bg-[#1A1A1A] border-[#333] text-slate-400 hover:text-[#F5F5F5]'}`}>{type === 'ALL' ? 'Surprenez-moi' : type === 'PETILLANT' ? 'Bulles' : type}</button>
-                ))}
-              </div>
-            </div>
-
-            <button onClick={handleRecommend} className="w-full py-5 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black font-black text-lg rounded-full shadow-[0_0_20px_rgba(212,175,55,0.4)] active:scale-95 transition-all flex items-center justify-center space-x-3 mt-8 hover:bg-[#AA7C11]">
-              <Sparkles className="w-5 h-5" /><span>Trouver la perle rare</span>
-            </button>
+            <div className="space-y-4"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Euro className="w-5 h-5 text-[#D4AF37]" /><span>Budget</span></h3><div className="flex flex-wrap gap-2">{['ALL', 'BUDGET', 'MEDIUM', 'PREMIUM'].map(price => {const labels = { ALL: 'Peu importe', BUDGET: 'Abordable (< 20€)', MEDIUM: 'Plaisir (20-50€)', PREMIUM: 'Exception (> 50€)' }; return <button key={price} onClick={() => setFilterPrice(price)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterPrice === price ? 'bg-[#D4AF37] text-black border-[#D4AF37] shadow-md scale-105' : 'bg-[#1A1A1A] border-[#333] text-slate-400 hover:text-[#F5F5F5]'}`}>{labels[price]}</button>})}</div></div>
+            <div className="space-y-4"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Utensils className="w-5 h-5 text-[#D4AF37]" /><span>Pour quel repas ?</span></h3><div className="flex flex-wrap gap-2">{['ALL', 'APERITIF', 'VIANDE_ROUGE', 'VIANDE_BLANCHE', 'POISSON', 'FROMAGE'].map(food => {const labels = { ALL: '🍽️ Peu importe', APERITIF: '🥂 Apéro', VIANDE_ROUGE: '🥩 Viande rouge', VIANDE_BLANCHE: '🍗 Viande blanche', POISSON: '🐟 Poisson & Mer', FROMAGE: '🧀 Fromage' }; return <button key={food} onClick={() => setFilterFood(food)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterFood === food ? 'bg-[#D4AF37] text-black border-[#D4AF37] shadow-md scale-105' : 'bg-[#1A1A1A] border-[#333] text-slate-400 hover:text-[#F5F5F5]'}`}>{labels[food]}</button>})}</div></div>
+            <div className="space-y-4"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Wine className="w-5 h-5 text-[#D4AF37]" /><span>Type de vin</span></h3><div className="flex flex-wrap gap-2">{['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(type => (<button key={type} onClick={() => setFilterType(type)} className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all border ${filterType === type ? 'bg-[#D4AF37] text-black border-[#D4AF37] shadow-md scale-105' : 'bg-[#1A1A1A] border-[#333] text-slate-400 hover:text-[#F5F5F5]'}`}>{type === 'ALL' ? 'Surprenez-moi' : type === 'PETILLANT' ? 'Bulles' : type}</button>))}</div></div>
+            <button onClick={handleRecommend} className="w-full py-5 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black font-black text-lg rounded-full shadow-[0_0_20px_rgba(212,175,55,0.4)] active:scale-95 transition-all flex items-center justify-center space-x-3 mt-8 hover:bg-[#AA7C11]"><Sparkles className="w-5 h-5" /><span>Trouver la perle rare</span></button>
           </div>
         )}
 
         {recMode === 'boutique' && (
           <div className="space-y-8 animate-in slide-in-from-right-4 pb-10">
-            <div className="text-center mb-8">
-              <h3 className="font-serif text-3xl font-bold text-[#F5F5F5] mb-2">L'Atelier</h3>
-              <p className="text-sm text-slate-400">4 essentiels approuvés par nos sommeliers.</p>
-            </div>
-
+            <div className="text-center mb-8"><h3 className="font-serif text-3xl font-bold text-[#F5F5F5] mb-2">L'Atelier</h3><p className="text-sm text-slate-400">4 essentiels approuvés par nos sommeliers.</p></div>
             <div className="space-y-8">
               <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden group">
                 <div className="h-48 w-full bg-[#0a0a0a] relative overflow-hidden shrink-0">
                   <img src={imgTirebouchon} className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700" alt="Tire-bouchon" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-[#1A1A1A]/40 to-transparent opacity-90"></div>
                   <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-                     <div><span className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-widest bg-black/50 px-2 py-1 rounded backdrop-blur-md">Ouverture</span><h5 className="font-serif text-2xl font-bold text-white mt-2">Le Sommelier</h5></div>
-                     <span className="font-bold text-[#D4AF37] text-xl">~25 €</span>
+                     <div><span className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-widest bg-black/50 px-2 py-1 rounded backdrop-blur-md">Ouverture</span><h5 className="font-serif text-2xl font-bold text-white mt-2">Le Sommelier</h5></div><span className="font-bold text-[#D4AF37] text-xl">~25 €</span>
                   </div>
                 </div>
                 <div className="p-5 flex flex-col space-y-4">
@@ -622,14 +528,12 @@ const RecommendationView = ({ ctx }) => {
                   <a href={getAmazonAffiliateLink("tire bouchon sommelier professionnel double levier")} target="_blank" rel="noopener noreferrer" className="w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] py-3 rounded-xl hover:bg-[#D4AF37] hover:text-black transition-colors">Découvrir</a>
                 </div>
               </div>
-
               <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden group">
                 <div className="h-48 w-full bg-[#0a0a0a] relative overflow-hidden shrink-0">
                   <img src={imgCarafe} className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700" alt="Carafe" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-[#1A1A1A]/40 to-transparent opacity-90"></div>
                   <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-                     <div><span className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-widest bg-black/50 px-2 py-1 rounded backdrop-blur-md">Aération</span><h5 className="font-serif text-2xl font-bold text-white mt-2">Carafe Cristal</h5></div>
-                     <span className="font-bold text-[#D4AF37] text-xl">~45 €</span>
+                     <div><span className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-widest bg-black/50 px-2 py-1 rounded backdrop-blur-md">Aération</span><h5 className="font-serif text-2xl font-bold text-white mt-2">Carafe Cristal</h5></div><span className="font-bold text-[#D4AF37] text-xl">~45 €</span>
                   </div>
                 </div>
                 <div className="p-5 flex flex-col space-y-4">
@@ -637,14 +541,12 @@ const RecommendationView = ({ ctx }) => {
                   <a href={getAmazonAffiliateLink("carafe a decanter vin cristal")} target="_blank" rel="noopener noreferrer" className="w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] py-3 rounded-xl hover:bg-[#D4AF37] hover:text-black transition-colors">Découvrir</a>
                 </div>
               </div>
-
               <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden group">
                 <div className="h-48 w-full bg-[#0a0a0a] relative overflow-hidden shrink-0">
                   <img src={imgVerres} className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700" alt="Verres" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-[#1A1A1A]/40 to-transparent opacity-90"></div>
                   <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-                     <div><span className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-widest bg-black/50 px-2 py-1 rounded backdrop-blur-md">Dégustation</span><h5 className="font-serif text-2xl font-bold text-white mt-2">Verres Universels</h5></div>
-                     <span className="font-bold text-[#D4AF37] text-xl">~35 €</span>
+                     <div><span className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-widest bg-black/50 px-2 py-1 rounded backdrop-blur-md">Dégustation</span><h5 className="font-serif text-2xl font-bold text-white mt-2">Verres Universels</h5></div><span className="font-bold text-[#D4AF37] text-xl">~35 €</span>
                   </div>
                 </div>
                 <div className="p-5 flex flex-col space-y-4">
@@ -652,14 +554,12 @@ const RecommendationView = ({ ctx }) => {
                   <a href={getAmazonAffiliateLink("verres de degustation vin cristallin")} target="_blank" rel="noopener noreferrer" className="w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] py-3 rounded-xl hover:bg-[#D4AF37] hover:text-black transition-colors">Découvrir</a>
                 </div>
               </div>
-
               <div className="bg-gradient-to-b from-[#1A1A1A] to-[#0a0a0a] rounded-3xl shadow-[0_0_20px_rgba(212,175,55,0.1)] border border-[#D4AF37]/30 overflow-hidden group">
                 <div className="h-48 w-full bg-[#0a0a0a] relative overflow-hidden shrink-0">
                   <img src={imgCoravin} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" alt="Coravin" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent opacity-90"></div>
                   <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-                     <div><span className="text-[10px] text-black font-bold uppercase tracking-widest bg-[#D4AF37] px-2 py-1 rounded shadow-md">Choix des Pros</span><h5 className="font-serif text-2xl font-bold text-white mt-2">Système Coravin</h5></div>
-                     <span className="font-bold text-[#D4AF37] text-xl">~199 €</span>
+                     <div><span className="text-[10px] text-black font-bold uppercase tracking-widest bg-[#D4AF37] px-2 py-1 rounded shadow-md">Choix des Pros</span><h5 className="font-serif text-2xl font-bold text-white mt-2">Système Coravin</h5></div><span className="font-bold text-[#D4AF37] text-xl">~199 €</span>
                   </div>
                 </div>
                 <div className="p-5 flex flex-col space-y-4">
@@ -668,7 +568,6 @@ const RecommendationView = ({ ctx }) => {
                 </div>
               </div>
             </div>
-            
             <p className="text-[9px] text-slate-600 text-center italic mt-8">En tant que partenaire Amazon, VinoScan perçoit une commission sur les achats éligibles.</p>
           </div>
         )}
@@ -721,9 +620,7 @@ const RecommendationListView = ({ ctx }) => {
                    </div>
                    <p className="text-xs text-slate-400 mb-3 line-clamp-2 leading-relaxed">{wine.description}</p>
                  </div>
-                 <button onClick={() => ctx.processRecommendationSelection(wine)} className="w-full py-3 bg-[#D4AF37] text-black rounded-xl text-sm font-bold shadow-md hover:bg-[#AA7C11] transition-colors">
-                   Découvrir ce vin
-                 </button>
+                 <button onClick={() => ctx.processRecommendationSelection(wine)} className="w-full py-3 bg-[#D4AF37] text-black rounded-xl text-sm font-bold shadow-md hover:bg-[#AA7C11] transition-colors">Découvrir ce vin</button>
                </div>
              </div>
            );
@@ -832,9 +729,9 @@ const CellarView = ({ ctx }) => {
 
   const getApogeeBadge = (statut) => {
     switch(statut) {
-      case 'A_GARDER': return <div className="flex items-center space-x-1 text-xs text-indigo-400 bg-indigo-900/30 border border-indigo-800/50 px-2 py-1 rounded font-medium"><Clock className="w-3 h-3" /><span>À garder</span></div>;
-      case 'DECLIN': return <div className="flex items-center space-x-1 text-xs text-red-400 bg-red-900/30 border border-red-800/50 px-2 py-1 rounded font-medium"><TrendingDown className="w-3 h-3" /><span>Déclin</span></div>;
-      default: return <div className="flex items-center space-x-1 text-xs text-emerald-400 bg-emerald-900/30 border border-emerald-800/50 px-2 py-1 rounded font-medium"><CheckCircle className="w-3 h-3" /><span>Apogée</span></div>;
+      case 'A_GARDER': return <div className="flex items-center space-x-1 text-xs text-indigo-400 bg-[#0a0a0a] border border-[#333] px-3 py-1.5 rounded-lg font-bold"><Clock className="w-3 h-3" /><span>À garder</span></div>;
+      case 'DECLIN': return <div className="flex items-center space-x-1 text-xs text-red-400 bg-[#0a0a0a] border border-[#333] px-3 py-1.5 rounded-lg font-bold"><TrendingDown className="w-3 h-3" /><span>Déclin</span></div>;
+      default: return <div className="flex items-center space-x-1 text-xs text-emerald-400 bg-[#0a0a0a] border border-[#333] px-3 py-1.5 rounded-lg font-bold"><CheckCircle className="w-3 h-3" /><span>Apogée</span></div>;
     }
   };
 
@@ -869,7 +766,6 @@ const CellarView = ({ ctx }) => {
             ))}
           </div>
           
-          {/* LES FILTRES APOGÉE SONT DE RETOUR ! */}
           <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
             <Clock className="w-4 h-4 text-slate-500 shrink-0 mr-1" />
             {['ALL', 'A_GARDER', 'APOGEE', 'DECLIN'].map(a => {
@@ -881,7 +777,7 @@ const CellarView = ({ ctx }) => {
           <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
             <Utensils className="w-4 h-4 text-slate-500 shrink-0 mr-1" />
             {['ALL', 'VIANDE', 'POISSON', 'FROMAGE', 'APERITIF'].map(f => (
-              <button key={f} onClick={() => setFilterFood(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${filterFood === f ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>
+              <button key={f} onClick={() => setFilterFood(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${filterFood === f ? 'bg-[#D4AF37]/20 text-[#D4AF37] border-[#D4AF37]/50' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>
                 {f === 'ALL' ? 'Tous plats' : f}
               </button>
             ))}
@@ -890,16 +786,13 @@ const CellarView = ({ ctx }) => {
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        
         {cellarTab === 'STOCK' && totalBottles > 0 && (
           <button onClick={() => {setShowPairingModal(true); setPairingResult(null); setPairingDish('');}} className="w-full bg-[#1A1A1A] border border-[#D4AF37]/30 text-white rounded-3xl p-6 shadow-lg flex items-center justify-between active:scale-95 transition-transform mb-4">
             <div className="text-left flex-1 pr-4">
               <h3 className="font-serif text-xl font-bold flex items-center mb-1"><Sparkles className="w-5 h-5 mr-2 text-[#D4AF37]"/> Que boire ce soir ?</h3>
               <p className="text-xs text-slate-400">Demandez au sommelier d'explorer votre cave.</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#0a0a0a] border border-[#333] flex items-center justify-center shrink-0">
-              <ChevronRight className="w-5 h-5 text-[#D4AF37]" />
-            </div>
+            <div className="w-10 h-10 rounded-full bg-[#0a0a0a] border border-[#333] flex items-center justify-center shrink-0"><ChevronRight className="w-5 h-5 text-[#D4AF37]" /></div>
           </button>
         )}
 
@@ -975,7 +868,6 @@ const CellarView = ({ ctx }) => {
                    </div>
                 </div>
              ))}
-
              <div onDragOver={handleDragOver} onDrop={(e) => { e.preventDefault(); setDraggedBottle(null); const newName = window.prompt("Nom de la nouvelle étagère ?"); if (newName && newName.trim() !== '') handleDrop(e, newName); }} className="mt-8 border-2 border-dashed border-[#333] rounded-2xl p-8 flex flex-col items-center justify-center text-slate-500 hover:border-[#D4AF37] hover:bg-[#1A1A1A] hover:text-[#D4AF37] transition-all cursor-pointer shadow-sm">
                <Plus className="w-8 h-8 mb-2" />
                <p className="font-bold text-xs uppercase tracking-wider text-center">Glissez un vin ici pour<br/>créer une étagère</p>
@@ -1045,7 +937,6 @@ const CellarView = ({ ctx }) => {
   );
 };
 
-// === RÉSULTATS AVEC ONGLETS DE RETOUR (SERVICE / ACCORDS / CAVE) ===
 const ResultsView = ({ ctx }) => {
   let currentScanObj = ctx.scanHistory.find(s => s.id === ctx.currentScanId);
   if (!currentScanObj && ctx.analysisResult) {
@@ -1059,9 +950,7 @@ const ResultsView = ({ ctx }) => {
 
   const displayData = currentScanObj && currentScanObj.data ? currentScanObj.data : ctx.analysisResult;
   
-  // LES ONGLETS SONT DE RETOUR !
   const [activeTab, setActiveTab] = useState('infos');
-  
   const [showBlindTasting, setShowBlindTasting] = useState(false);
   const [blindNotes, setBlindNotes] = useState({ robe: '', nez: '', bouche: '' });
   const [blindResult, setBlindResult] = useState(null);
@@ -1123,14 +1012,6 @@ const ResultsView = ({ ctx }) => {
   const existingLocations = Array.from(new Set(ctx.scanHistory.map(s => s.location).filter(Boolean))).sort();
   const { nom, region, description, potentiel_garde, apogee, declin, statut_apogee, accord_parfait, accords_mets } = displayData;
 
-  const getApogeeBadge = (statut) => {
-    switch(statut) {
-      case 'A_GARDER': return <div className="flex items-center space-x-1 text-xs text-indigo-400 bg-[#0a0a0a] border border-[#333] px-3 py-1.5 rounded-lg font-bold"><Clock className="w-3 h-3" /><span>À garder</span></div>;
-      case 'DECLIN': return <div className="flex items-center space-x-1 text-xs text-red-400 bg-[#0a0a0a] border border-[#333] px-3 py-1.5 rounded-lg font-bold"><TrendingDown className="w-3 h-3" /><span>Déclin</span></div>;
-      default: return <div className="flex items-center space-x-1 text-xs text-emerald-400 bg-[#0a0a0a] border border-[#333] px-3 py-1.5 rounded-lg font-bold"><CheckCircle className="w-3 h-3" /><span>Apogée</span></div>;
-    }
-  };
-
   const fallbackImg = "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=800&q=80";
 
   return (
@@ -1142,7 +1023,6 @@ const ResultsView = ({ ctx }) => {
       </div>
 
       <div className="p-5 mt-4">
-        {/* LE HERO "DISCOVERY" ET NOIR & OR */}
         <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden group">
           <div className="flex items-stretch">
             <div className="flex-1 p-6 flex flex-col justify-between min-w-0">
@@ -1158,14 +1038,12 @@ const ResultsView = ({ ctx }) => {
                 </div>
               </div>
             </div>
-            
             <div className="w-40 shrink-0 bg-[#0a0a0a] border-l border-[#333] relative flex items-center justify-center p-3">
               <img src={ctx.imageSrc || fallbackImg} onError={(e) => {e.target.onerror = null; e.target.src = fallbackImg;}} alt="Bottle" className="max-h-full max-w-full object-contain drop-shadow-[0_10px_20px_rgba(212,175,55,0.15)] group-hover:scale-105 transition-transform duration-500" />
             </div>
           </div>
         </div>
 
-        {/* FAIRE DÉGUSTER CE VIN (MODAL) */}
         <button onClick={() => setShowBlindTasting(true)} className="w-full mt-6 bg-gradient-to-r from-rose-900 to-[#1a1a1a] text-white rounded-2xl p-4 shadow-lg flex items-center justify-between active:scale-95 transition-transform border border-rose-900/50">
           <div className="flex items-center">
              <div className="bg-[#0a0a0a] p-2.5 rounded-full mr-3 border border-rose-900"><EyeOff className="w-6 h-6 text-rose-400"/></div>
@@ -1215,18 +1093,16 @@ const ResultsView = ({ ctx }) => {
           </div>
         )}
 
-        {/* LES ONGLETS SONT DE RETOUR */}
+        {/* ONGLETS LE VIN / SERVICE / CAVE */}
         <div className="flex bg-[#1a1a1a] p-1.5 rounded-2xl border border-[#333] mt-8 mb-6">
           <button onClick={() => setActiveTab('infos')} className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${activeTab === 'infos' ? 'bg-[#333] text-[#D4AF37] shadow-md border border-[#D4AF37]/20' : 'text-slate-500 hover:text-slate-300'}`}>Le Vin</button>
           <button onClick={() => { setActiveTab('service'); fetchProtocol(); }} className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${activeTab === 'service' ? 'bg-[#333] text-[#D4AF37] shadow-md border border-[#D4AF37]/20' : 'text-slate-500 hover:text-slate-300'}`}>Service & Plat</button>
           <button onClick={() => setActiveTab('cave')} className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${activeTab === 'cave' ? 'bg-[#333] text-[#D4AF37] shadow-md border border-[#D4AF37]/20' : 'text-slate-500 hover:text-slate-300'}`}>Ma Cave</button>
         </div>
 
-        {/* CONTENU ONGLET : LE VIN */}
         {activeTab === 'infos' && (
           <div className="animate-in fade-in space-y-6">
             <div className="flex items-start space-x-3 text-slate-300 bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-lg"><Info className="w-5 h-5 text-[#D4AF37] shrink-0 mt-0.5" /><p className="text-sm leading-relaxed font-medium">{description}</p></div>
-            
             <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] p-6">
               <div className="flex items-center space-x-3 mb-6"><div className="p-2 bg-[#0a0a0a] border border-[#333] rounded-lg"><Clock className="w-5 h-5 text-indigo-400" /></div><h3 className="font-serif text-xl font-bold text-[#F5F5F5]">Temps & Apogée</h3></div>
               <div className="space-y-0 relative">
@@ -1245,18 +1121,14 @@ const ResultsView = ({ ctx }) => {
                 </div>
               </div>
             </div>
-
-            {/* TARIF MARCHAND : DESIGN LUXE */}
             <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] p-8 text-center relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
               <Tag className="w-8 h-8 text-[#D4AF37] mx-auto mb-4" />
               <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-2">Estimation Marchande</p>
-              
               <div className="flex items-center justify-center space-x-1 mb-6">
                 <input type="number" value={tempPrix} onChange={(e) => setTempPrix(e.target.value)} onBlur={() => ctx.updateDataField(scanIdToUse, 'prix_unitaire_nombre', Number(tempPrix))} className="text-5xl font-black text-[#F5F5F5] bg-transparent outline-none focus:border-b-2 focus:border-[#D4AF37] text-center w-32" />
                 <span className="text-5xl font-black text-[#F5F5F5]">€</span>
               </div>
-              
               <a href={`https://www.google.com/search?q=${encodeURIComponent('prix vin ' + nom + ' ' + tempAnnee)}&tbm=shop`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center space-x-2 py-3 px-6 bg-[#0a0a0a] border border-[#333] text-slate-300 rounded-full font-bold shadow-sm hover:text-white hover:border-[#D4AF37] transition-all">
                 <Search className="w-4 h-4" /><span>Vérifier en ligne</span>
               </a>
@@ -1264,7 +1136,6 @@ const ResultsView = ({ ctx }) => {
           </div>
         )}
 
-        {/* CONTENU ONGLET : SERVICE & PLATS */}
         {activeTab === 'service' && (
           <div className="animate-in fade-in space-y-6">
             <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg min-h-[200px]">
@@ -1306,12 +1177,10 @@ const ResultsView = ({ ctx }) => {
           </div>
         )}
 
-        {/* CONTENU ONGLET : MA CAVE */}
         {activeTab === 'cave' && currentScanObj && (
           <div className="animate-in fade-in space-y-6">
             <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/10 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
-              
               <div className="flex items-center justify-between bg-[#0a0a0a] p-2 rounded-2xl border border-[#333] mb-6 relative z-10">
                 <p className="text-sm font-bold text-slate-400 ml-4">Stock en cave :</p>
                 <div className="flex items-center space-x-3 bg-[#1A1A1A] rounded-xl p-1.5 border border-[#333]">
@@ -1320,7 +1189,6 @@ const ResultsView = ({ ctx }) => {
                   <button onClick={() => ctx.handleDirectStockChange(scanIdToUse, stock + 1)} className="w-12 h-12 flex items-center justify-center bg-[#D4AF37] hover:bg-[#AA7C11] rounded-lg transition-colors shadow-[0_0_15px_rgba(212,175,55,0.3)] text-black"><Plus className="w-5 h-5" /></button>
                 </div>
               </div>
-              
               {stock === 0 ? (
                 <button onClick={() => ctx.genericUpdate(scanIdToUse, { wishlist: !isWishlist })} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center space-x-3 transition-all border relative z-10 ${isWishlist ? 'bg-pink-900/30 border-pink-900/50 text-pink-400' : 'bg-[#0a0a0a] border-[#333] text-slate-300 hover:text-white'}`}><Heart className={`w-5 h-5 ${isWishlist ? 'fill-current text-pink-400' : ''}`} /><span>{isWishlist ? 'Retirer de la liste d\'achats' : 'Ajouter à la liste d\'achats'}</span></button>
               ) : (
@@ -1353,6 +1221,7 @@ const ResultsView = ({ ctx }) => {
     </div>
   );
 };
+// ... Le reste (App.jsx) que tu as déjà !
 
 const PaywallView = ({ ctx }) => (
   <div className="flex flex-col h-full bg-[#1A100C] text-white pb-20 overflow-y-auto relative z-[60]">
