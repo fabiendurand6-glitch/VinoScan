@@ -77,6 +77,47 @@ const compressImage = (base64Str, maxWidth = 800) => new Promise((resolve) => {
 });
 
 // =========================================================================
+// FILET DE SÉCURITÉ (ERROR BOUNDARY)
+// =========================================================================
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Erreur interceptée par le filet de sécurité :", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[100dvh] bg-[#0a0a0a] text-center p-6 select-none text-white">
+          <div className="w-24 h-24 bg-red-950/30 rounded-full flex items-center justify-center mb-6 border border-red-900/50">
+            <AlertTriangle className="w-12 h-12 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-serif font-bold text-white mb-3">Oups, un verre renversé !</h2>
+          <p className="text-sm text-slate-400 mb-8 max-w-xs">L'application a rencontré une erreur d'affichage inattendue.</p>
+          <button 
+            onClick={() => {
+              this.setState({ hasError: false });
+              if (this.props.onReset) this.props.onReset();
+            }} 
+            className="px-8 py-4 bg-[#D4AF37] text-black font-bold rounded-full shadow-[0_0_15px_rgba(212,175,55,0.3)]"
+          >
+            Retourner à l'accueil
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+// =========================================================================
 // MOTEUR D'ANALYSES COMPLÉMENTAIRES (POINTS 1, 2, 3)
 // =========================================================================
 
