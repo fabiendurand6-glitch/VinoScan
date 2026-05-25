@@ -5,13 +5,10 @@ import {
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
+// --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInWithCustomToken
-} from 'firebase/auth';
-import { 
-  getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc 
-} from 'firebase/firestore';
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 
 // =========================================================================
 // CONFIGURATION SÉCURISÉE (SANS CACHE EXPÉRIMENTAL POUR VERCEL)
