@@ -19,9 +19,9 @@ import {
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 const firebaseConfig = { 
-  apiKey: "AIzaSyA1SP_DboqzXPzSuYJmrYxWhd-lqBpml20", 
-  authDomain: "vinoscan-app-8d4af.firebaseapp.com", 
-  projectId: "vinoscan-app-8d4af", 
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "", 
+    authDomain: "vinoscan-app-8d4af.firebaseapp.com", 
+    projectId: "vinoscan-app-8d4af",
   storageBucket: "vinoscan-app-8d4af.firebasestorage.app", 
   messagingSenderId: "757406434839", 
   appId: "1:757406434839:web:7d531655bcae02b5cbfe52", 
