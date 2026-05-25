@@ -1912,6 +1912,9 @@ const AnalyzingView = () => (
 // =========================================================================
 // APPLICATION PRINCIPALE (APP CONTEXT & ROUTER SÉCURISÉ AVEC IA RESTAURÉE)
 // =========================================================================
+// =========================================================================
+// APPLICATION PRINCIPALE (APP CONTEXT & ROUTER SÉCURISÉ AVEC IA RESTAURÉE)
+// =========================================================================
 export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -2013,12 +2016,13 @@ export default function App() {
   const analyzeImage = async (b64) => {
     setView('analyzing');
     try {
-      const prompt = `Identifie le vin sur cette photo et donne ses détails. Si ce n'est pas un vin ou illisible, réponds {"nom": "INCONNU"}. Sinon, JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
+      const prompt = `Expert Sommelier. Identifie le vin sur cette photo. Si ce n'est pas un vin ou illisible, réponds {"nom": "INCONNU"}. Sinon, donne ses détails en JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
       const p1 = await callGemini(prompt, b64.split(',')[1]);
-      const iden = extractJSON(p1.candidates[0].content.parts[0].text);
-      if(!iden || iden.nom === 'INCONNU') { setErrorMsg("Bouteille non reconnue."); setView('error'); return; }
-      await processAIResult(JSON.stringify(iden), b64);
-    } catch(e) { setErrorMsg("Erreur d'analyse de l'image."); setView('error'); }
+      const resultText = p1.candidates[0].content.parts[0].text;
+      const iden = extractJSON(resultText);
+      if(!iden || iden.nom === 'INCONNU') { setErrorMsg("Bouteille non reconnue. Veuillez cadrer l'étiquette."); setView('error'); return; }
+      await processAIResult(resultText, b64);
+    } catch(e) { setErrorMsg("Erreur d'analyse de l'image. Le serveur IA est peut-être surchargé."); setView('error'); }
   };
 
   const searchWineText = async (textQuery) => {
