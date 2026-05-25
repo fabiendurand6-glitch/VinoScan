@@ -182,16 +182,6 @@ const callGemini = async (prompt, b64Data = null) => {
   }
 };
 
-const extractJSON = (text) => {
-  try { return JSON.parse(text); } 
-  catch (e) {
-    const match = text.match(/```json\n([\s\S]*?)\n```/);
-    if (match && match[1]) return JSON.parse(match[1]);
-    const objMatch = text.match(/\{[\s\S]*\}/);
-    if (objMatch) return JSON.parse(objMatch[0]);
-    throw new Error("Impossible de lire les données JSON.");
-  }
-};
 
 const extractPrice = (priceStr) => {
   if (!priceStr) return 0;
@@ -202,15 +192,6 @@ const extractPrice = (priceStr) => {
 // =========================================================================
 // MOTEUR DE TRAITEMENT DES DONNÉES
 // =========================================================================
-const getGenericImageForType = (type) => {
-  switch(type) {
-    case 'BLANC': return "https://images.unsplash.com/photo-1506377847308-cb8f9d0cbdf6?auto=format&fit=crop&w=800&q=80";
-    case 'PETILLANT': return "https://images.unsplash.com/photo-1599939571322-792a326cb6ae?auto=format&fit=crop&w=800&q=80";
-    case 'ROSE': return "https://images.unsplash.com/photo-1559596355-6bcfcc77112a?auto=format&fit=crop&w=800&q=80";
-    default: return "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=800&q=80"; 
-  }
-};
-
 const recalculateDates = (anneeStr, baseGardeMin = 2, baseGardeMax = 5) => {
   const currentYear = new Date().getFullYear();
   const millesimeMatch = String(anneeStr).match(/\d{4}/);
@@ -299,33 +280,6 @@ const normalizeData = (data) => {
   }
 };
 
-const compressImage = (base64Str, maxWidth = 800, quality = 0.6) => {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-  });
-};
-
-const getAmazonAffiliateLink = (query) => {
-  const trackingTag = "vinoscan-21"; 
-  const baseUrl = "https://www.amazon.fr/s?k=";
-  const searchTerms = encodeURIComponent(query);
-  return `${baseUrl}${searchTerms}&tag=${trackingTag}`;
-};
 // =========================================================================
 // INTERFACES ET COMPOSANTS VISUELS (100% SOMBRE & OR)
 // =========================================================================
