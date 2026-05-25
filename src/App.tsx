@@ -4,7 +4,13 @@ import {
   Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe, X, Trophy, TrendingUp, BarChart3, Target, Focus, Settings, Trash2, Bell, DollarSign
 } from 'lucide-react';
 
-// --- FIREBASE IMPORTS ---
+// --- NOUVELLES LIBRAIRIES GRAPHIQUES ---
+import { 
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip as ChartTooltip, 
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis 
+} from 'recharts';
+import html2canvas from 'html2canvas';
+
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -1903,6 +1909,9 @@ const AnalyzingView = () => (
 // =========================================================================
 // APPLICATION PRINCIPALE (APP CONTEXT & ROUTER SÉCURISÉ AVEC NOUVELLES FCTS)
 // =========================================================================
+// =========================================================================
+// APPLICATION PRINCIPALE (APP CONTEXT & ROUTER SÉCURISÉ AVEC IA RESTAURÉE)
+// =========================================================================
 export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -1921,7 +1930,6 @@ export default function App() {
   const [cameraMode, setCameraMode] = useState('bottle');
   const [menuPrefs, setMenuPrefs] = useState({ food: 'ALL', type: 'ALL' });
 
-  // NOUVEAUX ÉTATS POUR LES POINTS 1, 2, 3
   const [valueHistory, setValueHistory] = useState([]);
   const [alerts, setAlerts] = useState([]);
   
@@ -1929,23 +1937,15 @@ export default function App() {
   const canvasRef = useRef(null); 
   const streamRef = useRef(null);
 
-  // ÉCOUTEUR D'AUTHENTIFICATION
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (u) => { 
-      setUser(u); 
-      setIsAuthLoading(false); 
-    });
+    const unsubAuth = onAuthStateChanged(auth, (u) => { setUser(u); setIsAuthLoading(false); });
     return () => unsubAuth();
   }, []);
 
-  // SYNCHRONISATION FIRESTORE PRINCIPALE
   useEffect(() => {
     if (!user) { setScanHistory([]); setValueHistory([]); setAlerts([]); return; }
-    
-    // 1. Écoute des Scans
     const unsubScans = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'scans'), (s) => {
-      let sc = []; 
-      let totalV = 0;
+      let sc = []; let totalV = 0;
       s.forEach(d => { 
         if(d.data().data) {
           const norm = normalizeData(d.data().data);
@@ -1953,53 +1953,55 @@ export default function App() {
           if (d.data().stock > 0) { totalV += (norm.prix_unitaire_nombre * d.data().stock); }
         }
       });
-      sc.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); 
-      setScanHistory(sc);
-      
-      // POINT 1 : Sauvegarde du snapshot de valeur si total important
+      sc.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); setScanHistory(sc);
       if (totalV > 0) saveCellarValueSnapshot(user, totalV);
     });
 
-    // 2. Écoute de l'historique de valeur (POINT 1)
     const qValue = query(collection(db, 'artifacts', appId, 'users', user.uid, 'value_history'), orderBy('timestamp', 'asc'));
-    const unsubValue = onSnapshot(qValue, (s) => {
-      let vh = []; s.forEach(d => vh.push(d.data()));
-      setValueHistory(vh);
-    });
+    const unsubValue = onSnapshot(qValue, (s) => { let vh = []; s.forEach(d => vh.push(d.data())); setValueHistory(vh); });
 
-    // 3. Écoute des Alertes internes (POINT 2)
     const unsubAlerts = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'alerts'), (s) => {
-      let al = []; s.forEach(d => al.push(d.data()));
-      al.sort((a, b) => b.timestamp - a.timestamp);
-      setAlerts(al);
+      let al = []; s.forEach(d => al.push(d.data())); al.sort((a, b) => b.timestamp - a.timestamp); setAlerts(al);
     });
 
     return () => { unsubScans(); unsubValue(); unsubAlerts(); };
   }, [user]);
 
-  // POINT 2 : Déclenchement du moteur d'alertes quand les scans changent
-  useEffect(() => {
-    if (user && scanHistory.length > 0) {
-      checkAndGenerateAlerts(user, scanHistory, alerts);
-    }
-  }, [scanHistory, user]);
+  useEffect(() => { if (user && scanHistory.length > 0) checkAndGenerateAlerts(user, scanHistory, alerts); }, [scanHistory, user]);
 
   const showToast = (m) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3000); };
   
-  // GESTION CAMÉRA & ANALYSE (Inchangée)
+  // --- MOTEURS CAMÉRA ---
   const startCamera = async (mode = 'bottle') => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setErrorMsg("Accès caméra refusé (HTTPS requis)."); setView('error'); return; }
     try { setCameraMode(mode); const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); streamRef.current = s; setView('camera'); setTimeout(()=>{if(videoRef.current)videoRef.current.srcObject=s;},100); } 
     catch(e){ setErrorMsg("Erreur d'accès à l'appareil photo."); setView('error'); }
   };
   const stopCamera = () => { if(streamRef.current){ streamRef.current.getTracks().forEach(t=>t.stop()); streamRef.current=null; } };
+  
   const capturePhoto = async () => {
     if(videoRef.current && canvasRef.current) {
       const c = canvasRef.current; c.width = videoRef.current.videoWidth; c.height = videoRef.current.videoHeight;
       c.getContext('2d').drawImage(videoRef.current,0,0); const d = c.toDataURL('image/jpeg',0.8); stopCamera();
-      const img = await compressImage(d); setImageSrc(img); analyzeImage(img);
+      const img = await compressImage(d); setImageSrc(img); 
+      
+      // RESTAURATION DU ROUTAGE DES MODES DE CAMÉRA
+      if (cameraMode === 'receipt') analyzeReceipt(img);
+      else if (cameraMode === 'menu') analyzeMenu(img);
+      else analyzeImage(img);
     }
   };
+
+  const handleFileUpload = async (e) => { 
+    const f = e.target.files[0]; 
+    if(f) { 
+      const r = new FileReader(); 
+      r.onloadend = async () => { const img = await compressImage(r.result); setImageSrc(img); analyzeImage(img); }; 
+      r.readAsDataURL(f); 
+    } 
+  };
+
+  // --- MOTEURS IA RESTAURÉS ---
   const processAIResult = async (aiText, sourceImage) => {
     const data = normalizeData(extractJSON(aiText)); setAnalysisResult(data);
     const img = sourceImage || getGenericImageForType(data.type_simplifie); setImageSrc(img);
@@ -2007,19 +2009,78 @@ export default function App() {
     setScanHistory(p=>[obj,...p]); setCurrentScanId(obj.id); setPreviousView('home'); setView('results');
     if(user){ try { const r = await addDoc(collection(db,'artifacts',appId,'users',user.uid,'scans'), obj); setCurrentScanId(r.id); setScanHistory(p=>p.map(i=>i.id===obj.id?{...i,id:r.id}:i)); } catch(e){} }
   };
+
   const analyzeImage = async (b64) => {
     setView('analyzing');
     try {
-      const p1 = await callGemini("Identifie le vin. Réponds {\"nom\": \"NOM\"} ou {\"nom\": \"INCONNU\"}", b64.split(',')[1]);
+      const prompt = `Identifie le vin sur cette photo et donne ses détails. Si ce n'est pas un vin ou illisible, réponds {"nom": "INCONNU"}. Sinon, JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
+      const p1 = await callGemini(prompt, b64.split(',')[1]);
       const iden = extractJSON(p1.candidates[0].content.parts[0].text);
       if(!iden || iden.nom === 'INCONNU') { setErrorMsg("Bouteille non reconnue."); setView('error'); return; }
-      let txt = ""; let ch = await checkGlobalCache(iden.nom);
-      if(!ch){ const p2 = await callGemini(`Expert Sommelier. JSON strict: {"nom":"","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`, b64.split(',')[1]); txt = p2.candidates[0].content.parts[0].text; const ob = extractJSON(txt); await saveToGlobalCache(ob.nom, ob); } else { txt = JSON.stringify(ch); }
-      await processAIResult(txt, b64);
-    } catch(e) { setErrorMsg("Erreur d'analyse."); setView('error'); }
+      await processAIResult(JSON.stringify(iden), b64);
+    } catch(e) { setErrorMsg("Erreur d'analyse de l'image."); setView('error'); }
   };
 
-  // MISE À JOUR DONNÉES SÉCURISÉE (Inchangée)
+  const searchWineText = async (textQuery) => {
+    setView('analyzing'); setPreviousView('home');
+    try {
+      const prompt = `Recherche le vin : "${textQuery}". Si ce vin n'existe pas ou est absurde, réponds {"nom": "INCONNU"}. Sinon, JSON strict: {"nom":"","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
+      const result = await callGemini(prompt);
+      const parsed = extractJSON(result.candidates[0].content.parts[0].text);
+      if (!parsed || parsed.nom === 'INCONNU') { setErrorMsg("Aucun cru correspondant trouvé."); setView('error'); return; }
+      await processAIResult(JSON.stringify(parsed), null);
+    } catch (err) { setErrorMsg("Erreur de recherche."); setView('error'); }
+  };
+
+  const analyzeMenu = async (b64) => {
+    setView('analyzing');
+    try {
+      let foodPrefText = "un plat surprise";
+      if (menuPrefs.food === 'VIANDE_ROUGE') foodPrefText = "de la viande rouge";
+      else if (menuPrefs.food === 'VIANDE_BLANCHE') foodPrefText = "de la volaille";
+      else if (menuPrefs.food === 'POISSON') foodPrefText = "du poisson";
+      else if (menuPrefs.food === 'FROMAGE') foodPrefText = "du fromage";
+
+      const prompt = `Sommelier expert. Voici un menu de restaurant. L'utilisateur mange : ${foodPrefText}. Choisis le MEILLEUR vin PARMI CEUX PRÉSENTS SUR L'IMAGE. Réponds en JSON strict : {"nom": "Nom exact", "type_simplifie": "ROUGE|BLANC|ROSE|PETILLANT", "annee": "Année", "region": "Région", "description": "max 20 mots", "prix_unitaire_nombre": 45, "accord_parfait": "Idéal avec..."}`;
+      const result = await callGemini(prompt, b64.split(',')[1]);
+      await processAIResult(result.candidates[0].content.parts[0].text, null);
+    } catch(err) { setErrorMsg("Impossible de lire ce menu."); setView('error'); }
+  };
+
+  const analyzeReceipt = async (b64) => {
+    setView('analyzing');
+    try {
+      const prompt = `Extrait tous les vins de cette facture. Tableau JSON pur : [{"nom":"Nom", "annee":"2020", "prix_unitaire_nombre":15.5, "type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT", "region":"Bordeaux"}]`;
+      const result = await callGemini(prompt, b64.split(',')[1]);
+      let parsedArr = extractJSON(result.candidates[0].content.parts[0].text);
+      if (!Array.isArray(parsedArr) || parsedArr.length === 0) throw new Error("Aucun vin");
+
+      let newScans = [];
+      for (let item of parsedArr) {
+        const norm = normalizeData(item);
+        const tempId = 'temp_' + Date.now() + Math.random().toString(36).substring(2, 7);
+        newScans.push({ id: tempId, image: getGenericImageForType(norm.type_simplifie), data: norm, stock: 1, in_history: true, wishlist: false, location: '', timestamp: Date.now() });
+      }
+      setScanHistory(prev => [...newScans, ...prev]);
+      showToast(`${newScans.length} flacons ajoutés à la cave !`);
+      setView('cellar');
+    } catch(err) { setErrorMsg("Erreur lors de la lecture de la facture."); setView('error'); }
+  };
+
+  const fetchAIRecommendation = async (type='ALL', apogee='ALL', food='ALL', price='ALL') => {
+    if (typeof type === 'function') type = 'ALL'; // Sécurité anti-bug
+    setView('analyzing'); setPreviousView('recommendation');
+    try {
+      const prompt = `Sommelier: trouve 3 vins réels. Type: ${type}, Repas: ${food}, Budget: ${price}. Réponds obligatoirement au format JSON strict avec une propriété racine "vins" : {"vins": [{"nom":"","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}]}`;
+      const result = await callGemini(prompt);
+      let parsed = extractJSON(result.candidates[0].content.parts[0].text);
+      let vins = parsed.vins || (Array.isArray(parsed) ? parsed : []);
+      setRecommendationList(vins.map(v => normalizeData(v))); 
+      setView('recommendationList');
+    } catch (err) { setErrorMsg("Erreur de recommandation."); setView('error'); }
+  };
+
+  // --- MISE À JOUR DONNÉES SÉCURISÉE ---
   const genericUpdate = async (id, f) => {
     setScanHistory(p=>p.map(i=>i.id===id?{...i,...f}:i));
     if(user && !id.startsWith('temp_')){ try{ await updateDoc(doc(db,'artifacts',appId,'users',user.uid,'scans',id), f); }catch(e){} }
@@ -2028,10 +2089,25 @@ export default function App() {
     const ns = Math.max(0, parseInt(cur)+ch); setScanHistory(p=>p.map(i=>i.id===id?{...i,stock:ns}:i));
     if(user && !id.startsWith('temp_')){ try{ const r=doc(db,'artifacts',appId,'users',user.uid,'scans',id); if(ns===0 && !scanHistory.find(s=>s.id===id).wishlist){ await deleteDoc(r); setScanHistory(p=>p.filter(i=>i.id!==id)); } else await updateDoc(r,{stock:ns}); }catch(e){} }
   };
+  const updateDataField = async (id, fieldName, value) => {
+    const currentItem = scanHistory.find(item => item.id === id); if (!currentItem) return;
+    const newData = { ...currentItem.data, [fieldName]: value };
+    setScanHistory(prev => prev.map(item => item.id === id ? { ...item, data: newData } : item));
+    if (user && !id.startsWith('temp_')) { try { await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', id), { [`data.${fieldName}`]: value }); } catch(e) {} }
+  };
 
   const handleKeyDown = (e) => { if(e.key==='Enter') e.target.blur(); };
 
-  const ctx = { user, view, setView, previousView, setPreviousView, imageSrc, analysisResult, errorMsg, setErrorMsg, scanHistory, setScanHistory, scanAction, setScanAction, recommendationList, currentScanId, setCurrentScanId, toastMsg, showToast, startCamera, stopCamera, capturePhoto, processRecommendationSelection: (w)=>processAIResult(JSON.stringify(w), null), genericUpdate, updateStock, goBack:()=>setView(previousView), openExistingWine:(i,o)=>{setImageSrc(i.image);setAnalysisResult(i.data);setCurrentScanId(i.id);setPreviousView(o);setView('results');}, videoRef, canvasRef, cameraMode, handleKeyDown, callGemini, valueHistory, alerts, analyzeSensoryDNA, generateAndShareInstagramImage };
+  // TOUTES LES FONCTIONS INTÉGRÉES DANS LE CONTEXTE
+  const ctx = { 
+    user, view, setView, previousView, setPreviousView, imageSrc, analysisResult, errorMsg, setErrorMsg, 
+    scanHistory, setScanHistory, scanAction, setScanAction, recommendationList, currentScanId, setCurrentScanId, 
+    toastMsg, showToast, startCamera, stopCamera, capturePhoto, handleFileUpload, analyzeImage, searchWineText, 
+    analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField,
+    processRecommendationSelection: (w)=>processAIResult(JSON.stringify(w), null), genericUpdate, updateStock, 
+    goBack:()=>setView(previousView), openExistingWine:(i,o)=>{setImageSrc(i.image);setAnalysisResult(i.data);setCurrentScanId(i.id);setPreviousView(o);setView('results');}, 
+    videoRef, canvasRef, cameraMode, handleKeyDown, callGemini, valueHistory, alerts, analyzeSensoryDNA, generateAndShareInstagramImage 
+  };
 
   if (isAuthLoading) return <div className="h-[100dvh] bg-[#0a0a0a] flex items-center justify-center"><Wine className="w-12 h-12 text-[#D4AF37] animate-pulse" /></div>;
   if (!user) return <AuthView auth={auth} />;
@@ -2042,7 +2118,6 @@ export default function App() {
     <ErrorBoundary onReset={() => setView('home')}>
       <div className="w-full max-w-md mx-auto h-[100dvh] bg-[#0a0a0a] sm:border-x sm:border-[#333] overflow-hidden relative text-[#F5F5F5] font-sans select-none" style={{'--gold-primary': '#D4AF37'}}>
         
-        {/* NOUVEAU HEADER AVEC CENTRE DE NOTIFICATIONS (POINT 2) */}
         {['home', 'cellar', 'history', 'account', 'recommendation'].includes(view) && (
           <div className="absolute top-0 w-full h-16 bg-[#1a1a1a]/80 backdrop-blur-sm border-b border-[#333] flex items-center justify-between px-5 z-30">
             <h2 className="text-xl font-serif font-bold text-[#D4AF37]">VinoScan</h2>
@@ -2062,6 +2137,9 @@ export default function App() {
           {view === 'results' && <ResultsView ctx={ctx} />}
           {view === 'camera' && <CameraView ctx={ctx} />}
           {view === 'analyzing' && <AnalyzingView />}
+          {view === 'menuConfig' && <MenuConfigView ctx={ctx} />}
+          {view === 'manualSearch' && <ManualSearchView ctx={ctx} />}
+          {view === 'quiz' && <QuizView ctx={ctx} />}
           {view === 'alerts' && <AlertsView ctx={ctx} />}
           {view === 'error' && (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#0a0a0a] pt-20"><AlertTriangle className="w-16 h-16 text-red-500 mb-4" /><h2 className="text-xl font-bold text-white mb-2">Erreur technique</h2><p className="text-sm text-slate-400 mb-6">{errorMsg}</p><button onClick={()=>setView('home')} className="px-6 py-3 bg-[#D4AF37] text-black font-bold rounded-xl shadow-lg">Retour</button></div>
