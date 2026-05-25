@@ -2020,9 +2020,18 @@ export default function App() {
       const p1 = await callGemini(prompt, b64.split(',')[1]);
       const resultText = p1.candidates[0].content.parts[0].text;
       const iden = extractJSON(resultText);
-      if(!iden || iden.nom === 'INCONNU') { setErrorMsg("Bouteille non reconnue. Veuillez cadrer l'étiquette."); setView('error'); return; }
+      
+      if(!iden || iden.nom === 'INCONNU') { 
+        setErrorMsg("Bouteille non reconnue. Veuillez cadrer l'étiquette."); 
+        setView('error'); 
+        return; 
+      }
+      // On passe directement au résultat sans chercher dans le cache inexistant
       await processAIResult(resultText, b64);
-    } catch(e) { setErrorMsg("Erreur d'analyse de l'image. Le serveur IA est peut-être surchargé."); setView('error'); }
+    } catch(e) { 
+      setErrorMsg("Erreur d'analyse : " + e.message); 
+      setView('error'); 
+    }
   };
 
   const searchWineText = async (textQuery) => {
@@ -2030,10 +2039,19 @@ export default function App() {
     try {
       const prompt = `Recherche le vin : "${textQuery}". Si ce vin n'existe pas ou est absurde, réponds {"nom": "INCONNU"}. Sinon, JSON strict: {"nom":"","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
       const result = await callGemini(prompt);
-      const parsed = extractJSON(result.candidates[0].content.parts[0].text);
-      if (!parsed || parsed.nom === 'INCONNU') { setErrorMsg("Aucun cru correspondant trouvé."); setView('error'); return; }
-      await processAIResult(JSON.stringify(parsed), null);
-    } catch (err) { setErrorMsg("Erreur de recherche."); setView('error'); }
+      const resultText = result.candidates[0].content.parts[0].text;
+      const parsed = extractJSON(resultText);
+      
+      if (!parsed || parsed.nom === 'INCONNU') { 
+        setErrorMsg("Aucun cru correspondant trouvé."); 
+        setView('error'); 
+        return; 
+      }
+      await processAIResult(resultText, null);
+    } catch (err) { 
+      setErrorMsg("Erreur de recherche : " + err.message); 
+      setView('error'); 
+    }
   };
 
   const analyzeMenu = async (b64) => {
