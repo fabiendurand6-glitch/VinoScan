@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe, X, Trophy, TrendingUp, BarChart3, Target, Focus, Settings, Trash2, Bell, Instagram, DollarSign
+  Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe, X, Trophy, TrendingUp, BarChart3, Target, Focus, Settings, Trash2, Bell, DollarSign
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -1827,7 +1827,7 @@ const ResultsView = ({ ctx }) => {
               <div className="grid grid-cols-5 gap-2 mb-4 bg-[#0a0a0a] p-2 rounded-2xl border border-[#333]">
                 {Array.from({length: 5}).map((_, i) => <button key={i} onClick={() => ctx.genericUpdate(currentItem.id, { rating: i+1 })} className="flex justify-center p-2"><Star className={`w-8 h-8 ${i < rating ? 'text-[#D4AF37] fill-current' : 'text-slate-600'} hover:text-[#D4AF37]/70`} /></button>)}
               </div>
-              <button onClick={() => ctx.generateAndShareInstagramImage(ctx.showToast)} className="w-full py-4 bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 text-white font-black text-sm rounded-full shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-transform"><Instagram className="w-5 h-5"/><span>Gérer mon image Story "Instagrammable"</span></button>
+              <button onClick={() => ctx.generateAndShareInstagramImage(ctx.showToast)} className="w-full py-4 bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 text-white font-black text-sm rounded-full shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-transform"><Share2 className="w-5 h-5"/><span>Gérer mon image Story "Instagrammable"</span></button>
             </div>
 
             <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-4 bg-red-950/20 text-red-400 font-bold rounded-2xl border border-red-900/40 hover:bg-red-900 hover:text-white transition-colors">Supprimer définitivement</button>
