@@ -1269,35 +1269,128 @@ const ResultsView = ({ ctx }) => {
   if (!currentItem) return null;
   
   const d = currentItem.data;
+  const scanIdToUse = currentItem.id;
+  const stock = currentItem.stock || 0;
+  const isWishlist = currentItem.wishlist || false;
+  const rating = currentItem.rating || 0;
+
   const [activeTab, setActiveTab] = useState('infos');
   const [protocol, setProtocol] = useState(null); 
   const [isLoadingProtocol, setIsLoadingProtocol] = useState(false);
 
+  const [showBlindTasting, setShowBlindTasting] = useState(false);
+  const [blindNotes, setBlindNotes] = useState({ robe: '', nez: '', bouche: '' });
+  const [blindResult, setBlindResult] = useState(null);
+  const [isBlindLoading, setIsBlindLoading] = useState(false);
+
+  const [tempType, setTempType] = useState(d?.type_simplifie || 'ROUGE');
+  const [tempAnnee, setTempAnnee] = useState(d?.annee || 'N.M.');
+  const [tempPrix, setTempPrix] = useState(d?.prix_unitaire_nombre || 0);
   const [tempLocation, setTempLocation] = useState(currentItem?.location || '');
   const [tempNotes, setTempNotes] = useState(currentItem?.notes || '');
-  const [tempPrix, setTempPrix] = useState(d?.prix_unitaire_nombre || '');
+
+  // Outil interne de recalcul d'Apogée selon les règles de l'art oenologique
+  const computeApogeeForType = (type, anneeStr) => {
+    const currentYear = new Date().getFullYear();
+    const match = String(anneeStr).match(/\d{4}/);
+    
+    let minGarde = 2, maxGarde = 5;
+    if (type === 'ROUGE') { minGarde = 4; maxGarde = 10; }
+    else if (type === 'BLANC') { minGarde = 2; maxGarde = 6; }
+    else if (type === 'ROSE') { minGarde = 1; maxGarde = 3; }
+    else if (type === 'PETILLANT') { minGarde = 3; maxGarde = 7; }
+
+    if (!match) {
+      return { potentiel_garde: "À consommer rapidement", apogee: "Prêt à boire", declin: "Dans les 1-2 ans", statut_apogee: "APOGEE", baseGardeMin: minGarde, baseGardeMax: maxGarde };
+    }
+
+    const anneeInt = parseInt(match[0], 10);
+    const start = anneeInt + minGarde;
+    const end = anneeInt + maxGarde;
+    const declinYear = end + 1;
+    
+    let statut = "APOGEE";
+    if (currentYear < start) statut = "A_GARDER";
+    else if (currentYear >= declinYear) statut = "DECLIN";
+
+    return {
+      potentiel_garde: `${minGarde} à ${maxGarde} ans`,
+      apogee: `${start} - ${end}`,
+      declin: `À partir de ${declinYear}`,
+      statut_apogee: statut,
+      baseGardeMin: minGarde,
+      baseGardeMax: maxGarde
+    };
+  };
+
+  // Changement dynamique du Type (Recalcule l'apogée + Accords mets)
+  const handleTypeChange = (newType) => {
+    setTempType(newType);
+    const updatedDates = computeApogeeForType(newType, tempAnnee);
+    
+    let newAccords = [];
+    if (newType === 'ROUGE') newAccords = ['Viande rouge grillée', 'Plateau de fromages affinés', 'Plats en sauce'];
+    else if (newType === 'BLANC') newAccords = ['Poissons et fruits de mer', 'Volaille à la crème', 'Fromage de chèvre'];
+    else if (newType === 'ROSE') newAccords = ['Apéritif festif', 'Grillades estivales', 'Salades composées'];
+    else if (newType === 'PETILLANT') newAccords = ['Apéritif de prestige', 'Desserts légers', 'Coquilles Saint-Jacques'];
+    else newAccords = ['Plats conviviaux à partager'];
+
+    const updatedData = {
+      ...d,
+      type_simplifie: newType,
+      accords_mets: newAccords,
+      accord_parfait: newAccords[0],
+      ...updatedDates
+    };
+
+    ctx.setAnalysisResult(updatedData);
+    ctx.genericUpdate(scanIdToUse, { data: updatedData, image: ctx.getGenericImageForType ? ctx.getGenericImageForType(newType) : getGenericImageForType(newType) });
+  };
+
+  // Changement dynamique du Millésime
+  const handleYearChange = (newYear) => {
+    setTempAnnee(newYear);
+    const updatedDates = computeApogeeForType(tempType, newYear);
+    
+    const updatedData = {
+      ...d,
+      annee: newYear,
+      ...updatedDates
+    };
+
+    ctx.setAnalysisResult(updatedData);
+    ctx.genericUpdate(scanIdToUse, { data: updatedData });
+  };
 
   const fetchProtocol = async () => {
     if (protocol) return;
     setIsLoadingProtocol(true);
     try {
-      // Appel de secours pour le protocole sans faire planter l'application
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY || ""}`;
-      const prompt = `Agis comme un Maître Sommelier. Donne le protocole de service pour ce vin : "${d.nom} ${d.annee}". Réponds en JSON strict : {"temperature": "ex: 16°C", "carafage": "ex: Oui, 2h avant", "verre": "ex: Verre type Bordeaux", "conseil": "Une phrase d'expert"}`;
-      const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } };
-      const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const resJson = await response.json();
-      const txt = resJson.candidates[0].content.parts[0].text;
-      
-      let parsed = null;
-      try { parsed = JSON.parse(txt); } catch(e) {
-        const match = txt.match(/```json\n([\s\S]*?)\n```/);
-        parsed = JSON.parse(match[1]);
-      }
-      setProtocol(parsed);
+      const prompt = `Agis comme un Maître Sommelier. Donne le protocole de service parfait pour ce vin : "${d.nom} ${tempAnnee}". Réponds en JSON strict : {"temperature": "ex: 16°C", "carafage": "ex: Oui, 2h avant", "verre": "ex: Verre type Bordeaux", "conseil": "Une phrase d'expert"}`;
+      const res = await ctx.callGemini ? await ctx.callGemini(prompt) : await callGemini(prompt);
+      setProtocol(extractJSON(res.candidates[0].content.parts[0].text));
     } catch(e) {
-      setProtocol({ temperature: "14-16°C", carafage: "Non requis", verre: "Verre classique", conseil: "Prêt à servir." });
+      setProtocol({ temperature: tempType === 'ROUGE' ? "16°C" : "10°C", carafage: tempType === 'ROUGE' ? "Conseillé 1h avant" : "Non requis", verre: "Verre classique", conseil: "Servir à température idéale." });
     } finally { setIsLoadingProtocol(false); }
+  };
+
+  const finishBlindTasting = async () => {
+    setIsBlindLoading(true);
+    try {
+      const prompt = `Le vin réel est : "${d.nom} ${tempAnnee} (${tempType})". Notes de l'invité : Robe=${blindNotes.robe}, Nez=${blindNotes.nez}, Bouche=${blindNotes.bouche}. Donne une note sur 10. Réponds en JSON strict : {"note": "ex: 8/10", "commentaire": "Ton verdict pour l'invité en 25 mots max, sois fun."}`;
+      const res = await ctx.callGemini ? await ctx.callGemini(prompt) : await callGemini(prompt);
+      setBlindResult(extractJSON(res.candidates[0].content.parts[0].text));
+    } catch(e) {
+      setBlindResult({ note: "7/10", commentaire: "Dégustation honorable, l'essentiel est le plaisir partagé !" });
+    } finally { setIsBlindLoading(false); }
+  };
+
+  const getStatusBadge = (statut) => {
+    switch(statut) {
+      case 'A_GARDER': return <div className="flex items-center space-x-1.5 text-xs text-indigo-400 bg-indigo-950/40 border border-indigo-900/60 px-2.5 py-1 rounded-lg font-bold"><Clock className="w-3.5 h-3.5" /><span>À garder ({d.potentiel_garde})</span></div>;
+      case 'DECLIN': return <div className="flex items-center space-x-1.5 text-xs text-red-400 bg-red-950/40 border border-red-900/60 px-2.5 py-1 rounded-lg font-bold"><TrendingDown className="w-3.5 h-3.5" /><span>Déclin ({d.declin})</span></div>;
+      default: return <div className="flex items-center space-x-1.5 text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-900/60 px-2.5 py-1 rounded-lg font-bold"><CheckCircle className="w-3.5 h-3.5" /><span>À boire (Apogée)</span></div>;
+    }
   };
 
   const existingLocations = Array.from(new Set(ctx.scanHistory.map(s => s.location).filter(Boolean))).sort();
@@ -1305,84 +1398,201 @@ const ResultsView = ({ ctx }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none">
+      
+      {/* HEADER DE RECHERCHE */}
       <div className="bg-[#1a1a1a] p-4 flex justify-between z-20 sticky top-0 border-b border-[#333]">
-        <div className="p-2 rounded-full border transition-all shadow-md bg-[#1A1A1A] border-[#333] text-[#D4AF37]">
-           <Sparkles className="w-5 h-5" />
-        </div>
+        <SommelierButton text={`Analyse du cru ${d.nom}. D'après mes algorithmes, ce vin est idéalement à consommer dans la fenêtre d'apogée suivante : ${d.apogee}.`} />
         <button onClick={ctx.goBack} className="p-3 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-white transition-colors"><X className="w-5 h-5"/></button>
       </div>
 
       <div className="p-5">
-        <div className="bg-[#1A1A1A] rounded-3xl border border-[#333] flex overflow-hidden h-60 shadow-xl group">
-          <div className="flex-1 p-5 flex flex-col justify-between min-w-0">
+        {/* LE HERO "DISCOVERY" MAJESTUEUX (IMAGE EN CARTALOUGE À DROITE) */}
+        <div className="bg-[#1A1A1A] rounded-3xl border border-[#333] flex overflow-hidden min-h-64 shadow-xl group relative">
+          <div className="flex-1 p-6 flex flex-col justify-between min-w-0">
             <div>
-              <h2 className="text-3xl font-serif font-bold text-white leading-tight truncate group-hover:text-[#D4AF37] transition-colors">{d.nom}</h2>
-              <p className="text-[10px] text-[#D4AF37] uppercase font-bold tracking-widest mt-1">{d.type_simplifie} • {d.annee} • {d.region}</p>
+              {/* Édition dynamique de la couleur / type */}
+              <div className="relative inline-block mb-3">
+                <select value={tempType} onChange={(e) => handleTypeChange(e.target.value)} className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37] bg-[#0a0a0a] border border-[#333] pl-3 pr-8 py-1.5 rounded-lg outline-none cursor-pointer appearance-none">
+                  <option value="ROUGE">🍷 Vin Rouge</option>
+                  <option value="BLANC">🥂 Vin Blanc</option>
+                  <option value="ROSE">🌸 Vin Rosé</option>
+                  <option value="PETILLANT">🍾 Pétillant / Champagne</option>
+                  <option value="AUTRE">💎 Autre</option>
+                </select>
+                <ChevronDown className="w-3 h-3 text-[#D4AF37] absolute right-2.5 top-2.5 pointer-events-none" />
+              </div>
+
+              <h2 className="text-3xl font-serif font-bold text-white leading-tight truncate group-hover:text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] transition-all duration-300">{d.nom}</h2>
+              
+              {/* REHABILITATION DES BADGES VISUELS */}
+              <div className="flex flex-wrap gap-2 mt-4">
+                <div className="flex items-center text-slate-400 font-medium bg-[#0a0a0a] border border-[#333] px-2.5 py-1 rounded-xl">
+                  <span className="text-[11px]">Année :</span>
+                  <input type="text" value={tempAnnee} onChange={(e) => setTempAnnee(e.target.value)} onBlur={() => handleYearChange(tempAnnee)} className="bg-transparent text-white w-14 outline-none font-bold text-center ml-1 text-xs focus:text-[#D4AF37]" />
+                </div>
+                <span className="text-[11px] font-bold text-slate-400 bg-[#0a0a0a] border border-[#333] px-2.5 py-1.5 rounded-xl truncate max-w-[140px]">{d.region}</span>
+              </div>
+
+              {/* BADGES D'APOGÉE DYNAMIQUE RETROUVÉS */}
+              <div className="mt-5 space-y-2">
+                <div className="flex items-center space-x-2 text-xs text-slate-400 font-medium bg-[#0a0a0a]/60 p-2.5 rounded-xl border border-[#222] w-max">
+                  <Star className="w-4 h-4 text-[#D4AF37] fill-current" />
+                  <span>Apogée : <b className="text-white font-bold">{d.apogee}</b></span>
+                </div>
+                {getStatusBadge(d.statut_apogee)}
+              </div>
             </div>
-            <p className="text-xs text-slate-400 italic line-clamp-3 mt-4 border-t border-[#222] pt-3">Accord : {d.accord_parfait}</p>
+
+            <p className="text-xs text-slate-400 italic line-clamp-2 mt-4 border-t border-[#222] pt-3">Accord : {d.accord_parfait}</p>
           </div>
-          <div className="w-32 bg-[#0a0a0a] p-3 flex justify-center items-center border-l border-[#333] shrink-0">
-            <img src={currentItem.image || fallbackImg} className="max-h-full object-contain drop-shadow-[0_10px_15px_rgba(212,175,55,0.15)] group-hover:scale-105 transition-transform duration-500" alt="wine"/>
+
+          <div className="w-36 bg-[#0a0a0a] p-3 flex justify-center items-center border-l border-[#333] shrink-0 relative overflow-hidden">
+            <img src={currentItem.image || fallbackImg} onError={(e) => {e.target.onerror = null; e.target.src = fallbackImg;}} className="max-h-full object-contain drop-shadow-[0_10px_20px_rgba(212,175,55,0.25)] group-hover:scale-105 transition-transform duration-500" alt="wine"/>
+            <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#1A1A1A] to-transparent pointer-events-none"></div>
           </div>
         </div>
 
+        {/* COMPOSANT DE DEGUSTATION AVEUGLE */}
+        <button onClick={() => setShowBlindTasting(true)} className="w-full mt-5 bg-gradient-to-r from-rose-950/40 via-[#1A1A1A] to-[#1A1A1A] text-white rounded-3xl p-4 shadow-lg flex items-center justify-between active:scale-95 transition-transform border border-rose-900/30">
+          <div className="flex items-center">
+             <div className="bg-[#0a0a0a] p-2.5 rounded-full mr-3 border border-rose-900/50"><EyeOff className="w-5 h-5 text-rose-400"/></div>
+             <div className="text-left">
+               <h3 className="font-bold text-base text-[#F5F5F5]">Faire déguster ce vin à l'aveugle</h3>
+               <p className="text-[9px] text-rose-400 uppercase tracking-widest font-bold">L'IA teste le palais de vos invités</p>
+             </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-rose-500" />
+        </button>
+
+        {showBlindTasting && (
+          <div className="fixed inset-0 bg-gradient-to-b from-[#1A100C] to-[#0a0a0a] z-[100] flex flex-col p-6 animate-in fade-in overflow-y-auto">
+            <button onClick={() => setShowBlindTasting(false)} className="absolute top-8 left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"><ChevronLeft className="w-6 h-6"/></button>
+            <div className="mt-16 text-center flex-1 max-w-sm mx-auto w-full pb-10">
+              <div className="w-20 h-20 bg-rose-900/40 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/30"><EyeOff className="w-10 h-10 text-rose-400" /></div>
+              <h2 className="text-3xl font-serif font-bold text-white mb-3">Dégustation Mystère</h2>
+              <p className="text-rose-200/80 text-sm mb-8">Cachez la bouteille et faites remplir la fiche. L'IA jugera !</p>
+              {!blindResult ? (
+                <div className="space-y-4 text-left">
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <label className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center mb-2">La Robe (Visuel)</label>
+                    <input type="text" placeholder="Ex: Tuilé, Reflets dorés..." value={blindNotes.robe} onChange={e=>setBlindNotes({...blindNotes, robe: e.target.value})} className="w-full bg-black/20 border border-white/10 text-white rounded-xl p-3 text-sm outline-none focus:border-rose-500" />
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <label className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center mb-2">Le Nez (Arômes)</label>
+                    <input type="text" placeholder="Ex: Fruits des bois, Poivré, Vanille..." value={blindNotes.nez} onChange={e=>setBlindNotes({...blindNotes, nez: e.target.value})} className="w-full bg-black/20 border border-white/10 text-white rounded-xl p-3 text-sm outline-none focus:border-rose-500" />
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <label className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center mb-2">La Bouche (Ressenti)</label>
+                    <input type="text" placeholder="Ex: Puissant, Tanins soyeux..." value={blindNotes.bouche} onChange={e=>setBlindNotes({...blindNotes, bouche: e.target.value})} className="w-full bg-black/20 border border-white/10 text-white rounded-xl p-3 text-sm outline-none focus:border-rose-500" />
+                  </div>
+                  <button onClick={finishBlindTasting} disabled={!blindNotes.robe} className="w-full py-4 mt-2 bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold rounded-xl shadow-lg flex items-center justify-center">Calcul du verdict...</button>
+                </div>
+              ) : (
+                <div className="bg-white/10 border border-white/20 p-6 rounded-3xl shadow-2xl">
+                  <p className="text-xs font-bold uppercase tracking-widest text-rose-300 mb-1">Score Palais</p>
+                  <div className="text-5xl font-black text-white mb-4">{blindResult.note}</div>
+                  <p className="text-white text-base italic leading-relaxed mb-6">"{blindResult.commentaire}"</p>
+                  <button onClick={() => { setShowBlindTasting(false); setBlindResult(null); setBlindNotes({robe:'',nez:'',bouche:''}); }} className="w-full py-3 bg-white text-slate-900 font-bold rounded-xl">Fermer</button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ONGLETS DES DESCRIPTIONS RETROUVÉS */}
         <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333] mt-6">
           <button onClick={() => setActiveTab('infos')} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'infos' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Fiche Cru</button>
           <button onClick={() => { setActiveTab('service'); fetchProtocol(); }} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'service' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Service IA</button>
           <button onClick={() => setActiveTab('cave')} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'cave' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Rangement</button>
         </div>
 
+        {/* CONTENU ONGLET 1 : DESCRIPTION GENERALE */}
         {activeTab === 'infos' && (
-          <div className="space-y-5 mt-5 animate-in fade-in">
+          <div className="space-y-4 mt-4 animate-in fade-in">
             <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md"><p className="text-sm text-slate-300 leading-relaxed font-medium">{d.description}</p></div>
             <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] flex justify-between items-center shadow-md">
-              <div><p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Valeur Estimée</p><span className="text-3xl font-black text-emerald-400 mt-1 block">{d.prix_unitaire_nombre}€</span></div>
-              <div className="text-right"><p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Potentiel Garde</p><span className="text-sm font-bold text-[#D4AF37] mt-1 block">{d.potentiel_garde}</span></div>
+              <div className="text-left">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Prix Indicatif</p>
+                <div className="flex items-center space-x-1 mt-1">
+                   <input type="number" value={tempPrix} onChange={(e) => setTempPrix(e.target.value)} onBlur={() => ctx.updateDataField(scanIdToUse, 'prix_unitaire_nombre', Number(tempPrix))} className="text-3xl font-black text-[#D4AF37] bg-transparent outline-none w-24" />
+                   <span className="text-2xl font-bold text-[#D4AF37]">€</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Potentiel de garde</p>
+                <span className="text-base font-bold text-white mt-2 block">{d.potentiel_garde}</span>
+              </div>
             </div>
-            <button onClick={() => setActiveTab('cave')} className="w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black font-black text-sm rounded-full shadow-lg flex items-center justify-center space-x-2"><Archive className="w-4 h-4"/><span>Gérer mon stock pour ce flacon</span></button>
+            
+            <a href={`https://www.google.com/search?q=${encodeURIComponent('prix vin ' + d.nom + ' ' + tempAnnee)}&tbm=shop`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center space-x-2 py-4 bg-[#1A1A1A] border border-[#333] text-slate-300 rounded-2xl font-bold text-sm hover:border-[#D4AF37] transition-all">
+              <Search className="w-4 h-4 text-[#D4AF37]" /><span>Comparer les marchands en ligne</span>
+            </a>
           </div>
         )}
 
+        {/* CONTENU ONGLET 2 : PROTOCOLE IA DU SOMMELIER */}
         {activeTab === 'service' && (
-          <div className="space-y-5 mt-5 animate-in fade-in">
-            <div className="bg-[#1A1A1A] p-6 rounded-3xl border border-[#333] shadow-md">
+          <div className="space-y-4 mt-4 animate-in fade-in">
+            <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md">
               {isLoadingProtocol ? (
-                <div className="text-center text-slate-400 py-6"><RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#D4AF37]"/><p className="font-bold text-xs">Le sommelier calcule le protocole...</p></div>
+                <div className="text-center text-slate-400 py-6"><RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#D4AF37]"/><p className="font-bold text-xs">Le sommelier décrypte le protocole idéal...</p></div>
               ) : protocol ? (
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-4 border-b border-[#222] pb-3"><div className="p-2 bg-[#0a0a0a] rounded-lg border border-[#333] text-[#D4AF37]"><Clock className="w-4 h-4"/></div><div><span className="text-[10px] text-slate-500 block uppercase font-bold">Aération optimale</span><p className="font-bold text-white text-sm">{protocol.carafage}</p></div></div>
-                  <div className="flex items-center space-x-4 border-b border-[#222] pb-3"><div className="p-2 bg-[#0a0a0a] rounded-lg border border-[#333] text-[#D4AF37]"><Wine className="w-4 h-4"/></div><div><span className="text-[10px] text-slate-500 block uppercase font-bold">Verrerie idéale</span><p className="font-bold text-white text-sm">{protocol.verre}</p></div></div>
-                  <div className="flex items-center space-x-4"><div className="p-2 bg-[#0a0a0a] rounded-lg border border-[#333] text-[#D4AF37]"><Tag className="w-4 h-4"/></div><div><span className="text-[10px] text-slate-500 block uppercase font-bold">Température parfaite</span><p className="font-bold text-white text-sm">{protocol.temperature}</p></div></div>
+                  <div className="flex items-center space-x-4 border-b border-[#222] pb-3">
+                    <div className="p-2 bg-[#0a0a0a] rounded-xl border border-[#333] text-[#D4AF37]"><Clock className="w-4 h-4"/></div>
+                    <div><span className="text-[10px] text-slate-500 block uppercase font-bold">Préparation requise</span><p className="font-bold text-white text-sm">{protocol.carafage}</p></div>
+                  </div>
+                  <div className="flex items-center space-x-4 border-b border-[#222] pb-3">
+                    <div className="p-2 bg-[#0a0a0a] rounded-xl border border-[#333] text-[#D4AF37]"><Wine className="w-4 h-4"/></div>
+                    <div><span className="text-[10px] text-slate-500 block uppercase font-bold">Verrerie recommandée</span><p className="font-bold text-white text-sm">{protocol.verre}</p></div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="p-2 bg-[#0a0a0a] rounded-xl border border-[#333] text-[#D4AF37]"><Tag className="w-4 h-4"/></div>
+                    <div><span className="text-[10px] text-slate-500 block uppercase font-bold">Température de service</span><p className="font-bold text-white text-sm">{protocol.temperature}</p></div>
+                  </div>
                   <div className="p-3 bg-[#0a0a0a] border-l-2 border-[#D4AF37] rounded-r-xl text-xs text-slate-400 italic">"{protocol.conseil}"</div>
                 </div>
               ) : null}
             </div>
+
+            {/* Suggestions d'accessoires d'affiliation */}
+            <a href={getAmazonAffiliateLink(getRecommendedAccessory(tempType).search)} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl shadow-sm hover:border-[#D4AF37]/50 transition-all">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-[#0a0a0a] rounded-xl text-[#D4AF37] border border-[#222]"><ShoppingCart className="w-4 h-4"/></div>
+                <div className="text-left"><p className="text-[9px] text-slate-500 font-bold uppercase">Sublimer l'expérience</p><p className="text-sm font-bold text-white">{getRecommendedAccessory(tempType).name}</p></div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-500"/>
+            </a>
           </div>
         )}
 
+        {/* CONTENU ONGLET 3 : RANGEMENT ET STOCK SÉCURISÉ */}
         {activeTab === 'cave' && (
-          <div className="space-y-5 mt-5 animate-in fade-in">
-            <div className="bg-[#1A1A1A] p-6 rounded-3xl border border-[#333] shadow-md">
+          <div className="space-y-4 mt-4 animate-in fade-in">
+            <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md">
               <div className="flex items-center justify-between bg-[#0a0a0a] p-3 rounded-2xl border border-[#333]">
-                <span className="text-sm font-bold text-slate-400 ml-2">Stock en cave :</span>
+                <span className="text-sm font-bold text-slate-400 ml-2">Bouteilles en cave :</span>
                 <div className="flex items-center space-x-4">
-                  <button onClick={() => ctx.updateStock(currentItem.id, currentItem.stock, -1)} className="w-10 h-10 bg-[#1A1A1A] border border-[#333] text-white font-bold rounded-lg flex items-center justify-center shadow-sm">-</button>
-                  <span className="text-xl font-black text-[#D4AF37] w-6 text-center">{currentItem.stock}</span>
-                  <button onClick={() => ctx.updateStock(currentItem.id, currentItem.stock, 1)} className="w-10 h-10 bg-[#D4AF37] text-black font-bold rounded-lg flex items-center justify-center shadow-lg">+</button>
+                  <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-10 h-10 bg-[#1A1A1A] border border-[#333] text-white font-bold rounded-lg flex items-center justify-center shadow-sm">-</button>
+                  <span className="text-xl font-black text-[#D4AF37] w-6 text-center">{stock}</span>
+                  <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-10 h-10 bg-[#D4AF37] text-black font-bold rounded-lg flex items-center justify-center shadow-lg">+</button>
                 </div>
               </div>
-              {currentItem.stock === 0 && (
-                <button onClick={() => ctx.genericUpdate(currentItem.id, { wishlist: !currentItem.wishlist })} className="w-full py-4 bg-[#0a0a0a] border border-[#333] text-slate-300 rounded-2xl font-bold flex items-center justify-center mt-4 transition-all"><Heart className={`w-4 h-4 mr-2 ${currentItem.wishlist ? 'text-pink-500 fill-current' : 'text-slate-500'}`} /><span>{currentItem.wishlist ? 'Retirer des souhaits' : 'Ajouter aux souhaits d\'achat'}</span></button>
+              
+              {stock === 0 && (
+                <button onClick={() => ctx.genericUpdate(currentItem.id, { wishlist: !isWishlist })} className="w-full py-4 bg-[#0a0a0a] border border-[#333] text-slate-300 rounded-2xl font-bold flex items-center justify-center mt-4 transition-all"><Heart className={`w-4 h-4 mr-2 ${isWishlist ? 'text-pink-500 fill-current' : 'text-slate-500'}`} /><span>{isWishlist ? 'Retirer de ma liste d\'achats' : 'Mettre dans ma liste d\'achats'}</span></button>
               )}
+
               <div className="space-y-2 mt-4">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Ranger à l'emplacement :</label>
-                <input type="text" value={tempLocation} onChange={(e) => setTempLocation(e.target.value)} onBlur={() => ctx.genericUpdate(currentItem.id, { location: tempLocation })} placeholder="Ex: Étagère du haut..." className="w-full bg-[#0a0a0a] border border-[#333] text-white rounded-xl p-3.5 text-sm font-medium outline-none focus:border-[#D4AF37]" />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Étagère / Emplacement exact :</label>
+                <input type="text" value={tempLocation} onChange={(e) => setTempLocation(e.target.value)} onBlur={() => ctx.genericUpdate(currentItem.id, { location: tempLocation })} list="shelf-suggestions" placeholder="Ex: Étagère du haut, Cave de droite..." className="w-full bg-[#0a0a0a] border border-[#333] text-white rounded-xl p-3.5 text-sm font-medium outline-none focus:border-[#D4AF37]" />
+                <datalist id="shelf-suggestions">{existingLocations.map(loc => <option key={loc} value={loc} />)}</datalist>
               </div>
             </div>
 
             <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2 ml-1">Notes privées :</label>
-              <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} onBlur={() => ctx.genericUpdate(currentItem.id, { notes: tempNotes })} placeholder="Avis personnel..." className="w-full bg-[#0a0a0a] border border-[#333] text-white rounded-2xl p-4 text-sm h-24 outline-none focus:border-[#D4AF37] resize-none" />
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2 ml-1">Carnet de notes personnel :</label>
+              <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} onBlur={() => ctx.genericUpdate(currentItem.id, { notes: tempNotes })} placeholder="Arômes identifiés, avec qui, avis d'expert..." className="w-full bg-[#0a0a0a] border border-[#333] text-white rounded-2xl p-4 text-sm h-24 outline-none focus:border-[#D4AF37] resize-none" />
             </div>
 
             <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-4 bg-red-950/20 text-red-400 font-bold rounded-2xl border border-red-900/40 hover:bg-red-900 hover:text-white transition-colors">Supprimer définitivement ce vin</button>
