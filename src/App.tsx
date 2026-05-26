@@ -524,22 +524,29 @@ const RecommendationView = ({ ctx }) => {
   const [pairingDish, setPairingDish] = useState('');
   const [isPairingLoading, setIsPairingLoading] = useState(false);
 
+  const handleRecommend = () => { ctx.fetchAIRecommendation(filterType, filterApogee, filterFood, filterPrice); };
+
   const handleAskCellarSommelier = async () => {
     if (!pairingDish.trim()) return;
     setIsPairingLoading(true);
     try {
       const inStockWines = ctx.scanHistory.filter(w => w.stock > 0);
       if (inStockWines.length === 0) throw new Error("Cave vide");
-      const inventoryString = inStockWines.map(w => `[ID: ${w.id}] ${w.data.nom} ${w.data.annee}`).join('\n');
-      const prompt = `Tu es le Sommelier privé. L'utilisateur mange : "${pairingDish}". Voici sa cave : \n${inventoryString}\nChoisis le meilleur vin en JSON strict : {"chosen_id": "ID", "explication": "Pourquoi"}`;
-      const result = await callGemini(prompt);
-      const parsed = extractJSON(result.candidates[0].content.parts[0].text);
+      const inventoryString = inStockWines.map(w => `[ID: ${w.id}] ${w.data.nom} ${w.data.annee} (${w.data.type_simplifie})`).join('\n');
+      const prompt = `Tu es le Sommelier privé. L'utilisateur mange : "${pairingDish}". Voici les vins dans sa cave : \n${inventoryString}\nChoisis LE MEILLEUR vin PARMI CETTE LISTE UNIQUEMENT pour ce plat. Réponds en JSON strict : {"chosen_id": "ID_ici", "explication": "Pourquoi ce choix (max 20 mots)"}`;
+      
+      // ✅ Correction ici : Utilisation de ctx.callGemini de manière unifiée
+      const result = await ctx.callGemini(prompt);
+      const parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
       const chosenWine = inStockWines.find(w => w.id === parsed.chosen_id);
-      if(!chosenWine) throw new Error("IA");
+      if(!chosenWine) throw new Error("Erreur IA");
       ctx.showToast(`L'IA recommande : ${chosenWine.data.nom}`);
       ctx.openExistingWine(chosenWine, 'recommendation');
-    } catch (e) { ctx.setErrorMsg("Accord introuvable."); ctx.setView('error'); } 
-    finally { setIsPairingLoading(false); }
+    } catch (e) {
+      ctx.showToast("Accord introuvable.");
+    } finally { 
+      setIsPairingLoading(false); 
+    }
   };
 
   const imgTirebouchon = "https://images.unsplash.com/photo-1585652874135-c335805e7144?auto=format&fit=crop&w=800&q=80";
@@ -556,6 +563,7 @@ const RecommendationView = ({ ctx }) => {
           <div><h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Le Sommelier</h1><p className="text-slate-400 text-sm font-medium">Laissez l'IA vous conseiller</p></div>
         </div>
       </div>
+
       <div className="p-6 space-y-10">
         {recMode === 'menu' && (
           <div className="space-y-6 mt-4">
@@ -565,11 +573,11 @@ const RecommendationView = ({ ctx }) => {
             </button>
             <button onClick={() => setRecMode('cellar')} className="w-full bg-[#1A1A1A] border border-[#D4AF37]/50 rounded-3xl p-6 shadow-lg text-left flex items-center space-x-5 relative overflow-hidden">
               <div className="w-14 h-14 bg-[#0a0a0a] border border-[#D4AF37]/30 rounded-full flex items-center justify-center shrink-0 relative z-10"><Archive className="w-6 h-6 text-[#D4AF37]" /></div>
-              <div className="relative z-10"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center mb-1">Que boire ce soir ?</h3><p className="text-xs text-slate-400">Trouvez la bouteille parfaite dans votre cave.</p></div>
+              <div className="relative z-10"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center mb-1">Que boire ce soir ?</h3><p className="text-xs text-slate-400">Trouvez la bouteille parfaite parmi celles déjà dans votre cave.</p></div>
             </button>
             <button onClick={() => setRecMode('boutique')} className="w-full bg-[#1A1A1A] border border-[#333] rounded-3xl p-6 shadow-lg text-left flex items-center space-x-5">
               <div className="w-14 h-14 bg-[#0a0a0a] border border-[#333] rounded-full flex items-center justify-center shrink-0"><Wine className="w-6 h-6 text-[#D4AF37]" /></div>
-              <div><h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-1">La Boutique</h3><p className="text-xs text-slate-400">Carafes, verres, conservation...</p></div>
+              <div><h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-1">La Boutique</h3><p className="text-xs text-slate-400">Carafes, verres, conservation... Équipez-vous comme un pro.</p></div>
             </button>
           </div>
         )}
@@ -587,8 +595,8 @@ const RecommendationView = ({ ctx }) => {
           <div className="space-y-10">
             <div className="space-y-4"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Euro className="w-5 h-5 text-[#D4AF37]" /><span>Budget</span></h3><div className="flex flex-wrap gap-2">{['ALL', 'BUDGET', 'MEDIUM', 'PREMIUM'].map(p => <button key={p} onClick={() => setFilterPrice(p)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterPrice === p ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{p}</button>)}</div></div>
             <div className="space-y-4"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Utensils className="w-5 h-5 text-[#D4AF37]" /><span>Repas</span></h3><div className="flex flex-wrap gap-2">{['ALL', 'APERITIF', 'VIANDE_ROUGE', 'POISSON', 'FROMAGE'].map(f => <button key={f} onClick={() => setFilterFood(f)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterFood === f ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{f}</button>)}</div></div>
-            <div className="space-y-4"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Wine className="w-5 h-5 text-[#D4AF37]" /><span>Type</span></h3><div className="flex flex-wrap gap-2">{['ALL', 'ROUGE', 'BLANC', 'PETILLANT'].map(t => <button key={t} onClick={() => setFilterType(t)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t}</button>)}</div></div>
-            <button onClick={() => ctx.fetchAIRecommendation(filterType, filterApogee, filterFood, filterPrice)} className="w-full py-5 bg-[#D4AF37] text-black font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 mt-8"><Sparkles className="w-6 h-6" /><span>Trouver la perle rare</span></button>
+            <div className="space-y-4"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Wine className="w-5 h-5 text-[#D4AF37]" /><span>Type</span></h3><div className="flex flex-wrap gap-2">{['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => <button key={t} onClick={() => setFilterType(t)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t}</button>)}</div></div>
+            <button onClick={handleRecommend} className="w-full py-5 bg-[#D4AF37] text-black font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 mt-8"><Sparkles className="w-6 h-6" /><span>Trouver la perle rare</span></button>
           </div>
         )}
 
@@ -644,7 +652,7 @@ const CellarView = ({ ctx }) => {
   const [cellarTab, setCellarTab] = useState('STOCK');
   const [filterType, setFilterType] = useState('ALL');
   const [filterApogee, setFilterApogee] = useState('ALL');
-  const [filterFood, setFilterFood] = useState('ALL'); // 🌟 Restauré !
+  const [filterFood, setFilterFood] = useState('ALL'); 
   const [viewMode, setViewMode] = useState('shelves'); 
   const [reorgMode, setReorgMode] = useState(false);
   const [selectedBottle, setSelectedBottle] = useState(null);
@@ -656,15 +664,9 @@ const CellarView = ({ ctx }) => {
     return cellarItems.filter(item => {
       const matchType = filterType === 'ALL' || item.data.type_simplifie === filterType;
       const matchApogee = filterApogee === 'ALL' || item.data.statut_apogee === filterApogee;
-      const accordsStr = ((item.data.accord_parfait || "") + " " + (item.data.accords_mets || []).join(" ")).toUpperCase();
-      let matchFood = true;
-      if (filterFood === 'VIANDE') matchFood = accordsStr.includes('VIANDE');
-      else if (filterFood === 'POISSON') matchFood = accordsStr.includes('POISSON') || accordsStr.includes('MER');
-      else if (filterFood === 'FROMAGE') matchFood = accordsStr.includes('FROMAGE');
-      else if (filterFood === 'APERITIF') matchFood = accordsStr.includes('APERITIF');
-      return matchType && matchApogee && matchFood;
+      return matchType && matchApogee;
     });
-  }, [cellarItems, filterType, filterApogee, filterFood]);
+  }, [cellarItems, filterType, filterApogee]);
 
   const existingLocations = Array.from(new Set(ctx.scanHistory.map(s => s.location).filter(Boolean))).sort();
   const groupedByLocation = useMemo(() => {
@@ -726,7 +728,7 @@ const CellarView = ({ ctx }) => {
         
         {filteredItems.length === 0 && <div className="text-center p-6 opacity-50 mt-10"><Archive className="w-16 h-16 mx-auto mb-4 text-slate-600" /><p className="font-medium text-slate-400">Aucun vin ne correspond.</p></div>}
 
-        {filteredItems.length > 0 && viewMode === 'list' && (
+        {viewMode === 'list' ? (
           <div className="space-y-4">
             {filteredItems.map(item => (
               <div key={item.id} onClick={() => ctx.openExistingWine(item, 'cellar')} className="bg-[#1A1A1A] rounded-3xl shadow-md border border-[#333] overflow-hidden flex items-stretch cursor-pointer">
@@ -738,9 +740,7 @@ const CellarView = ({ ctx }) => {
               </div>
             ))}
           </div>
-        )}
-
-        {filteredItems.length > 0 && viewMode === 'shelves' && (
+        ) : (
           <div className="space-y-10 mt-6">
              {Object.entries(groupedByLocation).map(([shelfName, bottles]) => (
                 <div key={shelfName} className="mb-8">
@@ -749,7 +749,7 @@ const CellarView = ({ ctx }) => {
                       {bottles.map(bottle => (
                          <div key={bottle.id} draggable={!reorgMode} onDragStart={(e) => handleDragStart(e, bottle)} onClick={() => { if (reorgMode) setSelectedBottle(bottle); else ctx.openExistingWine(bottle, 'cellar'); }} className={`relative flex flex-col bg-[#1A1A1A] rounded-2xl p-3 shadow-md border border-[#333] cursor-pointer ${reorgMode ? 'ring-2 ring-[#D4AF37] animate-pulse' : ''}`}>
                             <div className="relative h-28 w-full mb-3 flex items-center justify-center bg-[#0a0a0a] rounded-xl border border-[#222]">
-                               <img src={bottle.image} className="max-h-full object-contain" alt={bottle.data.nom} />
+                               <img src={bottle.image || fallbackImg} className="max-h-full object-contain" alt={bottle.data.nom} />
                                {cellarTab === 'STOCK' && bottle.stock > 1 && <span className="absolute -top-2 -right-2 bg-[#D4AF37] text-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold">x{bottle.stock}</span>}
                             </div>
                             <div className="flex flex-col items-center text-center"><h4 className="text-xs font-bold text-[#F5F5F5] leading-tight line-clamp-2">{bottle.data.nom}</h4><span className="text-[10px] text-slate-400 mt-1">{bottle.data.annee}</span></div>
@@ -758,7 +758,7 @@ const CellarView = ({ ctx }) => {
                    </div>
                 </div>
              ))}
-             <div onDragOver={(e)=>e.preventDefault()} onDrop={(e) => { e.preventDefault(); const newName = window.prompt("Nom de la nouvelle étagère ?"); if (newName && newName.trim() !== '') handleDrop(e, newName); }} className="mt-8 border-2 border-dashed border-[#333] rounded-2xl p-8 flex flex-col items-center justify-center text-slate-500">
+             <div onDragOver={(e)=>e.preventDefault()} onDrop={(e) => { e.preventDefault(); const newName = window.prompt("Nom de la nouvelle étagère ?"); if (newName && newName.trim() !== '') handleDrop(e, newName); }} className="mt-8 border-2 border-dashed border-[#333] rounded-2xl p-8 flex flex-col items-center justify-center text-slate-500 cursor-pointer">
                <Plus className="w-8 h-8 mb-2" /><p className="font-bold text-xs uppercase tracking-wider text-center">Glissez un vin ici pour créer une étagère</p>
              </div>
           </div>
@@ -1156,13 +1156,13 @@ export default function App() {
     if (typeof type === 'function') type = 'ALL'; 
     setView('analyzing'); setPreviousView('recommendation');
     try {
-      const prompt = `Trouve 3 suggestions de grands vins. Format JSON racine "vins": {"vins": [{"nom":"Vin","type_simplifie":"ROUGE","annee":"2019","region":"","description":"","prix_unitaire_nombre":25,"potentiel_garde":"","accord_parfait":""}]}. Contraintes exigées -> Type: ${type}, Repas: ${food}, Budget: ${price}.`;
-      const result = await callGemini(prompt);
+      const prompt = `Trouve 3 suggestions de grands vins réels. Format JSON avec clé racine "vins": {"vins": [{"nom":"Vin","type_simplifie":"ROUGE","annee":"2019","region":"","description":"","prix_unitaire_nombre":25,"potentiel_garde":"","accord_parfait":""}]}. Contraintes obligatoires -> Type: ${type}, Repas: ${food}, Budget: ${price}.`;
+      const result = await ctx.callGemini(prompt);
       let parsed = extractJSON(result.candidates[0].content.parts[0].text);
       setRecommendationList((parsed.vins || parsed).map(v => normalizeData(v))); 
       setView('recommendationList');
     } catch (err) { 
-      setErrorMsg("Erreur oenologique."); 
+      setErrorMsg("Erreur oenologique de l'IA."); 
       setView('error'); 
     }
   };
