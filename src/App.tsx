@@ -200,7 +200,7 @@ const checkAndGenerateAlerts = async (user, scans, alerts) => {
     if (!d || !item.id) return;
     if (d.statut_apogee === 'APOGEE' && item.stock > 0) {
       const alertId = `apogee_${item.id}_${currentYear}`;
-      if (!alerts.some(a => a.id === alertId)) newAlerts.push({ id: alertId, type: 'APOGEE', title: 'Window d\'apogée ouverte', message: `Votre ${d.nom} ${d.annee} est prêt à être dégusté !`, scanId: item.id, wineName: d.nom, read: false, timestamp: Date.now() });
+      if (!alerts.some(a => a.id === alertId)) newAlerts.push({ id: alertId, type: 'APOGEE', title: 'Apogée atteinte', message: `Votre ${d.nom} ${d.annee} est prêt à être dégusté !`, scanId: item.id, wineName: d.nom, read: false, timestamp: Date.now() });
     }
     if (d.statut_apogee === 'DECLIN' && item.stock > 0) {
       const alertId = `declin_${item.id}_${currentYear}`;
@@ -240,7 +240,8 @@ const NavigationBar = ({ ctx }) => (
     {[{id:'home', i:Home, text:'Scanner'},{id:'cellar', i:Archive, text:'Cave'},{id:'recommendation', i:Sparkles, text:'Conseil'},{id:'history', i:History, text:'Histo'},{id:'account', i:User, text:'Profil'}].map(item => {
       const active = ctx.view.includes(item.id) || (item.id === 'home' && ['manualSearch', 'menuConfig', 'quiz'].includes(ctx.view)) || (item.id === 'recommendation' && ctx.view === 'recommendationList');
       return (
-        <button key={item.id} onClick={() => ctx.setView(item.id)} className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${active ? 'text-[#D4AF37]' : 'text-slate-500 hover:text-slate-300'}`}>
+       <button onClick={() => { ctx.setPreviousView(view); setView('alerts'); }} className="relative p-2 bg-[#0a0a0a] rounded-full border border-[#333] text-slate-400 hover:border-[#D4AF37]/50 transition-all">
+  <Bell className="w-5 h-5" />
           <item.i className="w-5 h-5" /><span className="text-[9px] font-bold uppercase tracking-wider">{item.text}</span>
         </button>
       );
@@ -254,7 +255,14 @@ const SommelierButton = ({ text }) => {
     e.stopPropagation(); 
     if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); return; }
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'fr-FR'; utterance.rate = 0.9; utterance.onend = () => setIsSpeaking(false);
+    utterance.lang = 'fr-FR'; utterance.rate = 0.95; 
+    
+    // Tentative de forcer une voix plus naturelle
+    const voices = window.speechSynthesis.getVoices();
+    const frVoice = voices.find(v => v.lang === 'fr-FR' && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Thomas'))) || voices.find(v => v.lang.startsWith('fr'));
+    if (frVoice) utterance.voice = frVoice;
+
+    utterance.onend = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance); setIsSpeaking(true);
   };
   return (
@@ -1016,11 +1024,19 @@ const ResultsView = ({ ctx }) => {
 
         {activeTab === 'infos' && (
           <div className="space-y-4 animate-in fade-in">
-            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] text-sm text-slate-300 leading-relaxed">{d.description}</div>
-            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
-              <div><span className="text-xs text-slate-500 block">Prix Indicatif</span><span className="text-2xl font-black text-[#D4AF37]">{tempPrix} €</span></div>
-              <div className="text-right"><span className="text-xs text-slate-500 block">Garde</span><span className="text-sm font-bold text-white">{d.potentiel_garde}</span></div>
-            </div>
+           <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] text-sm text-slate-300 leading-relaxed">{d.description}</div>
+           <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
+             <div><span className="text-xs text-slate-500 block">Prix Indicatif</span><span className="text-2xl font-black text-[#D4AF37]">{tempPrix} €</span></div>
+             <div className="text-right"><span className="text-xs text-slate-500 block">Garde</span><span className="text-sm font-bold text-white">{d.potentiel_garde}</span></div>
+           </div>
+           {(() => {
+             const acc = getRecommendedAccessory(tempType);
+             return (
+               <a href={getAmazonAffiliateLink(acc.search)} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black py-4 rounded-2xl shadow-lg hover:bg-[#AA7C11] transition-colors mt-4">
+               Accessoire recommandé : {acc.name}
+             </a>
+            );
+           })()}
           </div>
         )}
 
@@ -1049,24 +1065,42 @@ const ResultsView = ({ ctx }) => {
           </div>
         )}
 
-        {activeTab === 'cave' && (
-          <div className="space-y-4 animate-in fade-in">
-            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
-              <span className="text-sm font-bold text-slate-300">Bouteilles en stock :</span>
-              <div className="flex items-center space-x-3">
-                <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-8 h-8 bg-[#0a0a0a] border border-[#333] rounded font-bold">-</button>
-                <span className="text-lg font-black text-[#D4AF37] w-6 text-center">{stock}</span>
-                <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-8 h-8 bg-[#D4AF37] text-black rounded font-bold">+</button>
-              </div>
-            </div>
-            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
-              <input type="text" value={tempLocation} onChange={e=>setTempLocation(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {location: tempLocation})} placeholder="Rangement (ex: Étagère A)..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
-              <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation personnelles..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
-            </div>
-            <button onClick={() => ctx.generateAndShareInstagramImage(ctx.showToast)} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
-            <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-3 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-bold">Supprimer de l'application</button>
-            <InstagramShareCanvas wine={currentItem} rating={rating} notes={tempNotes} />
-          </div>
+         {activeTab === 'cave' && (
+  <div className="space-y-4 animate-in fade-in">
+    <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
+      <span className="text-sm font-bold text-slate-300">Bouteilles en stock :</span>
+      <div className="flex items-center space-x-3">
+        <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-8 h-8 bg-[#0a0a0a] border border-[#333] rounded font-bold">-</button>
+        <span className="text-lg font-black text-[#D4AF37] w-6 text-center">{stock}</span>
+        <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-8 h-8 bg-[#D4AF37] text-black rounded font-bold">+</button>
+      </div>
+    </div>
+    
+    <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
+      <div className="flex space-x-2">
+        <select value={tempType} onChange={e => { 
+            setTempType(e.target.value); 
+            const updatedData = normalizeData({...currentItem.data, type_simplifie: e.target.value});
+            ctx.genericUpdate(currentItem.id, { data: updatedData });
+          }} className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]">
+          <option value="ROUGE">Rouge</option>
+          <option value="BLANC">Blanc</option>
+          <option value="ROSE">Rosé</option>
+          <option value="PETILLANT">Pétillant</option>
+        </select>
+        <input type="text" value={tempAnnee} onChange={e => setTempAnnee(e.target.value)} onBlur={() => {
+            const updatedData = normalizeData({...currentItem.data, annee: tempAnnee});
+            ctx.genericUpdate(currentItem.id, { data: updatedData });
+          }} placeholder="Année (ex: 2018)" className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+      </div>
+      <input type="text" value={tempLocation} onChange={e=>setTempLocation(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {location: tempLocation})} placeholder="Rangement (ex: Étagère A)..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+      <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation personnelles..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
+    </div>
+    
+    <button onClick={() => ctx.generateAndShareInstagramImage(ctx.showToast)} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
+    <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-3 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-bold">Supprimer de l'application</button>
+    <InstagramShareCanvas wine={currentItem} rating={rating} notes={tempNotes} />
+  </div>
         )}
         <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
          {/* NOUVEAU : Édition du Type et de l'Année */}
