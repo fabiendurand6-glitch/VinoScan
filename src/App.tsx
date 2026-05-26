@@ -14,7 +14,7 @@ import html2canvas from 'html2canvas';
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs } from 'firebase/firestore';
 
 // =========================================================================
 // CONFIGURATION SÉCURISÉE (SANS CACHE EXPÉRIMENTAL POUR VERCEL)
@@ -1358,7 +1358,7 @@ export default function App() {
       sc.sort((a, b) => b.timestamp - a.timestamp); setScanHistory(sc);
       if (totalV > 0) saveCellarValueSnapshot(user, totalV);
     });
-    const unsubValue = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'value_history'), orderBy('timestamp', 'asc')), (s) => { let vh = []; s.forEach(d => vh.push(d.data())); setValueHistory(vh); });
+    const unsubValue = onSnapshot(firestoreQuery(collection(db, 'artifacts', appId, 'users', user.uid, 'value_history'), orderBy('timestamp', 'asc')), (s) => { let vh = []; s.forEach(d => vh.push(d.data())); setValueHistory(vh); });
     const unsubAlerts = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'alerts'), (s) => { let al = []; s.forEach(d => al.push(d.data())); al.sort((a, b) => b.timestamp - a.timestamp); setAlerts(al); });
     return () => { unsubScans(); unsubValue(); unsubAlerts(); };
   }, [user]);
