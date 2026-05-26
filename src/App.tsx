@@ -240,8 +240,7 @@ const NavigationBar = ({ ctx }) => (
     {[{id:'home', i:Home, text:'Scanner'},{id:'cellar', i:Archive, text:'Cave'},{id:'recommendation', i:Sparkles, text:'Conseil'},{id:'history', i:History, text:'Histo'},{id:'account', i:User, text:'Profil'}].map(item => {
       const active = ctx.view.includes(item.id) || (item.id === 'home' && ['manualSearch', 'menuConfig', 'quiz'].includes(ctx.view)) || (item.id === 'recommendation' && ctx.view === 'recommendationList');
       return (
-       <button onClick={() => { ctx.setPreviousView(view); setView('alerts'); }} className="relative p-2 bg-[#0a0a0a] rounded-full border border-[#333] text-slate-400 hover:border-[#D4AF37]/50 transition-all">
-  <Bell className="w-5 h-5" />
+        <button onClick={() => { ctx.setPreviousView(view); ctx.setView('alerts'); }} className="relative p-2 bg-[#0a0a0a] rounded-full border border-[#333] text-slate-400 hover:border-[#D4AF37]/50 transition-all">
           <item.i className="w-5 h-5" /><span className="text-[9px] font-bold uppercase tracking-wider">{item.text}</span>
         </button>
       );
@@ -1024,32 +1023,19 @@ const ResultsView = ({ ctx }) => {
 
         {activeTab === 'infos' && (
           <div className="space-y-4 animate-in fade-in">
-           <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] text-sm text-slate-300 leading-relaxed">{d.description}</div>
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] text-sm text-slate-300 leading-relaxed">{d.description}</div>
            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
              <div><span className="text-xs text-slate-500 block">Prix Indicatif</span><span className="text-2xl font-black text-[#D4AF37]">{tempPrix} €</span></div>
-             <div className="text-right"><span className="text-xs text-slate-500 block">Garde</span><span className="text-sm font-bold text-white">{d.potentiel_garde}</span></div>
+              <div className="text-right"><span className="text-xs text-slate-500 block">Garde</span><span className="text-sm font-bold text-white">{d.potentiel_garde}</span></div>
            </div>
            {(() => {
-             const acc = getRecommendedAccessory(tempType);
-             return (
-               <a href={getAmazonAffiliateLink(acc.search)} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black py-4 rounded-2xl shadow-lg hover:bg-[#AA7C11] transition-colors mt-4">
-               Accessoire recommandé : {acc.name}
-             </a>
-            );
-           })()}
-          </div>
-        )}
-
-        {activeTab === 'infos' && (
-         <div className="space-y-4 animate-in fade-in">
-           <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] text-sm text-slate-300 leading-relaxed">{d.description}</div>
-           <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
-             <div><span className="text-xs text-slate-500 block">Prix Indicatif</span><span className="text-2xl font-black text-[#D4AF37]">{tempPrix} €</span></div>               <div className="text-right"><span className="text-xs text-slate-500 block">Garde</span><span className="text-sm font-bold text-white">{d.potentiel_garde}</span></div>
-           </div>
-           {/* NOUVEAU : Bouton Amazon */}
-           <a href={getAmazonAffiliateLink(d.nom + " vin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black py-4 rounded-2xl shadow-lg hover:bg-[#AA7C11] transition-colors">
-             Rechercher sur Amazon
-            </a>
+              const acc = getRecommendedAccessory(tempType);
+              return (
+            <a href={getAmazonAffiliateLink(acc.search)} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black py-4 rounded-2xl shadow-lg hover:bg-[#AA7C11] transition-colors mt-4">
+             Accessoire recommandé : {acc.name}
+           </a>
+           );
+          })()}
           </div>
         )}
         {activeTab === 'service' && (
@@ -1225,7 +1211,7 @@ export default function App() {
   const analyzeImage = async (b64) => {
     setView('analyzing');
     try {
-      const prompt = `Expert Sommelier. Identifie le vin. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":20,"garde_min":5,"garde_max":15,"accord_parfait":"viande"}`;
+      const prompt = `Expert Sommelier. Identifie le vin. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":20,"garde_min":2,"garde_max":10,"accord_parfait":"viande"}. IMPORTANT: 'garde_min' et 'garde_max' doivent être des entiers stricts représentant les années de garde conseillées.`;
       const p1 = await callGemini(prompt, b64.split(',')[1]);
       await processAIResult(p1.candidates[0].content.parts[0].text, b64);
     } catch(e) { setErrorMsg("Erreur d'analyse IA."); setView('error'); }
