@@ -674,24 +674,22 @@ const RecommendationView = ({ ctx }) => {
     setIsPairingLoading(true);
     try {
       const inStockWines = ctx.scanHistory.filter(w => w.stock > 0);
-      if (inStockWines.length === 0) {
-        ctx.setErrorMsg("Votre cave est vide ! Ajoutez des vins avant de demander conseil.");
-        ctx.setView('error');
-        return;
-      }
+      if (inStockWines.length === 0) throw new Error("Cave vide");
       const inventoryString = inStockWines.map(w => `[ID: ${w.id}] ${w.data.nom} ${w.data.annee} (${w.data.type_simplifie})`).join('\n');
       const prompt = `Tu es le Sommelier privé. L'utilisateur mange : "${pairingDish}". Voici les vins dans sa cave : \n${inventoryString}\nChoisis LE MEILLEUR vin PARMI CETTE LISTE UNIQUEMENT pour ce plat. Réponds en JSON strict : {"chosen_id": "ID_ici", "explication": "Pourquoi ce choix (max 20 mots)"}`;
-      const result = await callGemini(prompt);
+      
+      const result = await ctx.callGemini(prompt);
       const parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
       const chosenWine = inStockWines.find(w => w.id === parsed.chosen_id);
       if(!chosenWine) throw new Error("Erreur IA");
-      ctx.showToast(`L'IA recommande : ${chosenWine.data.nom} !`);
-      ctx.openExistingWine(chosenWine, 'recommendation');
+      setPairingResult({ wine: chosenWine, explication: parsed.explication });
     } catch (e) {
-      ctx.setErrorMsg("Impossible de trouver un accord dans votre cave pour ce plat.");
+      ctx.setErrorMsg("Impossible de trouver un accord correspondant dans votre stock actuel."); 
       ctx.setView('error');
-    } finally { setIsPairingLoading(false); }
-  };
+    } finally { 
+      setIsPairingLoading(false); 
+    }
+  }; // <--- Vérifie bien que ces accolades ferment proprement la fonction !
 
   const imgTirebouchon = "https://images.unsplash.com/photo-1585652874135-c335805e7144?auto=format&fit=crop&w=800&q=80";
   const imgCarafe = "https://images.unsplash.com/photo-1585553616435-2dc0a54e271d?auto=format&fit=crop&w=800&q=80";
