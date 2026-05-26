@@ -930,18 +930,21 @@ const RecommendationListView = ({ ctx }) => {
 // CAVE, HISTORIQUE ET PROFIL
 // =========================================================================
 
+// =========================================================================
+// CAVE, HISTORIQUE ET NOTIFICATIONS
+// =========================================================================
+// =========================================================================
+// CAVE, HISTORIQUE ET NOTIFICATIONS
+// =========================================================================
 const CellarView = ({ ctx }) => {
   const [cellarTab, setCellarTab] = useState('STOCK');
   const [filterType, setFilterType] = useState('ALL');
   const [filterApogee, setFilterApogee] = useState('ALL');
   const [filterFood, setFilterFood] = useState('ALL');
   const [viewMode, setViewMode] = useState('shelves'); 
-  
   const [reorgMode, setReorgMode] = useState(false);
   const [selectedBottle, setSelectedBottle] = useState(null);
   const [newShelfName, setNewShelfName] = useState('');
-  const [draggedBottle, setDraggedBottle] = useState(null);
-
   const [showPairingModal, setShowPairingModal] = useState(false);
   const [pairingDish, setPairingDish] = useState('');
   const [pairingResult, setPairingResult] = useState(null);
@@ -953,12 +956,12 @@ const CellarView = ({ ctx }) => {
     return cellarItems.filter(item => {
       const matchType = filterType === 'ALL' || item.data.type_simplifie === filterType;
       const matchApogee = filterApogee === 'ALL' || item.data.statut_apogee === filterApogee;
-      const accordsStr = (item.data.accord_parfait + " " + (item.data.accords_mets || []).join(" ")).toUpperCase();
+      const accordsStr = ((item.data.accord_parfait || "") + " " + (item.data.accords_mets || []).join(" ")).toUpperCase();
       let matchFood = true;
       if (filterFood === 'VIANDE') matchFood = accordsStr.includes('VIANDE');
       else if (filterFood === 'POISSON') matchFood = accordsStr.includes('POISSON') || accordsStr.includes('MER');
       else if (filterFood === 'FROMAGE') matchFood = accordsStr.includes('FROMAGE');
-      else if (filterFood === 'APERITIF') matchFood = accordsStr.includes('APÉRITIF') || accordsStr.includes('APERITIF');
+      else if (filterFood === 'APERITIF') matchFood = accordsStr.includes('APERITIF');
       return matchType && matchApogee && matchFood;
     });
   }, [cellarItems, filterType, filterApogee, filterFood]);
@@ -972,42 +975,14 @@ const CellarView = ({ ctx }) => {
       if (!groups[loc]) groups[loc] = [];
       groups[loc].push(item);
     });
-    Object.keys(groups).forEach(key => {
-      groups[key].sort((a, b) => (b.customOrder || b.timestamp) - (a.customOrder || a.timestamp));
-    });
     return groups;
   }, [filteredItems]);
 
   const totalBottles = cellarTab === 'STOCK' ? filteredItems.reduce((acc, curr) => acc + (parseInt(curr.stock) || 0), 0) : filteredItems.length;
   const totalValue = filteredItems.reduce((acc, curr) => acc + ((curr.data.prix_unitaire_nombre || 0) * (cellarTab === 'STOCK' ? (parseInt(curr.stock) || 0) : 1)), 0);
 
-  const handleDragStart = (e, bottle) => { e.dataTransfer.setData('text/plain', bottle.id); setDraggedBottle(bottle.id); };
-  const handleDrop = (e, targetShelf, targetBottleId = null) => {
-    e.preventDefault();
-    const draggedId = e.dataTransfer.getData('text/plain');
-    setDraggedBottle(null);
-    if (!draggedId || draggedId === targetBottleId) return;
-    const draggedItem = ctx.scanHistory.find(b => b.id === draggedId);
-    if (!draggedItem) return;
-    if (targetBottleId) {
-      const targetItem = ctx.scanHistory.find(b => b.id === targetBottleId);
-      if (targetItem) {
-        const targetOrder = targetItem.customOrder || targetItem.timestamp || Date.now();
-        const draggedOrder = draggedItem.customOrder || draggedItem.timestamp || Date.now();
-        ctx.genericUpdate(draggedId, { location: targetShelf, customOrder: targetOrder + 1 });
-        ctx.genericUpdate(targetBottleId, { customOrder: draggedOrder - 1 });
-      }
-    } else {
-      ctx.genericUpdate(draggedId, { location: targetShelf });
-    }
-  };
-  const handleDragOver = (e) => { e.preventDefault(); };
-
   const handleMoveBottleClick = (locName) => {
-    if (selectedBottle) {
-      ctx.genericUpdate(selectedBottle.id, { location: locName });
-      setSelectedBottle(null); setNewShelfName(''); ctx.showToast("Bouteille déplacée !");
-    }
+    if (selectedBottle) { ctx.genericUpdate(selectedBottle.id, { location: locName }); setSelectedBottle(null); setNewShelfName(''); ctx.showToast("Bouteille déplacée !"); }
   };
 
   const handleAskCellarSommelier = async () => {
@@ -1016,233 +991,66 @@ const CellarView = ({ ctx }) => {
     try {
       const inStockWines = ctx.scanHistory.filter(w => w.stock > 0);
       if (inStockWines.length === 0) throw new Error("Cave vide");
-      const inventoryString = inStockWines.map(w => `[ID: ${w.id}] ${w.data.nom} ${w.data.annee} (${w.data.type_simplifie})`).join('\n');
-      const prompt = `Tu es le Sommelier privé. L'utilisateur mange : "${pairingDish}". Voici les vins dans sa cave : \n${inventoryString}\nChoisis LE MEILLEUR vin PARMI CETTE LISTE UNIQUEMENT pour ce plat. Réponds en JSON strict : {"chosen_id": "ID_ici", "explication": "Pourquoi ce choix (max 20 mots)"}`;
-      
-      if (!apiKey) {
-        setPairingResult({ wine: inStockWines[0], explication: "Mode démo : je choisis votre premier vin car la clé API manque." });
-        setIsPairingLoading(false);
-        return;
-      }
-      
-      const result = await callGemini(prompt);
-      const parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
+      const inventoryString = inStockWines.map(w => `[ID: ${w.id}] ${w.data.nom} ${w.data.annee}`).join('\n');
+      const prompt = `Sommelier privé. Plat: "${pairingDish}". Cave:\n${inventoryString}\nChoisis le meilleur vin parmi la liste en JSON strict: {"chosen_id": "ID", "explication": "Pourquoi (20 mots max)"}`;
+      const result = await ctx.callGemini(prompt);
+      const parsed = extractJSON(result.candidates[0].content.parts[0].text);
       const chosenWine = inStockWines.find(w => w.id === parsed.chosen_id);
-      if(!chosenWine) throw new Error("Erreur IA");
-      setPairingResult({ wine: chosenWine, explication: parsed.explication });
-    } catch (e) {
-      ctx.setErrorMsg("Impossible de trouver un accord correspondant dans votre stock actuel."); 
-      ctx.setView('error');
-    } finally { setIsPairingLoading(false); }
-  };
-
-  const getApogeeBadge = (statut) => {
-    switch(statut) {
-      case 'A_GARDER': return <div className="flex items-center space-x-1 text-xs text-indigo-400 bg-[#0a0a0a] border border-[#333] px-2 py-0.5 rounded font-medium"><Clock className="w-3 h-3" /><span>À garder</span></div>;
-      case 'DECLIN': return <div className="flex items-center space-x-1 text-xs text-red-400 bg-[#0a0a0a] border border-[#333] px-2 py-0.5 rounded font-medium"><TrendingDown className="w-3 h-3" /><span>Déclin</span></div>;
-      default: return <div className="flex items-center space-x-1 text-xs text-emerald-400 bg-[#0a0a0a] border border-[#333] px-2 py-0.5 rounded font-medium"><CheckCircle className="w-3 h-3" /><span>Apogée</span></div>;
-    }
+      setPairingResult({ wine: chosenWine || inStockWines[0], explication: parsed.explication });
+    } catch (e) { ctx.showToast("Erreur d'accord IA"); } finally { setIsPairingLoading(false); }
   };
 
   const fallbackImg = "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=800&q=80";
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 relative select-none">
-      <div className="bg-[#1A1A1A] pt-12 pb-4 px-4 shadow-xl border-b border-[#333] z-10 sticky top-0">
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none">
+      <div className="bg-[#1A1A1A] pt-12 pb-4 px-4 shadow-xl border-b border-[#333]">
         <div className="flex justify-between items-end mb-4">
-          <div><h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Mes Vins</h1><p className="text-slate-400 text-sm mt-1">{totalBottles} bouteilles</p></div>
-          <div className="text-right"><p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Valeur Estimée</p><div className="text-emerald-500"><span className="text-2xl font-bold">{totalValue.toFixed(0)}</span>€</div></div>
+          <div><h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Mes Vins</h1><p className="text-slate-400 text-sm">{totalBottles} flacons</p></div>
+          <div className="text-right"><p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Valeur Estimée</p><div className="text-emerald-500 font-bold text-2xl">{totalValue.toFixed(0)}€</div></div>
         </div>
-
-        <div className="flex bg-[#0a0a0a] p-1 rounded-xl mb-4 border border-[#333]">
-          <button onClick={() => setCellarTab('STOCK')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${cellarTab === 'STOCK' ? 'bg-[#1A1A1A] text-[#D4AF37] border border-[#D4AF37]/30 shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>En Cave</button>
-          <button onClick={() => setCellarTab('WISHLIST')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${cellarTab === 'WISHLIST' ? 'bg-[#1A1A1A] text-[#D4AF37] border border-[#D4AF37]/30 shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>Liste d'Achats</button>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex justify-between items-center border-b border-[#333] pb-2 mb-2">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Trier & Filtrer</span>
-            <div className="flex bg-[#0a0a0a] rounded-lg p-0.5 border border-[#333]">
-               <button onClick={() => { setViewMode('list'); setReorgMode(false); }} className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-[#1A1A1A] text-[#F5F5F5]' : 'text-slate-600'}`}><List className="w-4 h-4" /></button>
-               <button onClick={() => setViewMode('shelves')} className={`p-1.5 rounded-md transition-colors ${viewMode === 'shelves' ? 'bg-[#1A1A1A] text-[#F5F5F5]' : 'text-slate-600'}`}><LayoutGrid className="w-4 h-4" /></button>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide">
-            <Filter className="w-4 h-4 text-slate-500 shrink-0" />
-            {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => (
-              <button key={t} onClick={() => setFilterType(t)} className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400 hover:text-white'}`}>{t === 'ALL' ? 'Tous types' : t}</button>
-            ))}
-          </div>
-          
-          <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
-            <Clock className="w-4 h-4 text-slate-500 shrink-0" />
-            {['ALL', 'A_GARDER', 'APOGEE', 'DECLIN'].map(a => {
-              const labels = { ALL: 'Toutes dates', A_GARDER: 'À garder', APOGEE: 'À boire', DECLIN: 'Déclin' };
-              return <button key={a} onClick={() => setFilterApogee(a)} className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${filterApogee === a ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400 hover:text-white'}`}>{labels[a]}</button>
-            })}
-          </div>
-
-          <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
-            <Utensils className="w-4 h-4 text-slate-500 shrink-0" />
-            {['ALL', 'VIANDE', 'POISSON', 'FROMAGE', 'APERITIF'].map(f => (
-              <button key={f} onClick={() => setFilterFood(f)} className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${filterFood === f ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400 hover:text-white'}`}>
-                {f === 'ALL' ? 'Tous plats' : f}
-              </button>
-            ))}
-          </div>
+        <div className="flex bg-[#0a0a0a] p-1 rounded-xl border border-[#333]">
+          <button onClick={() => setCellarTab('STOCK')} className={`flex-1 py-2 text-sm font-bold rounded-lg ${cellarTab === 'STOCK' ? 'bg-[#1A1A1A] text-[#D4AF37]' : 'text-slate-500'}`}>En Cave</button>
+          <button onClick={() => setCellarTab('WISHLIST')} className={`flex-1 py-2 text-sm font-bold rounded-lg ${cellarTab === 'WISHLIST' ? 'bg-[#1A1A1A] text-[#D4AF37]' : 'text-slate-500'}`}>Achats</button>
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        
+      <div className="p-4 space-y-4 flex-1">
         {cellarTab === 'STOCK' && totalBottles > 0 && (
-          <button onClick={() => {setShowPairingModal(true); setPairingResult(null); setPairingDish('');}} className="w-full bg-[#1A1A1A] border border-[#D4AF37]/30 text-white rounded-3xl p-6 shadow-lg flex items-center justify-between active:scale-95 transition-transform mb-4">
-            <div className="text-left flex-1 pr-4">
-              <h3 className="font-serif text-xl font-bold flex items-center mb-1"><Sparkles className="w-5 h-5 mr-2 text-[#D4AF37]"/> Que boire ce soir ?</h3>
-              <p className="text-xs text-slate-400">Demandez au sommelier d'explorer votre cave.</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-[#0a0a0a] border border-[#333] flex items-center justify-center shrink-0">
-              <ChevronRight className="w-5 h-5 text-[#D4AF37]" />
-            </div>
+          <button onClick={() => {setShowPairingModal(true); setPairingResult(null); setPairingDish('');}} className="w-full bg-[#1A1A1A] border border-[#D4AF37]/30 text-white rounded-3xl p-6 shadow-lg flex items-center justify-between">
+            <div className="text-left"><h3 className="font-serif text-xl font-bold flex items-center"><Sparkles className="w-5 h-5 mr-2 text-[#D4AF37]"/> Que boire ce soir ?</h3><p className="text-xs text-slate-400">L'IA fouille votre cave selon votre plat</p></div>
+            <ChevronRight className="w-5 h-5 text-[#D4AF37]" />
           </button>
         )}
 
-        {viewMode === 'shelves' && cellarTab === 'STOCK' && (
-          <div className="flex justify-between items-center bg-[#1A1A1A] border border-[#333] rounded-xl p-3 mb-2">
-            <p className="text-[10px] text-slate-400 font-bold uppercase"><b className="text-[#D4AF37]">Astuce :</b> Glissez une bouteille.</p>
-            <button onClick={() => { setReorgMode(!reorgMode); setSelectedBottle(null); }} className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border ${reorgMode ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#0a0a0a] border-[#333] text-slate-400'}`}>
-              <GripHorizontal className="w-3 h-3" /><span>{reorgMode ? 'Terminer' : 'Sur Mobile ?'}</span>
-            </button>
-          </div>
-        )}
-
-        {filteredItems.length === 0 && (
-          <div className="text-center p-6 opacity-50 mt-10"><Archive className="w-16 h-16 mx-auto mb-4 text-slate-600" /><p className="font-medium text-slate-400">Aucun vin ne correspond.</p></div>
-        )}
-
-        {/* AFFICHAGE LISTE (DESIGN DISCOVERY COMPACT) */}
-        {filteredItems.length > 0 && viewMode === 'list' && (
-          <div className="space-y-4">
-            {filteredItems.map((item) => (
-              <div key={item.id} className="bg-[#1A1A1A] rounded-3xl shadow-md border border-[#333] overflow-hidden hover:border-[#D4AF37]/50 transition-colors group">
-                <div onClick={() => ctx.openExistingWine(item, 'cellar')} className="flex items-stretch cursor-pointer">
-                  <div className="flex-1 p-5 flex flex-col justify-between min-w-0">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] bg-[#D4AF37]/10 border border-[#D4AF37]/40 px-2 py-1 rounded">{item.data.type_simplifie === 'PETILLANT' ? 'Pétillant' : (item.data.type_simplifie || 'VIN')}</span>
-                        <span className="text-[10px] font-medium text-slate-400 bg-[#0a0a0a] px-2 py-1 rounded-md border border-[#333]">{item.data.annee}</span>
-                      </div>
-                      <h3 className="font-serif text-[#F5F5F5] text-lg leading-tight mb-2 truncate font-bold group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#D4AF37] group-hover:to-[#AA7C11] transition-all">{item.data.nom}</h3>
-                      {item.location && <p className="text-xs text-slate-500 font-medium flex items-center mt-2"><MapPin className="w-3 h-3 mr-1 text-[#D4AF37]"/> {item.location}</p>}
-                    </div>
-                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#333]">
-                      {getApogeeBadge(item.data.statut_apogee)}
-                      <span className="text-sm font-bold text-emerald-400 bg-emerald-900/30 border border-emerald-800/50 px-2 py-1 rounded">{item.data.prix_unitaire_nombre}€</span>
-                    </div>
-                  </div>
-                  <div className="w-28 shrink-0 bg-[#0a0a0a] border-l border-[#333] relative flex items-center justify-center p-2.5">
-                    <img src={item.image || fallbackImg} onError={(e) => {e.target.onerror = null; e.target.src = fallbackImg;}} alt={item.data.nom} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500" />
-                    {item.stock > 1 && <span className="absolute -top-1 -right-1 bg-[#D4AF37] text-black text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md z-10 border border-black">x{item.stock}</span>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* AFFICHAGE ETAGERES (SHELVES) */}
-        {filteredItems.length > 0 && viewMode === 'shelves' && (
-          <div className="space-y-10 mt-6">
-             {Object.entries(groupedByLocation).map(([shelfName, bottles]) => (
-                <div key={shelfName} className="mb-8">
-                   <div className="flex items-center justify-between mb-4 px-2">
-                      <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center"><MapPin className="w-5 h-5 mr-2 text-[#D4AF37]" /> {shelfName}</h3>
-                      <span className="bg-[#1A1A1A] border border-[#333] text-slate-400 text-xs font-bold px-3 py-1 rounded-full">{bottles.length} bouteilles</span>
-                   </div>
-                   <div onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, shelfName === 'Vins non rangés' ? '' : shelfName)} className="grid grid-cols-3 gap-4 bg-[#1A1A1A]/50 p-4 rounded-3xl border border-[#333] shadow-inner min-h-[200px]">
-                      {bottles.map(bottle => (
-                         <div key={bottle.id} draggable={!reorgMode} onDragStart={(e) => handleDragStart(e, bottle)} onDragEnd={() => setDraggedBottle(null)} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, shelfName === 'Vins non rangés' ? '' : shelfName, bottle.id)} onClick={() => { if (reorgMode) setSelectedBottle(bottle); else ctx.openExistingWine(bottle, 'cellar'); }} className={`relative flex flex-col bg-[#1A1A1A] rounded-2xl p-3 shadow-md border border-[#333] cursor-pointer transition-all duration-300 group ${draggedBottle === bottle.id ? 'opacity-40 scale-95' : 'hover:-translate-y-1 hover:border-[#D4AF37]/50'} ${reorgMode ? 'ring-2 ring-[#D4AF37] animate-pulse' : ''}`}>
-                            <div className="relative h-28 w-full mb-3 flex items-center justify-center bg-[#0a0a0a] rounded-xl border border-[#222]">
-                               <img src={bottle.image} onError={(e) => { e.target.onerror = null; e.target.src = fallbackImg; }} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500" alt={bottle.data.nom} />
-                               {cellarTab === 'STOCK' && bottle.stock > 1 && <span className="absolute -top-2 -right-2 bg-[#D4AF37] text-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold shadow-md z-10 border border-black">x{bottle.stock}</span>}
-                            </div>
-                            <div className="flex flex-col items-center text-center">
-                               <span className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${bottle.data.type_simplifie === 'ROUGE' ? 'text-rose-400' : bottle.data.type_simplifie === 'BLANC' ? 'text-amber-200' : bottle.data.type_simplifie === 'PETILLANT' ? 'text-yellow-400' : 'text-pink-400'}`}>{bottle.data.type_simplifie}</span>
-                               <h4 className="text-xs font-bold text-[#F5F5F5] leading-tight line-clamp-2 mb-1">{bottle.data.nom}</h4>
-                               <span className="text-[10px] font-medium text-slate-400 bg-[#0a0a0a] px-2 py-0.5 rounded-md border border-[#333] mt-1">{bottle.data.annee}</span>
-                            </div>
-                         </div>
-                      ))}
-                      {Array.from({length: Math.max(0, 3 - (bottles.length % 3 === 0 && bottles.length > 0 ? 3 : bottles.length % 3))}).map((_, i) => (
-                        <div key={`empty-${i}`} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, shelfName === 'Vins non rangés' ? '' : shelfName)} className="flex flex-col items-center justify-center border-2 border-dashed border-[#333] rounded-2xl bg-[#0a0a0a]/50 min-h-[160px]">
-                           <div className="w-8 h-8 rounded-full border-2 border-[#333]"></div>
-                        </div>
-                      ))}
-                   </div>
-                </div>
-             ))}
-
-             <div onDragOver={handleDragOver} onDrop={(e) => { e.preventDefault(); setDraggedBottle(null); const newName = window.prompt("Nom de la nouvelle étagère ?"); if (newName && newName.trim() !== '') handleDrop(e, newName); }} className="mt-8 border-2 border-dashed border-[#333] rounded-2xl p-8 flex flex-col items-center justify-center text-slate-500 hover:border-[#D4AF37] hover:bg-[#1A1A1A] hover:text-[#D4AF37] transition-all cursor-pointer shadow-sm">
-               <Plus className="w-8 h-8 mb-2" />
-               <p className="font-bold text-xs uppercase tracking-wider text-center">Glissez un vin ici pour<br/>créer une étagère</p>
-             </div>
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-4">
+          {filteredItems.map(item => (
+            <div key={item.id} onClick={() => ctx.openExistingWine(item, 'cellar')} className="bg-[#1A1A1A] border border-[#333] p-4 rounded-2xl cursor-pointer hover:border-[#D4AF37]/50 transition-colors">
+              <div className="h-32 bg-black rounded-xl p-2 flex items-center justify-center mb-2"><img src={item.image || fallbackImg} className="max-h-full object-contain" alt="wine" /></div>
+              <h4 className="text-sm font-bold truncate text-white">{item.data.nom}</h4>
+              <p className="text-xs text-slate-400">{item.data.annee} • {item.data.type_simplifie}</p>
+              <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#222]"><span className="text-xs text-slate-500 truncate max-w-[80px]">{item.location || "Non rangé"}</span><span className="text-xs bg-[#222] px-2 py-0.5 rounded text-[#D4AF37] font-bold">x{item.stock}</span></div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {selectedBottle && (
-        <div className="fixed inset-0 z-[100] bg-black/80 flex items-end justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[#1A1A1A] w-full max-w-sm rounded-3xl p-6 shadow-2xl mb-safe border border-[#333]">
-             <h3 className="font-serif text-2xl font-bold text-white mb-1">Ranger la bouteille</h3>
-             <p className="text-slate-400 text-sm mb-6">Où déplacer <b>{selectedBottle.data.nom}</b> ?</p>
-             <div className="space-y-2 max-h-48 overflow-y-auto mb-6 pr-2">
-               {existingLocations.length > 0 ? existingLocations.map(loc => (
-                 <button key={loc} onClick={() => handleMoveBottleClick(loc)} className="w-full text-left p-4 rounded-2xl bg-[#0a0a0a] border border-[#333] text-[#F5F5F5] font-bold transition-colors">
-                   <MapPin className="w-4 h-4 inline mr-3 text-[#D4AF37]" /> {loc}
-                 </button>
-               )) : <p className="text-slate-500 text-sm italic text-center py-4 bg-[#0a0a0a] rounded-xl border border-[#333]">Aucune étagère.</p>}
-               <button onClick={() => handleMoveBottleClick('')} className="w-full text-left p-4 rounded-2xl bg-[#0a0a0a] border border-[#333] text-slate-500 italic">Retirer de l'étagère</button>
-             </div>
-             <div className="flex space-x-2 border-t border-[#333] pt-6">
-               <input type="text" placeholder="Nouvelle étagère..." value={newShelfName} onChange={(e) => setNewShelfName(e.target.value)} className="flex-1 bg-[#0a0a0a] border border-[#333] text-white rounded-2xl px-4 py-4 outline-none focus:border-[#D4AF37] font-medium" />
-               <button onClick={() => handleMoveBottleClick(newShelfName)} disabled={!newShelfName.trim()} className="px-6 py-4 bg-[#D4AF37] text-black rounded-2xl font-bold disabled:opacity-50">Créer</button>
-             </div>
-             <button onClick={() => { setSelectedBottle(null); setNewShelfName(''); }} className="mt-4 w-full py-4 text-slate-400 font-bold hover:bg-[#222] rounded-2xl transition-colors">Annuler</button>
-          </div>
-        </div>
-      )}
-
       {showPairingModal && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#1A1A1A] border border-[#333] rounded-3xl p-6 w-full max-w-sm relative shadow-2xl text-white">
-            <button onClick={() => setShowPairingModal(false)} className="absolute top-4 right-4 p-2 bg-[#0a0a0a] border border-[#333] rounded-full text-slate-400 hover:text-white transition-colors"><X className="w-5 h-5"/></button>
-            
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-[#1A1A1A] border border-[#333] rounded-3xl p-6 w-full max-w-sm relative text-white shadow-2xl">
+            <button onClick={() => setShowPairingModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white"><X className="w-5 h-5"/></button>
             {!pairingResult ? (
-              <div className="space-y-4 mt-4">
-                <div className="w-16 h-16 bg-[#0a0a0a] border border-[#D4AF37]/40 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg"><Utensils className="w-8 h-8 text-[#D4AF37]"/></div>
-                <h3 className="font-serif text-2xl font-bold text-center text-[#F5F5F5]">Que mangez-vous ?</h3>
-                <p className="text-sm text-center text-slate-400">Le sommelier va fouiller votre stock pour dégoter la bouteille idéale.</p>
-                <input autoFocus type="text" placeholder="Ex: Côte de bœuf, Risotto..." value={pairingDish} onChange={e=>setPairingDish(e.target.value)} className="w-full p-4 bg-[#0a0a0a] border border-[#333] text-white rounded-xl focus:border-[#D4AF37] outline-none shadow-inner" />
-                <button onClick={handleAskCellarSommelier} disabled={!pairingDish.trim() || isPairingLoading} className="w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black font-bold rounded-xl shadow-lg flex items-center justify-center disabled:opacity-50 transition-colors">
-                  {isPairingLoading ? <RefreshCw className="w-5 h-5 animate-spin"/> : "Fouiller ma cave"}
-                </button>
+              <div className="space-y-4 mt-2">
+                <h3 className="font-serif text-xl font-bold text-center">Que mangez-vous ?</h3>
+                <input type="text" placeholder="Ex: Côte de bœuf, Risotto..." value={pairingDish} onChange={e=>setPairingDish(e.target.value)} className="w-full p-4 bg-black border border-[#333] rounded-xl text-white outline-none focus:border-[#D4AF37]" />
+                <button onClick={handleAskCellarSommelier} disabled={!pairingDish.trim() || isPairingLoading} className="w-full py-4 bg-[#D4AF37] text-black font-bold rounded-xl shadow-lg flex justify-center">{isPairingLoading ? <RefreshCw className="w-5 h-5 animate-spin"/> : "Fouiller ma cave"}</button>
               </div>
             ) : (
-              <div className="space-y-4 mt-4 animate-in slide-in-from-bottom-4">
-                <h3 className="font-serif text-xl font-bold text-center text-[#D4AF37]">L'accord parfait !</h3>
-                <div onClick={() => {setShowPairingModal(false); ctx.openExistingWine(pairingResult.wine, 'cellar');}} className="border border-[#333] bg-[#0a0a0a] rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:border-[#D4AF37]/50 transition-all shadow-xl">
-                  <div className="w-16 h-24 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-[#1A1A1A] border border-[#222]">
-                    <img src={pairingResult.wine.image} onError={(e) => {e.target.onerror=null; e.target.src=fallbackImg;}} className="max-w-full max-h-full object-contain" alt="Selected Wine" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-wider bg-[#1A1A1A] px-2 py-0.5 rounded border border-[#333]">{pairingResult.wine.data.type_simplifie}</span>
-                    <h4 className="font-bold text-white leading-tight mb-2 truncate mt-1">{pairingResult.wine.data.nom}</h4>
-                    <p className="text-xs text-slate-400 italic">"{pairingResult.explication}"</p>
-                  </div>
-                </div>
-                {pairingResult.wine.location && <p className="text-xs text-center font-bold text-slate-500 uppercase tracking-wider"><MapPin className="w-3 h-3 inline mr-1 text-[#D4AF37]" />{pairingResult.wine.location}</p>}
-                <button onClick={() => setShowPairingModal(false)} className="w-full py-3 bg-[#333] text-white font-bold rounded-xl mt-4 border border-[#444] hover:bg-[#444] transition-colors">Fermer</button>
+              <div className="space-y-4 mt-2 text-center">
+                <h3 className="text-[#D4AF37] font-bold text-lg">L'accord parfait !</h3>
+                <p className="font-bold text-white text-xl">{pairingResult.wine?.data?.nom}</p>
+                <p className="text-sm text-slate-400 italic bg-black/40 p-3 rounded-xl border border-[#222]">"{pairingResult.explication}"</p>
+                <button onClick={() => setShowPairingModal(false)} className="w-full py-3 bg-[#333] rounded-xl font-bold">Fermer</button>
               </div>
             )}
           </div>
@@ -1255,54 +1063,18 @@ const CellarView = ({ ctx }) => {
 const HistoryView = ({ ctx }) => {
   const historyItems = ctx.scanHistory.filter(item => item.in_history !== false);
   const fallbackImg = "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=800&q=80";
-
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 select-none">
-      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 border-b border-[#333]">
-        <h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Historique</h1>
-        <p className="text-slate-400 text-xs mt-1 font-medium uppercase tracking-wider">{historyItems.length} bouteilles analysées</p>
-      </div>
-      
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 border-b border-[#333] shadow-sm"><h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Historique</h1><p className="text-slate-400 text-xs mt-1 uppercase tracking-wider">{historyItems.length} bouteilles analysées</p></div>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {historyItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-50">
-            <History className="w-16 h-16 mb-4 text-slate-500" />
-            <p className="text-slate-400 font-medium">Aucun historique de scan.</p>
-          </div>
+          <div className="flex flex-col items-center justify-center h-full opacity-50"><History className="w-16 h-16 mb-4 text-slate-500" /><p className="text-slate-400 font-medium">Aucun historique.</p></div>
         ) : (
           historyItems.map((item) => (
-            <div key={item.id} className="bg-[#1A1A1A] rounded-3xl shadow-md border border-[#333] overflow-hidden hover:border-[#D4AF37]/50 transition-colors group">
-              <div onClick={() => ctx.openExistingWine(item, 'history')} className="flex items-stretch cursor-pointer">
-                
-                <div className="flex-1 p-5 flex flex-col justify-between min-w-0">
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] bg-[#D4AF37]/10 border border-[#D4AF37]/40 px-2 py-1 rounded">
-                        {item.data.type_simplifie === 'PETILLANT' ? 'PÉTILLANT' : (item.data.type_simplifie || 'VIN')}
-                      </span>
-                      <span className="text-[10px] font-medium text-slate-400 bg-[#0a0a0a] px-2 py-1 rounded-md border border-[#333]">
-                        {item.data.annee}
-                      </span>
-                    </div>
-                    <h3 className="font-serif text-[#F5F5F5] text-lg leading-tight mb-2 truncate group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#D4AF37] group-hover:to-[#AA7C11] transition-all duration-300 font-bold">
-                      {item.data.nom}
-                    </h3>
-                    {item.stock > 0 && <span className="text-[10px] font-bold text-emerald-400 bg-emerald-900/30 border border-emerald-800/50 px-2 py-0.5 rounded-full mt-1 inline-block">En cave</span>}
-                  </div>
-                  
-                  <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#333]">
-                    <span className="text-xs text-slate-500 font-medium">{String(item.dateStr || '').split(' ')[0]}</span>
-                    <span className="text-sm font-bold text-emerald-400 bg-emerald-900/30 border border-emerald-800/50 px-2 py-1 rounded">
-                      {item.data.prix_unitaire_nombre}€
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="w-28 shrink-0 bg-[#0a0a0a] border-l border-[#333] relative flex items-center justify-center p-2.5">
-                  <img src={item.image || fallbackImg} onError={(e) => {e.target.onerror = null; e.target.src = fallbackImg;}} alt={item.data.nom} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-lg" />
-                </div>
-                
-              </div>
+            <div key={item.id} onClick={() => ctx.openExistingWine(item, 'history')} className="bg-[#1A1A1A] rounded-3xl border border-[#333] p-4 flex items-center space-x-4 cursor-pointer hover:border-[#D4AF37]/50 transition-colors">
+              <div className="w-20 h-20 bg-black rounded-xl p-1 flex items-center justify-center shrink-0"><img src={item.image || fallbackImg} className="max-h-full object-contain" alt="wine" /></div>
+              <div className="flex-1 min-w-0"><h3 className="text-white font-serif font-bold text-base truncate">{item.data.nom}</h3><p className="text-xs text-slate-400 mt-0.5">{item.data.annee} • {item.data.region}</p><p className="text-[10px] font-bold text-[#D4AF37] mt-2 uppercase tracking-wider">{item.data.type_simplifie}</p></div>
+              <ChevronRight className="w-5 h-5 text-slate-600"/>
             </div>
           ))
         )}
@@ -1311,63 +1083,24 @@ const HistoryView = ({ ctx }) => {
   );
 };
 
-// =========================================================================
-// CENTRE DE NOTIFICATIONS INTERNE (POINT 2)
-// =========================================================================
 const AlertsView = ({ ctx }) => {
-  const { alerts, setView, goBack, genericUpdate, user } = ctx;
-
-  const markAllAsRead = () => {
-    if (!user) return;
-    alerts.forEach(a => {
-      if (!a.read) {
-        updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', a.id), { read: true });
-      }
-    });
-  };
-
-  const handleAlertClick = (alert) => {
-    updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', alert.id), { read: true });
-    if (alert.scanId) {
-      const wine = ctx.scanHistory.find(s => s.id === alert.scanId);
-      if (wine) ctx.openExistingWine(wine, 'alerts');
-    }
-  };
-
-  const getAlertIcon = (type) => {
-    switch(type) {
-      case 'APOGEE': return <Star className="w-5 h-5 text-[#D4AF37] fill-current" />;
-      case 'DECLIN': return <TrendingDown className="w-5 h-5 text-red-400" />;
-      default: return <Info className="w-5 h-5 text-emerald-400" />;
-    }
-  };
-
+  const { alerts, goBack, user } = ctx;
+  const markAllAsRead = () => { if (!user) return; alerts.forEach(a => { if (!a.read) updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', a.id), { read: true }); }); };
+  const handleAlertClick = (alert) => { updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', alert.id), { read: true }); if (alert.scanId) { const wine = ctx.scanHistory.find(s => s.id === alert.scanId); if (wine) ctx.openExistingWine(wine, 'alerts'); } };
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] select-none">
-      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm sticky top-0 z-10 flex items-center justify-between border-b border-[#333]">
-        <div className="flex items-center">
-          <button onClick={goBack} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button>
-          <h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Notifications</h1>
-        </div>
-        {alerts.some(a => !a.read) && (
-          <button onClick={markAllAsRead} className="text-xs text-slate-500 hover:text-[#D4AF37]">Tout lire</button>
-        )}
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 border-b border-[#333] flex items-center justify-between shadow-sm">
+        <div className="flex items-center"><button onClick={goBack} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Notifications</h1></div>
+        {alerts.some(a => !a.read) && <button onClick={markAllAsRead} className="text-xs text-slate-400 hover:text-[#D4AF37]">Tout lire</button>}
       </div>
-      
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {alerts.length === 0 ? (
-          <div className="text-center p-10 opacity-50 mt-10"><BellRing className="w-16 h-16 mx-auto mb-4 text-slate-600" /><p className="font-medium text-slate-400">Aucune notification.</p></div>
+          <div className="text-center p-10 opacity-50 mt-10"><Bell className="w-16 h-16 mx-auto mb-4 text-slate-600" /><p className="text-slate-400">Aucune alerte.</p></div>
         ) : (
           alerts.map(a => (
-            <div key={a.id} onClick={() => handleAlertClick(a)} className={`bg-[#1A1A1A] rounded-2xl border ${a.read ? 'border-[#333]' : 'border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.1)]'} p-4 flex items-center space-x-4 cursor-pointer transition-all ${a.read ? 'opacity-70' : 'hover:border-[#D4AF37]'}`}>
-              <div className={`p-2 rounded-xl ${a.read ? 'bg-[#0a0a0a]' : 'bg-[#D4AF37]/10'}`}>{getAlertIcon(a.type)}</div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-white text-sm truncate">{a.title}</h4>
-                <p className="text-xs text-slate-400 leading-snug">{a.message}</p>
-                <p className="text-[10px] text-slate-600 mt-1">{new Date(a.timestamp).toLocaleDateString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</p>
-              </div>
+            <div key={a.id} onClick={() => handleAlertClick(a)} className={`bg-[#1A1A1A] rounded-2xl border ${a.read ? 'border-[#333]' : 'border-[#D4AF37]/50 shadow-md'} p-4 flex items-center justify-between cursor-pointer hover:border-[#D4AF37] transition-colors`}>
+              <div className="flex-1 pr-3"><h4 className="font-bold text-white text-sm">{a.title}</h4><p className="text-xs text-slate-400 mt-1">{a.message}</p></div>
               {!a.read && <div className="w-2 h-2 bg-[#D4AF37] rounded-full shrink-0"></div>}
-              {a.scanId && <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />}
             </div>
           ))
         )}
@@ -1375,128 +1108,76 @@ const AlertsView = ({ ctx }) => {
     </div>
   );
 };
+
 
 // =========================================================================
 // VUE PROFIL ENRICHIE (GRAPHES INVESTISSEMENT & ADN - POINTS 1 & 3)
 // =========================================================================
+// =========================================================================
+// PROFIL, FILTRE DE SÉCURITÉ ET APPLI PRINCIPALE
+// =========================================================================
 const AccountView = ({ ctx }) => {
   const { user, scanHistory, valueHistory, fetchAIRecommendation, analyzeSensoryDNA, showToast } = ctx;
-  
   const items = scanHistory.filter(i => i.stock > 0);
   const len = scanHistory.filter(i => i.in_history !== false).length;
   const totalB = items.reduce((a, c) => a + (parseInt(c.stock) || 0), 0);
   const totalV = items.reduce((a, c) => a + ((c.data?.prix_unitaire_nombre || 0) * (parseInt(c.stock) || 0)), 0);
-  
-  // Point 3 : État du profil sensoriel
   const [sensoryData, setSensoryData] = useState(null);
   const [isSensoryLoading, setIsSensoryLoading] = useState(false);
 
-  // POINT 3 : Génération du profil sensoriel ADN
   const generateADN = async () => {
-    // Collecter toutes les notes
     const allNotes = scanHistory.filter(i => i.notes && i.notes.length > 10).map(i => i.notes).join(' | ');
-    if (allNotes.length < 30) {
-      showToast("Pas assez de notes de dégustation (min. 3 vins notés).");
-      return;
-    }
+    if (allNotes.length < 30) { showToast("Notes insuffisantes (min. 3 vins notés)."); return; }
     setIsSensoryLoading(true);
     const dna = await analyzeSensoryDNA(ctx.callGemini, allNotes);
-    if (dna) { setSensoryData(dna); showToast("ADN Œnologique calculé !"); } 
-    else { showToast("Erreur lors du calcul de l'ADN."); }
+    if (dna) { setSensoryData(dna); showToast("ADN sensoriel généré !"); } else { showToast("Erreur de calcul."); }
     setIsSensoryLoading(false);
   };
 
-  const prem = { name: len>=50?"Maître Sommelier":len>=20?"Connaisseur Émérite":len>=5?"Amateur Éclairé":"Novice Curieux", req: len>=50?50:len>=20?50:len>=5?20:5 };
-
-  const formattedChartData = useMemo(() => {
-    if (!valueHistory || valueHistory.length < 2) return [];
-    return valueHistory.map(h => ({ date: h.dateStr, valeur: h.value }));
-  }, [valueHistory]);
+  const prem = { name: len Mesozoic >= 50 ? "Maître Sommelier" : len >= 20 ? "Connaisseur Émérite" : len >= 5 ? "Amateur Éclairé" : "Novice Curieux", req: len >= 50 ? 50 : len >= 20 ? 50 : len >= 5 ? 20 : 5 };
+  const formattedChartData = useMemo(() => { if (!valueHistory || valueHistory.length < 2) return []; return valueHistory.map(h => ({ date: h.dateStr, valeur: h.value })); }, [valueHistory]);
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none">
-      <div className="bg-[#1A1A1A] pt-12 pb-6 px-6 shadow-xl border-b border-[#333] flex justify-between items-center sticky top-0 z-10">
-        <div><h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Mon Club</h1><p className="text-[10px] text-emerald-500 uppercase mt-1 flex items-center font-bold tracking-widest"><CheckCircle className="w-3 h-3 mr-1"/>Sauvegarde Cloud</p></div>
-        <div className="w-14 h-14 rounded-full bg-[#0a0a0a] flex items-center justify-center border border-[#D4AF37]/50 shadow-[0_0_15px_rgba(212,175,55,0.2)]"><Award className="w-7 h-7 text-[#D4AF37]" /></div>
+      <div className="bg-[#1A1A1A] pt-12 pb-6 px-6 border-b border-[#333] flex justify-between items-center shadow-xl sticky top-0 z-10">
+        <div><h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Mon Club</h1><p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest mt-1">Sauvegarde active</p></div>
+        <div className="w-14 h-14 rounded-full bg-[#0a0a0a] flex items-center justify-center border border-[#D4AF37]/50"><Award className="w-7 h-7 text-[#D4AF37]" /></div>
       </div>
-
       <div className="p-5 space-y-6">
-        {/* Niveau Œnologique */}
         <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Grade Membre</p>
-          <h3 className="font-serif text-3xl font-bold mb-4 text-[#D4AF37] leading-tight">{prem.name}</h3>
-          <div className="flex justify-between items-end mb-2"><span className="text-sm font-medium text-white">{len} crus analysés</span><span className="text-xs font-bold text-slate-500">Palier : {prem.req}</span></div>
-          <div className="h-2 w-full bg-[#0a0a0a] rounded-full overflow-hidden border border-[#333]"><div className="h-full bg-gradient-to-r from-[#D4AF37] to-[#AA7C11]" style={{width: `${Math.min(100, (len/prem.req)*100)}%`}}></div></div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Grade</p>
+          <h3 className="font-serif text-2xl font-bold text-[#D4AF37]">{prem.name}</h3>
+          <p className="text-sm text-slate-400 mt-2">{len} crus scannés</p>
         </div>
-
-        {/* POINT 1 : LA BOURSE DU VIN (Graphique de Valorisation) */}
         <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-[#0a0a0a] rounded-xl border border-[#333]"><TrendingUp className="w-5 h-5 text-emerald-400"/></div>
-            <div className="flex-1 text-left"><h3 className="font-serif text-xl font-bold text-[#F5F5F5]">Valorisation Cave</h3><p className="text-xs text-slate-400">Total : <b className="text-emerald-400">{totalV.toFixed(0)}€</b> / {totalB} flacons</p></div>
-          </div>
+          <h3 className="font-serif text-lg font-bold text-white mb-4 flex items-center"><TrendingUp className="w-5 h-5 mr-2 text-emerald-400"/> Valorisation de la Cave</h3>
+          <p className="text-2xl font-black text-emerald-400">{totalV.toFixed(0)} € <span className="text-xs text-slate-500 font-medium">({totalB} bouteilles)</span></p>
           {formattedChartData.length > 1 ? (
-            <div className="h-40 w-full -ml-6 mt-4">
+            <div className="h-32 w-full mt-4 -ml-4">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={formattedChartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#666'}} />
-                  <YAxis hide={true} domain={['dataMin - 100', 'dataMax + 100']} />
-                  <ChartTooltip contentStyle={{backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '10px', fontSize: '12px'}} labelStyle={{color: '#D4AF37', fontWeight:'bold'}} itemStyle={{color:'white'}} cursor={{stroke: '#D4AF37', strokeWidth: 1}} formatter={(v)=>`${v}€`} labelFormatter={(l)=>`Janvier ${l}`} />
-                  <defs><linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3}/><stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/></linearGradient></defs>
-                  <Area type="monotone" dataKey="valeur" stroke="#D4AF37" strokeWidth={2} fillOpacity={1} fill="url(#colorValue)" />
-                </AreaChart>
+                <AreaChart data={formattedChartData}><XAxis dataKey="date" hide /><YAxis hide /><Area type="monotone" dataKey="valeur" stroke="#D4AF37" fill="#D4AF37" fillOpacity={0.1} /></AreaChart>
               </ResponsiveContainer>
             </div>
-          ) : (
-            <div className="text-center p-8 bg-[#0a0a0a] rounded-2xl border border-[#333] opacity-60"><PieChart className="w-10 h-10 mx-auto mb-3 text-slate-600"/><p className="text-sm text-slate-400 leading-snug">L'historique de valeur se construit automatiquement chaque mois.</p></div>
-          )}
+          ) : <p className="text-xs text-slate-500 italic mt-4">Le graphique se construira au fil des mois.</p>}
         </div>
-
-        {/* POINT 3 : LE PROFIL SENSORIEL (ADN Œnologique) */}
         <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-[#0a0a0a] rounded-xl border border-[#333]"><Target className="w-5 h-5 text-[#D4AF37]"/></div>
-            <div className="flex-1 text-left"><h3 className="font-serif text-xl font-bold text-[#F5F5F5]">ADN Œnologique</h3><p className="text-xs text-slate-400">Votre profil sensoriel calculé par IA</p></div>
-          </div>
+          <h3 className="font-serif text-lg font-bold text-white mb-2 flex items-center"><Target className="w-5 h-5 mr-2 text-[#D4AF37]"/> Profil Sensoriel ADN</h3>
           {sensoryData ? (
-            <div className="h-64 w-full flex justify-center -ml-4">
+            <div className="h-56 w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={sensoryData}>
-                  <PolarGrid stroke="#333" />
-                  <PolarAngleAxis dataKey="subject" tick={{fill: '#F5F5F5', fontSize: 11, fontWeight: 'bold'}} />
-                  <PolarRadiusAxis angle={30} domain={[0, 5]} hide={true} />
-                  <Radar name="Mon ADN" dataKey="A" stroke="#D4AF37" fill="#D4AF37" fillOpacity={0.5} dot={{r: 3, fill: '#D4AF37'}} />
-                </RadarChart>
+                <RadarChart cx="50%" cy="50%" outerRadius="75%" data={sensoryData}><PolarGrid stroke="#333"/><PolarAngleAxis dataKey="subject" tick={{fill:'#fff', fontSize:10}}/><Radar dataKey="A" stroke="#D4AF37" fill="#D4AF37" fillOpacity={0.4}/></RadarChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="text-center space-y-4">
-              <div className="text-center p-8 bg-[#0a0a0a] rounded-2xl border border-[#333] opacity-60"><Wine className="w-10 h-10 mx-auto mb-3 text-slate-600"/><p className="text-sm text-slate-400 leading-snug">Ajoutez des notes privées détaillées dans vos fiches vins pour calculer votre profil.</p></div>
-              <button onClick={generateADN} disabled={isSensoryLoading} className="w-full py-4 bg-[#D4AF37] text-black font-bold rounded-2xl flex items-center justify-center space-x-2 disabled:opacity-50 transition-colors">
-                {isSensoryLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}<span>{isSensoryLoading ? "Calcul ADN..." : "Générer mon ADN sensoriel"}</span>
-              </button>
-            </div>
+            <button onClick={generateADN} disabled={isSensoryLoading} className="w-full mt-4 py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center justify-center space-x-2">{isSensoryLoading ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4"/>}<span>Générer mon ADN sensoriel</span></button>
           )}
         </div>
-
-        {/* Boutons d'action standards */}
-        <div className="bg-[#1A1A1A] rounded-3xl border border-[#333] overflow-hidden shadow-lg">
-          <div className="p-4 space-y-2">
-            <button onClick={() => ctx.callGemini && fetchAIRecommendation(ctx.callGemini)} className="w-full flex items-center p-4 hover:bg-[#0a0a0a] rounded-2xl text-white font-bold transition-colors"><Euro className="w-5 h-5 mr-4 text-[#D4AF37]" /> Investir : Suggestion IA (1000€)</button>
-            <div className="border-t border-[#333] my-2"></div>
-            <button onClick={() => auth.signOut()} className="w-full flex items-center p-4 hover:bg-[#0a0a0a] rounded-2xl text-red-400 font-bold transition-colors"><LogOut className="w-5 h-5 mr-4" /> Se déconnecter</button>
-          </div>
-        </div>
+        <button onClick={() => auth.signOut()} className="w-full py-4 bg-red-950/20 text-red-400 font-bold rounded-2xl border border-red-900/40 flex items-center justify-center"><LogOut className="w-4 h-4 mr-3" /> Se déconnecter</button>
       </div>
     </div>
   );
 };
-// =========================================================================
-// FICHE DE RÉSULTATS DÉCOUVERTE (LE COMPOSANT MANQUANT)
-// =========================================================================
-// =========================================================================
-// FICHE DE RÉSULTATS DÉCOUVERTE (CORRIGÉE : RULE OF HOOKS)
-// =========================================================================
+
 const ResultsView = ({ ctx }) => {
   let currentItem = ctx.scanHistory.find(s => s.id === ctx.currentScanId);
   if (!currentItem && ctx.analysisResult) currentItem = ctx.scanHistory.find(s => s.data?.nom === ctx.analysisResult.nom);
@@ -1507,11 +1188,9 @@ const ResultsView = ({ ctx }) => {
   const isWishlist = currentItem?.wishlist || false;
   const rating = currentItem?.rating || 0;
 
-  // 🚨 RÈGLE D'OR DE REACT : Tous les Hooks en haut, AVANT le moindre "return" !
   const [activeTab, setActiveTab] = useState('infos');
   const [protocol, setProtocol] = useState(null); 
   const [isLoadingProtocol, setIsLoadingProtocol] = useState(false);
-
   const [showBlindTasting, setShowBlindTasting] = useState(false);
   const [blindNotes, setBlindNotes] = useState({ robe: '', nez: '', bouche: '' });
   const [blindResult, setBlindResult] = useState(null);
@@ -1523,7 +1202,6 @@ const ResultsView = ({ ctx }) => {
   const [tempLocation, setTempLocation] = useState(currentItem?.location || '');
   const [tempNotes, setTempNotes] = useState(currentItem?.notes || '');
 
-  // Synchronisation sécurisée si les données en fond changent
   useEffect(() => {
     if (currentItem) {
       setTempType(currentItem.data?.type_simplifie || 'ROUGE');
@@ -1534,303 +1212,97 @@ const ResultsView = ({ ctx }) => {
     }
   }, [currentItem?.id]);
 
-  // 🚨 FIN DES HOOKS. Maintenant on peut couper l'affichage en toute sécurité si besoin.
   if (!currentItem) return null;
-
-  const computeApogeeForType = (type, anneeStr) => {
-    const currentYear = new Date().getFullYear();
-    const match = String(anneeStr).match(/\d{4}/);
-    let minGarde = 2, maxGarde = 5;
-    if (type === 'ROUGE') { minGarde = 4; maxGarde = 10; }
-    else if (type === 'BLANC') { minGarde = 2; maxGarde = 6; }
-    else if (type === 'ROSE') { minGarde = 1; maxGarde = 3; }
-    else if (type === 'PETILLANT') { minGarde = 3; maxGarde = 7; }
-    if (!match) return { potentiel_garde: "À consommer rapidement", apogee: "Prêt à boire", declin: "Dans les 1-2 ans", statut_apogee: "APOGEE", baseGardeMin: minGarde, baseGardeMax: maxGarde };
-    const anneeInt = parseInt(match[0], 10);
-    const start = anneeInt + minGarde;
-    const end = anneeInt + maxGarde;
-    const declinYear = end + 1;
-    let statut = "APOGEE";
-    if (currentYear < start) statut = "A_GARDER";
-    else if (currentYear >= declinYear) statut = "DECLIN";
-    return { potentiel_garde: `${minGarde} à ${maxGarde} ans`, apogee: `${start} - ${end}`, declin: `À partir de ${declinYear}`, statut_apogee: statut, baseGardeMin: minGarde, baseGardeMax: maxGarde };
-  };
-
-  const handleTypeChange = (newType) => {
-    setTempType(newType);
-    const updatedDates = computeApogeeForType(newType, tempAnnee);
-    let newAccords = [];
-    if (newType === 'ROUGE') newAccords = ['Viande rouge grillée', 'Plateau de fromages affinés', 'Plats en sauce'];
-    else if (newType === 'BLANC') newAccords = ['Poissons et fruits de mer', 'Volaille à la crème', 'Fromage de chèvre'];
-    else if (newType === 'ROSE') newAccords = ['Apéritif festif', 'Grillades estivales', 'Salades composées'];
-    else if (newType === 'PETILLANT') newAccords = ['Apéritif de prestige', 'Desserts légers', 'Coquilles Saint-Jacques'];
-    else newAccords = ['Plats conviviaux à partager'];
-    const updatedData = { ...d, type_simplifie: newType, accords_mets: newAccords, accord_parfait: newAccords[0], ...updatedDates };
-    ctx.setAnalysisResult(updatedData);
-    ctx.genericUpdate(scanIdToUse, { data: updatedData, image: getGenericImageForType(newType) });
-  };
-
-  const handleYearChange = (newYear) => {
-    setTempAnnee(newYear);
-    const updatedDates = computeApogeeForType(tempType, newYear);
-    const updatedData = { ...d, annee: newYear, ...updatedDates };
-    ctx.setAnalysisResult(updatedData);
-    ctx.genericUpdate(scanIdToUse, { data: updatedData });
-  };
 
   const fetchProtocol = async () => {
     if (protocol) return;
     setIsLoadingProtocol(true);
     try {
-      const prompt = `Agis comme un Maître Sommelier. Donne le protocole de service parfait pour ce vin : "${d.nom} ${tempAnnee}". Réponds en JSON strict : {"temperature": "ex: 16°C", "carafage": "ex: Oui, 2h avant", "verre": "ex: Verre type Bordeaux", "conseil": "Une phrase d'expert"}`;
+      const prompt = `Protocole de service en JSON strict pour : "${d.nom} ${tempAnnee}". Format: {"temperature": "X°C", "carafage": "Oui/Non", "verre": "Type", "conseil": "Phrase"}`;
       const res = await ctx.callGemini(prompt);
       setProtocol(extractJSON(res.candidates[0].content.parts[0].text));
-    } catch(e) {
-      setProtocol({ temperature: tempType === 'ROUGE' ? "16°C" : "10°C", carafage: tempType === 'ROUGE' ? "Conseillé 1h avant" : "Non requis", verre: "Verre classique", conseil: "Servir à température idéale." });
-    } finally { setIsLoadingProtocol(false); }
+    } catch(e) { setProtocol({ temperature: "14°C", carafage: "Non requis", verre: "Classique", conseil: "Servir chambré." }); }
+    finally { setIsLoadingProtocol(false); }
   };
 
-  const finishBlindTasting = async () => {
-    setIsBlindLoading(true);
-    try {
-      const prompt = `Le vin réel est : "${d.nom} ${tempAnnee} (${tempType})". Notes de l'invité : Robe=${blindNotes.robe}, Nez=${blindNotes.nez}, Bouche=${blindNotes.bouche}. Donne une note sur 10. Réponds en JSON strict : {"note": "ex: 8/10", "commentaire": "Ton verdict pour l'invité en 25 mots max, sois fun."}`;
-      const res = await ctx.callGemini(prompt);
-      setBlindResult(extractJSON(res.candidates[0].content.parts[0].text));
-    } catch(e) {
-      setBlindResult({ note: "7/10", commentaire: "Dégustation honorable, l'essentiel est le plaisir partagé !" });
-    } finally { setIsBlindLoading(false); }
-  };
-
-  const getStatusBadge = (statut) => {
-    switch(statut) {
-      case 'A_GARDER': return <div className="flex items-center space-x-1.5 text-xs text-indigo-400 bg-indigo-950/40 border border-indigo-900/60 px-2.5 py-1 rounded-lg font-bold"><Clock className="w-3.5 h-3.5" /><span>À garder ({d.potentiel_garde})</span></div>;
-      case 'DECLIN': return <div className="flex items-center space-x-1.5 text-xs text-red-400 bg-red-950/40 border border-red-900/60 px-2.5 py-1 rounded-lg font-bold"><TrendingDown className="w-3.5 h-3.5" /><span>Déclin ({d.declin})</span></div>;
-      default: return <div className="flex items-center space-x-1.5 text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-900/60 px-2.5 py-1 rounded-lg font-bold"><CheckCircle className="w-3.5 h-3.5" /><span>À boire (Apogée)</span></div>;
-    }
-  };
-
-  const existingLocations = Array.from(new Set(ctx.scanHistory.map(s => s.location).filter(Boolean))).sort();
   const fallbackImg = "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=800&q=80";
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none">
-      <div className="bg-[#1a1a1a] p-4 flex justify-between z-20 sticky top-0 border-b border-[#333]">
-        <SommelierButton text={`Analyse du cru ${d.nom}. Ce vin est idéalement à consommer dans la fenêtre d'apogée suivante : ${d.apogee}.`} />
-        <button onClick={ctx.goBack} className="p-3 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-white transition-colors"><X className="w-5 h-5"/></button>
+      <div className="bg-[#1a1a1a] p-4 flex justify-between items-center border-b border-[#333] sticky top-0 z-20">
+        <SommelierButton text={`Dégustation du cru ${d.nom}. Fenêtre optimale d'apogée : ${d.apogee}.`} />
+        <button onClick={ctx.goBack} className="p-3 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full"><X className="w-5 h-5"/></button>
       </div>
-      <div className="p-5">
-        <div className="bg-[#1A1A1A] rounded-3xl border border-[#333] flex overflow-hidden min-h-64 shadow-xl group relative">
-          <div className="flex-1 p-6 flex flex-col justify-between min-w-0">
-            <div>
-              <div className="relative inline-block mb-3">
-                <select value={tempType} onChange={(e) => handleTypeChange(e.target.value)} className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37] bg-[#0a0a0a] border border-[#333] pl-3 pr-8 py-1.5 rounded-lg outline-none cursor-pointer appearance-none">
-                  <option value="ROUGE">🍷 Vin Rouge</option>
-                  <option value="BLANC">🥂 Vin Blanc</option>
-                  <option value="ROSE">🌸 Vin Rosé</option>
-                  <option value="PETILLANT">🍾 Pétillant</option>
-                  <option value="AUTRE">💎 Autre</option>
-                </select>
-                <ChevronDown className="w-3 h-3 text-[#D4AF37] absolute right-2.5 top-2.5 pointer-events-none" />
-              </div>
-              <h2 className="text-3xl font-serif font-bold text-white leading-tight truncate group-hover:text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] transition-all duration-300">{d.nom}</h2>
-              <div className="flex flex-wrap gap-2 mt-4">
-                <div className="flex items-center text-slate-400 font-medium bg-[#0a0a0a] border border-[#333] px-2.5 py-1 rounded-xl">
-                  <span className="text-[11px]">Année :</span>
-                  <input type="text" value={tempAnnee} onChange={(e) => setTempAnnee(e.target.value)} onBlur={() => handleYearChange(tempAnnee)} className="bg-transparent text-white w-14 outline-none font-bold text-center ml-1 text-xs focus:text-[#D4AF37]" />
-                </div>
-                <span className="text-[11px] font-bold text-slate-400 bg-[#0a0a0a] border border-[#333] px-2.5 py-1.5 rounded-xl truncate max-w-[140px]">{d.region}</span>
-              </div>
-              <div className="mt-5 space-y-2">
-                <div className="flex items-center space-x-2 text-xs text-slate-400 font-medium bg-[#0a0a0a]/60 p-2.5 rounded-xl border border-[#222] w-max">
-                  <Star className="w-4 h-4 text-[#D4AF37] fill-current" />
-                  <span>Apogée : <b className="text-white font-bold">{d.apogee}</b></span>
-                </div>
-                {getStatusBadge(d.statut_apogee)}
-              </div>
-            </div>
-            <p className="text-xs text-slate-400 italic line-clamp-2 mt-4 border-t border-[#222] pt-3">Accord : {d.accord_parfait}</p>
+      <div className="p-5 space-y-6">
+        <div className="bg-[#1A1A1A] rounded-3xl border border-[#333] flex p-5 shadow-xl">
+          <div className="flex-1 min-w-0 pr-4">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] bg-[#0a0a0a] border border-[#333] px-2 py-1 rounded">{tempType}</span>
+            <h2 className="text-2xl font-serif font-bold text-white mt-2 leading-tight truncate">{d.nom}</h2>
+            <p className="text-xs text-slate-400 mt-1">{tempAnnee} • {d.region}</p>
+            <p className="text-xs text-emerald-400 font-bold mt-3">Apogée : {d.apogee}</p>
           </div>
-          <div className="w-36 bg-[#0a0a0a] p-3 flex justify-center items-center border-l border-[#333] shrink-0 relative overflow-hidden">
-            <img src={currentItem.image || fallbackImg} onError={(e) => {e.target.onerror = null; e.target.src = fallbackImg;}} className="max-h-full object-contain drop-shadow-[0_10px_20px_rgba(212,175,55,0.25)] group-hover:scale-105 transition-transform duration-500" alt="wine"/>
-            <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#1A1A1A] to-transparent pointer-events-none"></div>
-          </div>
+          <div className="w-24 h-36 bg-black rounded-2xl p-2 flex items-center justify-center shrink-0"><img src={currentItem.image || fallbackImg} className="max-h-full object-contain" alt="wine"/></div>
         </div>
 
-        <button onClick={() => setShowBlindTasting(true)} className="w-full mt-5 bg-gradient-to-r from-rose-950/40 via-[#1A1A1A] to-[#1A1A1A] text-white rounded-3xl p-4 shadow-lg flex items-center justify-between active:scale-95 transition-transform border border-rose-900/30">
-          <div className="flex items-center">
-             <div className="bg-[#0a0a0a] p-2.5 rounded-full mr-3 border border-rose-900/50"><EyeOff className="w-5 h-5 text-rose-400"/></div>
-             <div className="text-left"><h3 className="font-bold text-base text-[#F5F5F5]">Dégustation aveugle</h3><p className="text-[9px] text-rose-400 uppercase tracking-widest font-bold">L'IA teste vos invités</p></div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-rose-500" />
-        </button>
-
-        {showBlindTasting && (
-          <div className="fixed inset-0 bg-gradient-to-b from-[#1A100C] to-[#0a0a0a] z-[100] flex flex-col p-6 animate-in fade-in overflow-y-auto">
-            <button onClick={() => setShowBlindTasting(false)} className="absolute top-8 left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"><ChevronLeft className="w-6 h-6"/></button>
-            <div className="mt-16 text-center flex-1 max-w-sm mx-auto w-full pb-10">
-              <div className="w-20 h-20 bg-rose-900/40 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/30"><EyeOff className="w-10 h-10 text-rose-400" /></div>
-              <h2 className="text-3xl font-serif font-bold text-white mb-3">Dégustation Mystère</h2>
-              <p className="text-rose-200/80 text-sm mb-8">Cachez la bouteille et faites remplir la fiche. L'IA jugera !</p>
-              {!blindResult ? (
-                <div className="space-y-4 text-left">
-                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                    <label className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center mb-2">La Robe (Visuel)</label>
-                    <input type="text" placeholder="Ex: Tuilé, Reflets dorés..." value={blindNotes.robe} onChange={e=>setBlindNotes({...blindNotes, robe: e.target.value})} className="w-full bg-black/20 border border-white/10 text-white rounded-xl p-3 text-sm outline-none focus:border-rose-500" />
-                  </div>
-                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                    <label className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center mb-2">Le Nez (Arômes)</label>
-                    <input type="text" placeholder="Ex: Fruits des bois, Poivré..." value={blindNotes.nez} onChange={e=>setBlindNotes({...blindNotes, nez: e.target.value})} className="w-full bg-black/20 border border-white/10 text-white rounded-xl p-3 text-sm outline-none focus:border-rose-500" />
-                  </div>
-                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                    <label className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center mb-2">La Bouche (Ressenti)</label>
-                    <input type="text" placeholder="Ex: Puissant, Tanins soyeux..." value={blindNotes.bouche} onChange={e=>setBlindNotes({...blindNotes, bouche: e.target.value})} className="w-full bg-black/20 border border-white/10 text-white rounded-xl p-3 text-sm outline-none focus:border-rose-500" />
-                  </div>
-                  <button onClick={finishBlindTasting} disabled={!blindNotes.robe} className="w-full py-4 mt-2 bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold rounded-xl shadow-lg flex items-center justify-center">Calcul du verdict...</button>
-                </div>
-              ) : (
-                <div className="bg-white/10 border border-white/20 p-6 rounded-3xl shadow-2xl">
-                  <p className="text-xs font-bold uppercase tracking-widest text-rose-300 mb-1">Score Palais</p>
-                  <div className="text-5xl font-black text-white mb-4">{blindResult.note}</div>
-                  <p className="text-white text-base italic leading-relaxed mb-6">"{blindResult.commentaire}"</p>
-                  <button onClick={() => { setShowBlindTasting(false); setBlindResult(null); setBlindNotes({robe:'',nez:'',bouche:''}); }} className="w-full py-3 bg-white text-slate-900 font-bold rounded-xl">Fermer</button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333] mt-6">
-          <button onClick={() => setActiveTab('infos')} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'infos' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Fiche Cru</button>
-          <button onClick={() => { setActiveTab('service'); fetchProtocol(); }} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'service' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Service IA</button>
-          <button onClick={() => setActiveTab('cave')} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'cave' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Rangement</button>
+        <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333]">
+          <button onClick={() => setActiveTab('infos')} className={`flex-1 py-2.5 text-xs font-bold rounded-lg ${activeTab === 'infos' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-500'}`}>Fiche Cru</button>
+          <button onClick={() => { setActiveTab('service'); fetchProtocol(); }} className={`flex-1 py-2.5 text-xs font-bold rounded-lg ${activeTab === 'service' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-500'}`}>Service IA</button>
+          <button onClick={() => setActiveTab('cave')} className={`flex-1 py-2.5 text-xs font-bold rounded-lg ${activeTab === 'cave' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-500'}`}>Gestion</button>
         </div>
 
         {activeTab === 'infos' && (
-          <div className="space-y-4 mt-4 animate-in fade-in">
-            <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md"><p className="text-sm text-slate-300 leading-relaxed font-medium">{d.description}</p></div>
-            <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] flex justify-between items-center shadow-md">
-              <div className="text-left">
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Prix Indicatif</p>
-                <div className="flex items-center space-x-1 mt-1">
-                   <input type="number" value={tempPrix} onChange={(e) => setTempPrix(e.target.value)} onBlur={() => ctx.updateDataField(scanIdToUse, 'prix_unitaire_nombre', Number(tempPrix))} className="text-3xl font-black text-[#D4AF37] bg-transparent outline-none w-24" />
-                   <span className="text-2xl font-bold text-[#D4AF37]">€</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Potentiel de garde</p>
-                <span className="text-base font-bold text-white mt-2 block">{d.potentiel_garde}</span>
-              </div>
+          <div className="space-y-4 animate-in fade-in">
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] text-sm text-slate-300 leading-relaxed">{d.description}</div>
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
+              <div><span className="text-xs text-slate-500 block">Prix Indicatif</span><span className="text-2xl font-black text-[#D4AF37]">{tempPrix} €</span></div>
+              <div className="text-right"><span className="text-xs text-slate-500 block">Garde</span><span className="text-sm font-bold text-white">{d.potentiel_garde}</span></div>
             </div>
-            <a href={`https://www.google.com/search?q=${encodeURIComponent('prix vin ' + d.nom + ' ' + tempAnnee)}&tbm=shop`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center space-x-2 py-4 bg-[#1A1A1A] border border-[#333] text-slate-300 rounded-2xl font-bold text-sm hover:border-[#D4AF37] transition-all">
-              <Search className="w-4 h-4 text-[#D4AF37]" /><span>Comparer les marchands en ligne</span>
-            </a>
           </div>
         )}
 
         {activeTab === 'service' && (
-          <div className="space-y-4 mt-4 animate-in fade-in">
-            <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md">
-              {isLoadingProtocol ? (
-                <div className="text-center text-slate-400 py-6"><RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#D4AF37]"/><p className="font-bold text-xs">Le sommelier décrypte le protocole idéal...</p></div>
-              ) : protocol ? (
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4 border-b border-[#222] pb-3">
-                    <div className="p-2 bg-[#0a0a0a] rounded-xl border border-[#333] text-[#D4AF37]"><Clock className="w-4 h-4"/></div>
-                    <div><span className="text-[10px] text-slate-500 block uppercase font-bold">Préparation requise</span><p className="font-bold text-white text-sm">{protocol.carafage}</p></div>
-                  </div>
-                  <div className="flex items-center space-x-4 border-b border-[#222] pb-3">
-                    <div className="p-2 bg-[#0a0a0a] rounded-xl border border-[#333] text-[#D4AF37]"><Wine className="w-4 h-4"/></div>
-                    <div><span className="text-[10px] text-slate-500 block uppercase font-bold">Verrerie recommandée</span><p className="font-bold text-white text-sm">{protocol.verre}</p></div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-[#0a0a0a] rounded-xl border border-[#333] text-[#D4AF37]"><Tag className="w-4 h-4"/></div>
-                    <div><span className="text-[10px] text-slate-500 block uppercase font-bold">Température de service</span><p className="font-bold text-white text-sm">{protocol.temperature}</p></div>
-                  </div>
-                  <div className="p-3 bg-[#0a0a0a] border-l-2 border-[#D4AF37] rounded-r-xl text-xs text-slate-400 italic">"{protocol.conseil}"</div>
-                </div>
-              ) : null}
-            </div>
-            <a href={getAmazonAffiliateLink(getRecommendedAccessory(tempType).search)} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl shadow-sm hover:border-[#D4AF37]/50 transition-all">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-[#0a0a0a] rounded-xl text-[#D4AF37] border border-[#222]"><ShoppingCart className="w-4 h-4"/></div>
-                <div className="text-left"><p className="text-[9px] text-slate-500 font-bold uppercase">Sublimer l'expérience</p><p className="text-sm font-bold text-white">{getRecommendedAccessory(tempType).name}</p></div>
+          <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-[#333] space-y-4 animate-in fade-in">
+            {isLoadingProtocol ? <p className="text-center text-xs text-slate-500">Chargement du protocole...</p> : protocol ? (
+              <div className="space-y-3 text-sm">
+                <p className="text-slate-400">🌡️ Température : <b className="text-white">{protocol.temperature}</b></p>
+                <p className="text-slate-400">🏺 Carafage : <b className="text-white">{protocol.carafage}</b></p>
+                <p className="text-slate-400">🍷 Verrerie : <b className="text-white">{protocol.verre}</b></p>
+                <p className="text-xs text-[#D4AF37] italic mt-2">"{protocol.conseil}"</p>
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-500"/>
-            </a>
+            ) : null}
           </div>
         )}
 
         {activeTab === 'cave' && (
-          <div className="space-y-4 mt-4 animate-in fade-in">
-            <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md">
-              <div className="flex items-center justify-between bg-[#0a0a0a] p-3 rounded-2xl border border-[#333]">
-                <span className="text-sm font-bold text-slate-400 ml-2">Bouteilles en cave :</span>
-                <div className="flex items-center space-x-4">
-                  <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-10 h-10 bg-[#1A1A1A] border border-[#333] text-white font-bold rounded-lg flex items-center justify-center shadow-sm">-</button>
-                  <span className="text-xl font-black text-[#D4AF37] w-6 text-center">{stock}</span>
-                  <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-10 h-10 bg-[#D4AF37] text-black font-bold rounded-lg flex items-center justify-center shadow-lg">+</button>
-                </div>
+          <div className="space-y-4 animate-in fade-in">
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
+              <span className="text-sm font-bold text-slate-300">Bouteilles en stock :</span>
+              <div className="flex items-center space-x-3">
+                <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-8 h-8 bg-[#0a0a0a] border border-[#333] rounded font-bold">-</button>
+                <span className="text-lg font-black text-[#D4AF37] w-6 text-center">{stock}</span>
+                <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-8 h-8 bg-[#D4AF37] text-black rounded font-bold">+</button>
               </div>
-              {stock === 0 && (
-                <button onClick={() => ctx.genericUpdate(currentItem.id, { wishlist: !isWishlist })} className="w-full py-4 bg-[#0a0a0a] border border-[#333] text-slate-300 rounded-2xl font-bold flex items-center justify-center mt-4 transition-all"><Heart className={`w-4 h-4 mr-2 ${isWishlist ? 'text-pink-500 fill-current' : 'text-slate-500'}`} /><span>{isWishlist ? 'Retirer de ma liste d\'achats' : 'Mettre dans ma liste d\'achats'}</span></button>
-              )}
             </div>
-
-            <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1 block mb-2">Notes & Rangement</label>
-              <input type="text" value={tempLocation} onChange={(e) => setTempLocation(e.target.value)} onBlur={() => ctx.genericUpdate(currentItem.id, { location: tempLocation })} list="shelf-suggestions" placeholder="Emplacement exact (ex: Étagère A3)..." className="w-full bg-[#0a0a0a] border border-[#333] text-white rounded-xl p-3.5 text-sm font-medium outline-none focus:border-[#D4AF37] mb-3" />
-              <datalist id="shelf-suggestions">{existingLocations.map(loc => <option key={loc} value={loc} />)}</datalist>
-              <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} onBlur={() => ctx.genericUpdate(currentItem.id, { notes: tempNotes })} placeholder="Notes privées (Arômes, accords tentés...)" className="w-full bg-[#0a0a0a] border border-[#333] text-white rounded-2xl p-4 text-sm h-24 outline-none focus:border-[#D4AF37] resize-none" />
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
+              <input type="text" value={tempLocation} onChange={e=>setTempLocation(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {location: tempLocation})} placeholder="Rangement (ex: Étagère A)..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+              <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation personnelles..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
             </div>
-
-            <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md space-y-3">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1 block mb-2">Partage Prestige</label>
-              <div className="grid grid-cols-5 gap-2 mb-4 bg-[#0a0a0a] p-2 rounded-2xl border border-[#333]">
-                {Array.from({length: 5}).map((_, i) => <button key={i} onClick={() => ctx.genericUpdate(currentItem.id, { rating: i+1 })} className="flex justify-center p-2"><Star className={`w-8 h-8 ${i < rating ? 'text-[#D4AF37] fill-current' : 'text-slate-600'} hover:text-[#D4AF37]/70`} /></button>)}
-              </div>
-              <button onClick={() => ctx.generateAndShareInstagramImage(ctx.showToast)} className="w-full py-4 bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 text-white font-black text-sm rounded-full shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-transform"><Share2 className="w-5 h-5"/><span>Gérer mon image Story "Instagrammable"</span></button>
-            </div>
-            <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-
-// =========================================================================
-// CAMÉRA ET ANALYSE
-// =========================================================================
+            <button onClick={() => ctx.generateAndShareInstagramImage(ctx.showToast)} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
+            <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-3 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-bold">Supprimer de l'application</button>
+            <InstagramShareCanvas wine={currentItem} rating={rating} notes={tempNotes} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const CameraView = ({ ctx }) => (
   <div className="relative h-full w-full bg-black flex flex-col overflow-hidden select-none">
-    <button onClick={() => { ctx.stopCamera(); ctx.setView('home'); }} className="absolute top-12 left-6 z-20 p-3 bg-black/50 text-white rounded-full border border-white/10 hover:bg-black/80 transition-colors">
-      <ChevronLeft className="w-6 h-6" />
-    </button>
-    
-    <div className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center">
-      <div className="absolute top-24 flex items-center space-x-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-        <div className="w-2 h-2 bg-[#D4AF37] rounded-full animate-pulse"></div>
-        <span className="text-white text-xs font-bold uppercase tracking-widest opacity-90">Analyse IA Prête</span>
-      </div>
-
-      <div className="relative w-4/5 h-1/2 mt-10">
-        <div className="absolute inset-0 border-2 border-white/20 rounded-3xl shadow-[0_0_0_9999px_rgba(0,0,0,0.75)]"></div>
-        {/* Coins de scan */}
-        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#D4AF37] rounded-tl-3xl"></div>
-        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[#D4AF37] rounded-tr-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[#D4AF37] rounded-bl-3xl"></div>
-        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[#D4AF37] rounded-br-3xl"></div>
-        
-        {/* Ligne de balayage */}
-        <div className="absolute top-1/2 left-0 w-full h-[1px] bg-[#D4AF37]/70 shadow-[0_0_15px_rgba(212,175,55,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
-      </div>
-
-      <div className="absolute bottom-40 flex space-x-8 text-white/60 text-[10px] font-bold uppercase tracking-widest">
-        <div className="flex flex-col items-center"><ScanLine className="w-5 h-5 mb-1 text-white"/><span>Cadrer</span></div>
-        <div className="flex flex-col items-center"><Focus className="w-5 h-5 mb-1 text-[#D4AF37] animate-pulse"/><span>Nettoyer</span></div>
-      </div>
-    </div>
-
+    <button onClick={() => { ctx.stopCamera(); ctx.setView('home'); }} className="absolute top-12 left-6 z-20 p-3 bg-black/50 text-white rounded-full border border-white/10"><ChevronLeft className="w-6 h-6" /></button>
     <video ref={ctx.videoRef} autoPlay playsInline className="min-w-full min-h-full object-cover flex-1" />
-    
     <div className="absolute bottom-0 w-full h-32 bg-black/90 flex items-center justify-center pb-8 z-20">
-      <button onClick={ctx.capturePhoto} className="w-20 h-20 bg-white/10 border border-white/20 rounded-full flex items-center justify-center active:scale-90 transition-transform">
-        <div className="w-14 h-14 bg-[#D4AF37] rounded-full shadow-[0_0_15px_rgba(212,175,55,0.5)]"></div>
-      </button>
+      <button onClick={ctx.capturePhoto} className="w-20 h-20 bg-white/10 border border-white/20 rounded-full flex items-center justify-center"><div className="w-14 h-14 bg-[#D4AF37] rounded-full shadow-lg"></div></button>
     </div>
     <canvas ref={ctx.canvasRef} className="hidden" />
   </div>
@@ -1838,31 +1310,13 @@ const CameraView = ({ ctx }) => (
 
 const AnalyzingView = () => (
   <div className="flex flex-col items-center justify-center h-full bg-[#0a0a0a] select-none relative overflow-hidden">
-    <div className="absolute inset-0 bg-gradient-to-b from-[#D4AF37]/10 to-transparent"></div>
-    <div className="relative z-10 text-center">
-      <div className="w-24 h-24 mx-auto bg-[#1a1a1a] rounded-full flex items-center justify-center border border-[#D4AF37]/30 mb-6 relative shadow-[0_0_30px_rgba(212,175,55,0.15)]">
-         <div className="absolute inset-0 rounded-full border border-[#D4AF37]/20 animate-[spin_3s_linear_infinite]"></div>
-         <div className="absolute inset-2 rounded-full border border-[#D4AF37]/40 border-t-transparent animate-[spin_1.5s_linear_infinite]"></div>
-         <Wine className="w-10 h-10 text-[#D4AF37] animate-pulse" />
-      </div>
-      <h2 className="text-3xl font-serif font-bold text-white mb-2">Analyse en cours</h2>
-      <p className="text-xs text-[#D4AF37] font-bold uppercase tracking-widest">Le Sommelier réfléchit...</p>
+    <div className="relative z-10 text-center space-y-3">
+      <div className="w-16 h-16 mx-auto bg-[#1a1a1a] rounded-full flex items-center justify-center border border-[#D4AF37]/30 animate-spin border-t-transparent"></div>
+      <h2 className="text-xl font-serif font-bold text-white">Analyse oenologique...</h2>
     </div>
   </div>
 );
 
-// =========================================================================
-// APPLICATION PRINCIPALE (APP CONTEXT & ROUTER SÉCURISÉ)
-// =========================================================================
-// =========================================================================
-// APPLICATION PRINCIPALE (APP CONTEXT & ROUTER SÉCURISÉ AVEC NOUVELLES FCTS)
-// =========================================================================
-// =========================================================================
-// APPLICATION PRINCIPALE (APP CONTEXT & ROUTER SÉCURISÉ AVEC IA RESTAURÉE)
-// =========================================================================
-// =========================================================================
-// APPLICATION PRINCIPALE (APP CONTEXT & ROUTER SÉCURISÉ AVEC IA RESTAURÉE)
-// =========================================================================
 export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -1871,16 +1325,13 @@ export default function App() {
   const [imageSrc, setImageSrc] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-  
   const [scanHistory, setScanHistory] = useState([]);
   const [scanAction, setScanAction] = useState(null); 
   const [recommendationList, setRecommendationList] = useState(null); 
-  
   const [toastMsg, setToastMsg] = useState('');
   const [currentScanId, setCurrentScanId] = useState(null);
   const [cameraMode, setCameraMode] = useState('bottle');
   const [menuPrefs, setMenuPrefs] = useState({ food: 'ALL', type: 'ALL' });
-
   const [valueHistory, setValueHistory] = useState([]);
   const [alerts, setAlerts] = useState([]);
   
@@ -1901,20 +1352,14 @@ export default function App() {
         if(d.data().data) {
           const norm = normalizeData(d.data().data);
           sc.push({id: String(d.id), ...d.data(), data: norm}); 
-          if (d.data().stock > 0) { totalV += (norm.prix_unitaire_nombre * d.data().stock); }
+          if (d.data().stock > 0) totalV += (norm.prix_unitaire_nombre * d.data().stock);
         }
       });
-      sc.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); setScanHistory(sc);
+      sc.sort((a, b) => b.timestamp - a.timestamp); setScanHistory(sc);
       if (totalV > 0) saveCellarValueSnapshot(user, totalV);
     });
-
-    const qValue = query(collection(db, 'artifacts', appId, 'users', user.uid, 'value_history'), orderBy('timestamp', 'asc'));
-    const unsubValue = onSnapshot(qValue, (s) => { let vh = []; s.forEach(d => vh.push(d.data())); setValueHistory(vh); });
-
-    const unsubAlerts = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'alerts'), (s) => {
-      let al = []; s.forEach(d => al.push(d.data())); al.sort((a, b) => b.timestamp - a.timestamp); setAlerts(al);
-    });
-
+    const unsubValue = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'value_history'), orderBy('timestamp', 'asc')), (s) => { let vh = []; s.forEach(d => vh.push(d.data())); setValueHistory(vh); });
+    const unsubAlerts = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'alerts'), (s) => { let al = []; s.forEach(d => al.push(d.data())); al.sort((a, b) => b.timestamp - a.timestamp); setAlerts(al); });
     return () => { unsubScans(); unsubValue(); unsubAlerts(); };
   }, [user]);
 
@@ -1922,11 +1367,10 @@ export default function App() {
 
   const showToast = (m) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3000); };
   
-  // --- MOTEURS CAMÉRA ---
   const startCamera = async (mode = 'bottle') => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setErrorMsg("Accès caméra refusé (HTTPS requis)."); setView('error'); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { setErrorMsg("Caméra indisponible."); setView('error'); return; }
     try { setCameraMode(mode); const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); streamRef.current = s; setView('camera'); setTimeout(()=>{if(videoRef.current)videoRef.current.srcObject=s;},100); } 
-    catch(e){ setErrorMsg("Erreur d'accès à l'appareil photo."); setView('error'); }
+    catch(e){ setErrorMsg("Erreur d'accès à la caméra."); setView('error'); }
   };
   const stopCamera = () => { if(streamRef.current){ streamRef.current.getTracks().forEach(t=>t.stop()); streamRef.current=null; } };
   
@@ -1935,28 +1379,19 @@ export default function App() {
       const c = canvasRef.current; c.width = videoRef.current.videoWidth; c.height = videoRef.current.videoHeight;
       c.getContext('2d').drawImage(videoRef.current,0,0); const d = c.toDataURL('image/jpeg',0.8); stopCamera();
       const img = await compressImage(d); setImageSrc(img); 
-      
-      // RESTAURATION DU ROUTAGE DES MODES DE CAMÉRA
-      if (cameraMode === 'receipt') analyzeReceipt(img);
-      else if (cameraMode === 'menu') analyzeMenu(img);
-      else analyzeImage(img);
+      if (cameraMode === 'receipt') analyzeReceipt(img); else if (cameraMode === 'menu') analyzeMenu(img); else analyzeImage(img);
     }
   };
 
   const handleFileUpload = async (e) => { 
     const f = e.target.files[0]; 
-    if(f) { 
-      const r = new FileReader(); 
-      r.onloadend = async () => { const img = await compressImage(r.result); setImageSrc(img); analyzeImage(img); }; 
-      r.readAsDataURL(f); 
-    } 
+    if(f) { const r = new FileReader(); r.onloadend = async () => { const img = await compressImage(r.result); setImageSrc(img); analyzeImage(img); }; r.readAsDataURL(f); } 
   };
 
-  // --- MOTEURS IA RESTAURÉS ---
   const processAIResult = async (aiText, sourceImage) => {
     const data = normalizeData(extractJSON(aiText)); setAnalysisResult(data);
     const img = sourceImage || getGenericImageForType(data.type_simplifie); setImageSrc(img);
-    const obj = { id: 'temp_'+Date.now(), image: img, data, stock: 0, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
+    const obj = { id: 'temp_'+Date.now(), image: img, data, stock: 1, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
     setScanHistory(p=>[obj,...p]); setCurrentScanId(obj.id); setPreviousView('home'); setView('results');
     if(user){ try { const r = await addDoc(collection(db,'artifacts',appId,'users',user.uid,'scans'), obj); setCurrentScanId(r.id); setScanHistory(p=>p.map(i=>i.id===obj.id?{...i,id:r.id}:i)); } catch(e){} }
   };
@@ -1964,93 +1399,51 @@ export default function App() {
   const analyzeImage = async (b64) => {
     setView('analyzing');
     try {
-      const prompt = `Expert Sommelier. Identifie le vin sur cette photo. Si ce n'est pas un vin ou illisible, réponds {"nom": "INCONNU"}. Sinon, donne ses détails en JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
+      const prompt = `Expert Sommelier. Identifie le vin. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":20,"potentiel_garde":"5 ans","accord_parfait":"viande"}`;
       const p1 = await callGemini(prompt, b64.split(',')[1]);
-      const resultText = p1.candidates[0].content.parts[0].text;
-      const iden = extractJSON(resultText);
-      
-      if(!iden || iden.nom === 'INCONNU') { 
-        setErrorMsg("Bouteille non reconnue. Veuillez cadrer l'étiquette."); 
-        setView('error'); 
-        return; 
-      }
-      // On passe directement au résultat sans chercher dans le cache inexistant
-      await processAIResult(resultText, b64);
-    } catch(e) { 
-      setErrorMsg("Erreur d'analyse : " + e.message); 
-      setView('error'); 
-    }
+      await processAIResult(p1.candidates[0].content.parts[0].text, b64);
+    } catch(e) { setErrorMsg("Erreur d'analyse IA."); setView('error'); }
   };
 
   const searchWineText = async (textQuery) => {
     setView('analyzing'); setPreviousView('home');
     try {
-      const prompt = `Recherche le vin : "${textQuery}". Si ce vin n'existe pas ou est absurde, réponds {"nom": "INCONNU"}. Sinon, JSON strict: {"nom":"","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}`;
+      const prompt = `Recherche le vin : "${textQuery}". JSON strict: {"nom":"${textQuery}","type_simplifie":"ROUGE","annee":"2020","region":"","description":"","prix_unitaire_nombre":15,"potentiel_garde":"5 ans","accord_parfait":""}`;
       const result = await callGemini(prompt);
-      const resultText = result.candidates[0].content.parts[0].text;
-      const parsed = extractJSON(resultText);
-      
-      if (!parsed || parsed.nom === 'INCONNU') { 
-        setErrorMsg("Aucun cru correspondant trouvé."); 
-        setView('error'); 
-        return; 
-      }
-      await processAIResult(resultText, null);
-    } catch (err) { 
-      setErrorMsg("Erreur de recherche : " + err.message); 
-      setView('error'); 
-    }
+      await processAIResult(result.candidates[0].content.parts[0].text, null);
+    } catch (err) { setErrorMsg("Erreur de recherche."); setView('error'); }
   };
 
   const analyzeMenu = async (b64) => {
     setView('analyzing');
     try {
-      let foodPrefText = "un plat surprise";
-      if (menuPrefs.food === 'VIANDE_ROUGE') foodPrefText = "de la viande rouge";
-      else if (menuPrefs.food === 'VIANDE_BLANCHE') foodPrefText = "de la volaille";
-      else if (menuPrefs.food === 'POISSON') foodPrefText = "du poisson";
-      else if (menuPrefs.food === 'FROMAGE') foodPrefText = "du fromage";
-
-      const prompt = `Sommelier expert. Voici un menu de restaurant. L'utilisateur mange : ${foodPrefText}. Choisis le MEILLEUR vin PARMI CEUX PRÉSENTS SUR L'IMAGE. Réponds en JSON strict : {"nom": "Nom exact", "type_simplifie": "ROUGE|BLANC|ROSE|PETILLANT", "annee": "Année", "region": "Région", "description": "max 20 mots", "prix_unitaire_nombre": 45, "accord_parfait": "Idéal avec..."}`;
+      const prompt = `Sommelier. Choisis le MEILLEUR vin sur cette carte pour accompagner un repas. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE","annee":"","region":"","description":"","prix_unitaire_nombre":30,"potentiel_garde":"","accord_parfait":""}`;
       const result = await callGemini(prompt, b64.split(',')[1]);
       await processAIResult(result.candidates[0].content.parts[0].text, null);
-    } catch(err) { setErrorMsg("Impossible de lire ce menu."); setView('error'); }
+    } catch(err) { setErrorMsg("Lecture du menu impossible."); setView('error'); }
   };
 
   const analyzeReceipt = async (b64) => {
     setView('analyzing');
     try {
-      const prompt = `Extrait tous les vins de cette facture. Tableau JSON pur : [{"nom":"Nom", "annee":"2020", "prix_unitaire_nombre":15.5, "type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT", "region":"Bordeaux"}]`;
+      const prompt = `Extrait les vins de ce ticket. JSON: [{"nom":"Nom","annee":"2020","prix_unitaire_nombre":15,"type_simplifie":"ROUGE","region":""}]`;
       const result = await callGemini(prompt, b64.split(',')[1]);
-      let parsedArr = extractJSON(result.candidates[0].content.parts[0].text);
-      if (!Array.isArray(parsedArr) || parsedArr.length === 0) throw new Error("Aucun vin");
-
-      let newScans = [];
-      for (let item of parsedArr) {
-        const norm = normalizeData(item);
-        const tempId = 'temp_' + Date.now() + Math.random().toString(36).substring(2, 7);
-        newScans.push({ id: tempId, image: getGenericImageForType(norm.type_simplifie), data: norm, stock: 1, in_history: true, wishlist: false, location: '', timestamp: Date.now() });
-      }
-      setScanHistory(prev => [...newScans, ...prev]);
-      showToast(`${newScans.length} flacons ajoutés à la cave !`);
-      setView('cellar');
-    } catch(err) { setErrorMsg("Erreur lors de la lecture de la facture."); setView('error'); }
+      let parsed = extractJSON(result.candidates[0].content.parts[0].text);
+      if(parsed && parsed[0]) { await processAIResult(JSON.stringify(parsed[0]), null); setView('cellar'); } else throw new Error();
+    } catch(err) { setErrorMsg("Lecture de la facture impossible."); setView('error'); }
   };
 
-  const fetchAIRecommendation = async (type='ALL', apogee='ALL', food='ALL', price='ALL') => {
-    if (typeof type === 'function') type = 'ALL'; // Sécurité anti-bug
+  const fetchAIRecommendation = async () => {
     setView('analyzing'); setPreviousView('recommendation');
     try {
-      const prompt = `Sommelier: trouve 3 vins réels. Type: ${type}, Repas: ${food}, Budget: ${price}. Réponds obligatoirement au format JSON strict avec une propriété racine "vins" : {"vins": [{"nom":"","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":0,"potentiel_garde":"x-y ans","accord_parfait":"max 10 mots"}]}`;
+      const prompt = `Trouve 3 suggestions de grands vins. Format JSON racine "vins": {"vins": [{"nom":"Vin","type_simplifie":"ROUGE","annee":"2019","region":"","description":"","prix_unitaire_nombre":25,"potentiel_garde":"","accord_parfait":""}]}`;
       const result = await callGemini(prompt);
       let parsed = extractJSON(result.candidates[0].content.parts[0].text);
-      let vins = parsed.vins || (Array.isArray(parsed) ? parsed : []);
-      setRecommendationList(vins.map(v => normalizeData(v))); 
+      setRecommendationList((parsed.vins || parsed).map(v => normalizeData(v))); 
       setView('recommendationList');
-    } catch (err) { setErrorMsg("Erreur de recommandation."); setView('error'); }
+    } catch (err) { setErrorMsg("Erreur oenologique."); setView('error'); }
   };
 
-  // --- MISE À JOUR DONNÉES SÉCURISÉE ---
   const genericUpdate = async (id, f) => {
     setScanHistory(p=>p.map(i=>i.id===id?{...i,...f}:i));
     if(user && !id.startsWith('temp_')){ try{ await updateDoc(doc(db,'artifacts',appId,'users',user.uid,'scans',id), f); }catch(e){} }
@@ -2068,7 +1461,6 @@ export default function App() {
 
   const handleKeyDown = (e) => { if(e.key==='Enter') e.target.blur(); };
 
-  // TOUTES LES FONCTIONS INTÉGRÉES DANS LE CONTEXTE
   const ctx = { 
     user, view, setView, previousView, setPreviousView, imageSrc, analysisResult, errorMsg, setErrorMsg, 
     scanHistory, setScanHistory, scanAction, setScanAction, recommendationList, currentScanId, setCurrentScanId, 
@@ -2087,23 +1479,21 @@ export default function App() {
   return (
     <ErrorBoundary onReset={() => setView('home')}>
       <div className="w-full max-w-md mx-auto h-[100dvh] bg-[#0a0a0a] sm:border-x sm:border-[#333] overflow-hidden relative text-[#F5F5F5] font-sans select-none" style={{'--gold-primary': '#D4AF37'}}>
-        
         {['home', 'cellar', 'history', 'account', 'recommendation'].includes(view) && (
           <div className="absolute top-0 w-full h-16 bg-[#1a1a1a]/80 backdrop-blur-sm border-b border-[#333] flex items-center justify-between px-5 z-30">
             <h2 className="text-xl font-serif font-bold text-[#D4AF37]">VinoScan</h2>
-            <button onClick={() => setView('alerts')} className="relative p-2 bg-[#0a0a0a] rounded-full border border-[#333] text-slate-400 hover:border-[#D4AF37]/50 hover:text-[#D4AF37] transition-all">
-              <Bell className="w-5 h-5" />
-              {unreadAlerts > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-[#1a1a1a]">{unreadAlerts}</span>}
+            <button onClick={() => setView('alerts')} className="relative p-2 bg-[#0a0a0a] rounded-full border border-[#333] text-slate-400 hover:border-[#D4AF37]/50 transition-all">
+              <Bell className="w-5 h-5" /> {unreadAlerts > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-[#1a1a1a]">{unreadAlerts}</span>}
             </button>
           </div>
         )}
-
         <div className={['home', 'cellar', 'history', 'account', 'recommendation'].includes(view) ? "pt-16 pb-16 h-full" : "h-full"}>
           {view === 'home' && <HomeView ctx={ctx} />}
           {view === 'account' && <AccountView ctx={ctx} />}
           {view === 'history' && <HistoryView ctx={ctx} />}
           {view === 'cellar' && <CellarView ctx={ctx} />}
           {view === 'recommendation' && <RecommendationView ctx={ctx} />}
+          {view === 'recommendationList' && <RecommendationListView ctx={ctx} />}
           {view === 'results' && <ResultsView ctx={ctx} />}
           {view === 'camera' && <CameraView ctx={ctx} />}
           {view === 'analyzing' && <AnalyzingView />}
@@ -2115,13 +1505,10 @@ export default function App() {
             <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#0a0a0a] pt-20"><AlertTriangle className="w-16 h-16 text-red-500 mb-4" /><h2 className="text-xl font-bold text-white mb-2">Erreur technique</h2><p className="text-sm text-slate-400 mb-6">{errorMsg}</p><button onClick={()=>setView('home')} className="px-6 py-3 bg-[#D4AF37] text-black font-bold rounded-xl shadow-lg">Retour</button></div>
           )}
         </div>
-        
         {['home', 'cellar', 'history', 'account', 'recommendation'].includes(view) && <NavigationBar ctx={ctx} />}
-        
         {scanAction && (
-          <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in"><div className="bg-[#1a1a1a] border border-[#333] rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl"><h3 className="text-xl font-bold text-white mb-2">Supprimer définitivement ?</h3><p className="text-slate-400 text-sm mb-6">Cette bouteille sera retirée de votre historique et de votre cave.</p><div className="flex space-x-3 mt-6"><button onClick={()=>setScanAction(null)} className="flex-1 py-3 bg-[#333] rounded-xl font-bold">Annuler</button><button onClick={()=>{ ctx.genericUpdate(scanAction.id, { in_history: false, stock: 0 }); setScanAction(null); setView('home'); ctx.showToast("Vin supprimé."); }} className="flex-1 py-3 bg-red-600/20 text-red-400 border border-red-600/40 rounded-xl font-bold">Supprimer</button></div></div></div>
+          <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"><div className="bg-[#1a1a1a] border border-[#333] rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl"><h3 className="text-xl font-bold text-white mb-2">Supprimer ?</h3><div className="flex space-x-3 mt-6"><button onClick={()=>setScanAction(null)} className="flex-1 py-3 bg-[#333] rounded-xl font-bold">Annuler</button><button onClick={()=>{ ctx.genericUpdate(scanAction.id, { in_history: false, stock: 0 }); setScanAction(null); setView('home'); ctx.showToast("Supprimé."); }} className="flex-1 py-3 bg-red-600/20 text-red-400 border border-red-600/40 rounded-xl font-bold">Supprimer</button></div></div></div>
         )}
-        
         {toastMsg && (
           <div className="absolute top-20 left-0 w-full flex justify-center z-[200] animate-in slide-in-from-top-4"><div className="bg-[#D4AF37] text-black font-bold px-5 py-3 rounded-full shadow-lg border border-[#AA7C11] flex items-center space-x-2"><CheckCircle className="w-4 h-4" /><span>{toastMsg}</span></div></div>
         )}
