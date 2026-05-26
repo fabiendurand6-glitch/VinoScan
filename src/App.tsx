@@ -236,12 +236,18 @@ class ErrorBoundary extends React.Component {
 }
 
 const NavigationBar = ({ ctx }) => (
-  <div className="absolute bottom-0 w-full bg-[#1a1a1a] border-t border-[#333] flex justify-around items-center pb-safe pt-2 px-1 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] z-20 h-16 select-none">
+  <div className="absolute bottom-0 w-full bg-[#1a1a1a] border-t border-[#333] flex justify-around items-center pb-safe pt-2 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] z-[100] h-16 select-none">
     {[{id:'home', i:Home, text:'Scanner'},{id:'cellar', i:Archive, text:'Cave'},{id:'recommendation', i:Sparkles, text:'Conseil'},{id:'history', i:History, text:'Histo'},{id:'account', i:User, text:'Profil'}].map(item => {
       const active = ctx.view.includes(item.id) || (item.id === 'home' && ['manualSearch', 'menuConfig', 'quiz'].includes(ctx.view)) || (item.id === 'recommendation' && ctx.view === 'recommendationList');
       return (
-        <button onClick={() => { ctx.setPreviousView(view); ctx.setView('alerts'); }} className="relative p-2 bg-[#0a0a0a] rounded-full border border-[#333] text-slate-400 hover:border-[#D4AF37]/50 transition-all">
-          <item.i className="w-5 h-5" /><span className="text-[9px] font-bold uppercase tracking-wider">{item.text}</span>
+        <button 
+          key={item.id} 
+          onClick={() => ctx.setView(item.id)} 
+          /* CORRECTIONS CSS ICI : flex-1, bg-transparent, outline-none */
+          className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 bg-transparent border-none outline-none focus:outline-none transition-colors ${active ? 'text-[#D4AF37]' : 'text-slate-500 hover:text-slate-300'}`}
+        >
+          <item.i className="w-5 h-5" />
+          <span className="text-[9px] font-bold uppercase tracking-wider">{item.text}</span>
         </button>
       );
     })}
