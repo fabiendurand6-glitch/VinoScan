@@ -1496,17 +1496,20 @@ const AccountView = ({ ctx }) => {
 // =========================================================================
 // FICHE DE RÉSULTATS DÉCOUVERTE (LE COMPOSANT MANQUANT)
 // =========================================================================
+// =========================================================================
+// FICHE DE RÉSULTATS DÉCOUVERTE (CORRIGÉE : RULE OF HOOKS)
+// =========================================================================
 const ResultsView = ({ ctx }) => {
   let currentItem = ctx.scanHistory.find(s => s.id === ctx.currentScanId);
   if (!currentItem && ctx.analysisResult) currentItem = ctx.scanHistory.find(s => s.data?.nom === ctx.analysisResult.nom);
-  if (!currentItem) return null;
   
-  const d = currentItem.data;
-  const scanIdToUse = currentItem.id;
-  const stock = currentItem.stock || 0;
-  const isWishlist = currentItem.wishlist || false;
-  const rating = currentItem.rating || 0;
+  const d = currentItem?.data;
+  const scanIdToUse = currentItem?.id;
+  const stock = currentItem?.stock || 0;
+  const isWishlist = currentItem?.wishlist || false;
+  const rating = currentItem?.rating || 0;
 
+  // 🚨 RÈGLE D'OR DE REACT : Tous les Hooks en haut, AVANT le moindre "return" !
   const [activeTab, setActiveTab] = useState('infos');
   const [protocol, setProtocol] = useState(null); 
   const [isLoadingProtocol, setIsLoadingProtocol] = useState(false);
@@ -1522,75 +1525,57 @@ const ResultsView = ({ ctx }) => {
   const [tempLocation, setTempLocation] = useState(currentItem?.location || '');
   const [tempNotes, setTempNotes] = useState(currentItem?.notes || '');
 
-  // Outil interne de recalcul d'Apogée selon les règles de l'art oenologique
+  // Synchronisation sécurisée si les données en fond changent
+  useEffect(() => {
+    if (currentItem) {
+      setTempType(currentItem.data?.type_simplifie || 'ROUGE');
+      setTempAnnee(currentItem.data?.annee || 'N.M.');
+      setTempPrix(currentItem.data?.prix_unitaire_nombre || 0);
+      setTempLocation(currentItem.location || '');
+      setTempNotes(currentItem.notes || '');
+    }
+  }, [currentItem?.id]);
+
+  // 🚨 FIN DES HOOKS. Maintenant on peut couper l'affichage en toute sécurité si besoin.
+  if (!currentItem) return null;
+
   const computeApogeeForType = (type, anneeStr) => {
     const currentYear = new Date().getFullYear();
     const match = String(anneeStr).match(/\d{4}/);
-    
     let minGarde = 2, maxGarde = 5;
     if (type === 'ROUGE') { minGarde = 4; maxGarde = 10; }
     else if (type === 'BLANC') { minGarde = 2; maxGarde = 6; }
     else if (type === 'ROSE') { minGarde = 1; maxGarde = 3; }
     else if (type === 'PETILLANT') { minGarde = 3; maxGarde = 7; }
-
-    if (!match) {
-      return { potentiel_garde: "À consommer rapidement", apogee: "Prêt à boire", declin: "Dans les 1-2 ans", statut_apogee: "APOGEE", baseGardeMin: minGarde, baseGardeMax: maxGarde };
-    }
-
+    if (!match) return { potentiel_garde: "À consommer rapidement", apogee: "Prêt à boire", declin: "Dans les 1-2 ans", statut_apogee: "APOGEE", baseGardeMin: minGarde, baseGardeMax: maxGarde };
     const anneeInt = parseInt(match[0], 10);
     const start = anneeInt + minGarde;
     const end = anneeInt + maxGarde;
     const declinYear = end + 1;
-    
     let statut = "APOGEE";
     if (currentYear < start) statut = "A_GARDER";
     else if (currentYear >= declinYear) statut = "DECLIN";
-
-    return {
-      potentiel_garde: `${minGarde} à ${maxGarde} ans`,
-      apogee: `${start} - ${end}`,
-      declin: `À partir de ${declinYear}`,
-      statut_apogee: statut,
-      baseGardeMin: minGarde,
-      baseGardeMax: maxGarde
-    };
+    return { potentiel_garde: `${minGarde} à ${maxGarde} ans`, apogee: `${start} - ${end}`, declin: `À partir de ${declinYear}`, statut_apogee: statut, baseGardeMin: minGarde, baseGardeMax: maxGarde };
   };
 
-  // Changement dynamique du Type (Recalcule l'apogée + Accords mets)
   const handleTypeChange = (newType) => {
     setTempType(newType);
     const updatedDates = computeApogeeForType(newType, tempAnnee);
-    
     let newAccords = [];
     if (newType === 'ROUGE') newAccords = ['Viande rouge grillée', 'Plateau de fromages affinés', 'Plats en sauce'];
     else if (newType === 'BLANC') newAccords = ['Poissons et fruits de mer', 'Volaille à la crème', 'Fromage de chèvre'];
     else if (newType === 'ROSE') newAccords = ['Apéritif festif', 'Grillades estivales', 'Salades composées'];
     else if (newType === 'PETILLANT') newAccords = ['Apéritif de prestige', 'Desserts légers', 'Coquilles Saint-Jacques'];
     else newAccords = ['Plats conviviaux à partager'];
-
-    const updatedData = {
-      ...d,
-      type_simplifie: newType,
-      accords_mets: newAccords,
-      accord_parfait: newAccords[0],
-      ...updatedDates
-    };
-
+    const updatedData = { ...d, type_simplifie: newType, accords_mets: newAccords, accord_parfait: newAccords[0], ...updatedDates };
     ctx.setAnalysisResult(updatedData);
-    ctx.genericUpdate(scanIdToUse, { data: updatedData, image: ctx.getGenericImageForType ? ctx.getGenericImageForType(newType) : getGenericImageForType(newType) });
+    ctx.genericUpdate(scanIdToUse, { data: updatedData, image: getGenericImageForType(newType) });
   };
 
-  // Changement dynamique du Millésime
   const handleYearChange = (newYear) => {
     setTempAnnee(newYear);
     const updatedDates = computeApogeeForType(tempType, newYear);
-    
-    const updatedData = {
-      ...d,
-      annee: newYear,
-      ...updatedDates
-    };
-
+    const updatedData = { ...d, annee: newYear, ...updatedDates };
     ctx.setAnalysisResult(updatedData);
     ctx.genericUpdate(scanIdToUse, { data: updatedData });
   };
@@ -1600,7 +1585,7 @@ const ResultsView = ({ ctx }) => {
     setIsLoadingProtocol(true);
     try {
       const prompt = `Agis comme un Maître Sommelier. Donne le protocole de service parfait pour ce vin : "${d.nom} ${tempAnnee}". Réponds en JSON strict : {"temperature": "ex: 16°C", "carafage": "ex: Oui, 2h avant", "verre": "ex: Verre type Bordeaux", "conseil": "Une phrase d'expert"}`;
-      const res = await ctx.callGemini ? await ctx.callGemini(prompt) : await callGemini(prompt);
+      const res = await ctx.callGemini(prompt);
       setProtocol(extractJSON(res.candidates[0].content.parts[0].text));
     } catch(e) {
       setProtocol({ temperature: tempType === 'ROUGE' ? "16°C" : "10°C", carafage: tempType === 'ROUGE' ? "Conseillé 1h avant" : "Non requis", verre: "Verre classique", conseil: "Servir à température idéale." });
@@ -1611,7 +1596,7 @@ const ResultsView = ({ ctx }) => {
     setIsBlindLoading(true);
     try {
       const prompt = `Le vin réel est : "${d.nom} ${tempAnnee} (${tempType})". Notes de l'invité : Robe=${blindNotes.robe}, Nez=${blindNotes.nez}, Bouche=${blindNotes.bouche}. Donne une note sur 10. Réponds en JSON strict : {"note": "ex: 8/10", "commentaire": "Ton verdict pour l'invité en 25 mots max, sois fun."}`;
-      const res = await ctx.callGemini ? await ctx.callGemini(prompt) : await callGemini(prompt);
+      const res = await ctx.callGemini(prompt);
       setBlindResult(extractJSON(res.candidates[0].content.parts[0].text));
     } catch(e) {
       setBlindResult({ note: "7/10", commentaire: "Dégustation honorable, l'essentiel est le plaisir partagé !" });
@@ -1631,33 +1616,25 @@ const ResultsView = ({ ctx }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none">
-      
-      {/* HEADER DE RECHERCHE */}
       <div className="bg-[#1a1a1a] p-4 flex justify-between z-20 sticky top-0 border-b border-[#333]">
-        <SommelierButton text={`Analyse du cru ${d.nom}. D'après mes algorithmes, ce vin est idéalement à consommer dans la fenêtre d'apogée suivante : ${d.apogee}.`} />
+        <SommelierButton text={`Analyse du cru ${d.nom}. Ce vin est idéalement à consommer dans la fenêtre d'apogée suivante : ${d.apogee}.`} />
         <button onClick={ctx.goBack} className="p-3 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-white transition-colors"><X className="w-5 h-5"/></button>
       </div>
-
       <div className="p-5">
-        {/* LE HERO "DISCOVERY" MAJESTUEUX (IMAGE EN CARTALOUGE À DROITE) */}
         <div className="bg-[#1A1A1A] rounded-3xl border border-[#333] flex overflow-hidden min-h-64 shadow-xl group relative">
           <div className="flex-1 p-6 flex flex-col justify-between min-w-0">
             <div>
-              {/* Édition dynamique de la couleur / type */}
               <div className="relative inline-block mb-3">
                 <select value={tempType} onChange={(e) => handleTypeChange(e.target.value)} className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37] bg-[#0a0a0a] border border-[#333] pl-3 pr-8 py-1.5 rounded-lg outline-none cursor-pointer appearance-none">
                   <option value="ROUGE">🍷 Vin Rouge</option>
                   <option value="BLANC">🥂 Vin Blanc</option>
                   <option value="ROSE">🌸 Vin Rosé</option>
-                  <option value="PETILLANT">🍾 Pétillant / Champagne</option>
+                  <option value="PETILLANT">🍾 Pétillant</option>
                   <option value="AUTRE">💎 Autre</option>
                 </select>
                 <ChevronDown className="w-3 h-3 text-[#D4AF37] absolute right-2.5 top-2.5 pointer-events-none" />
               </div>
-
               <h2 className="text-3xl font-serif font-bold text-white leading-tight truncate group-hover:text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] transition-all duration-300">{d.nom}</h2>
-              
-              {/* REHABILITATION DES BADGES VISUELS */}
               <div className="flex flex-wrap gap-2 mt-4">
                 <div className="flex items-center text-slate-400 font-medium bg-[#0a0a0a] border border-[#333] px-2.5 py-1 rounded-xl">
                   <span className="text-[11px]">Année :</span>
@@ -1665,8 +1642,6 @@ const ResultsView = ({ ctx }) => {
                 </div>
                 <span className="text-[11px] font-bold text-slate-400 bg-[#0a0a0a] border border-[#333] px-2.5 py-1.5 rounded-xl truncate max-w-[140px]">{d.region}</span>
               </div>
-
-              {/* BADGES D'APOGÉE DYNAMIQUE RETROUVÉS */}
               <div className="mt-5 space-y-2">
                 <div className="flex items-center space-x-2 text-xs text-slate-400 font-medium bg-[#0a0a0a]/60 p-2.5 rounded-xl border border-[#222] w-max">
                   <Star className="w-4 h-4 text-[#D4AF37] fill-current" />
@@ -1675,24 +1650,18 @@ const ResultsView = ({ ctx }) => {
                 {getStatusBadge(d.statut_apogee)}
               </div>
             </div>
-
             <p className="text-xs text-slate-400 italic line-clamp-2 mt-4 border-t border-[#222] pt-3">Accord : {d.accord_parfait}</p>
           </div>
-
           <div className="w-36 bg-[#0a0a0a] p-3 flex justify-center items-center border-l border-[#333] shrink-0 relative overflow-hidden">
             <img src={currentItem.image || fallbackImg} onError={(e) => {e.target.onerror = null; e.target.src = fallbackImg;}} className="max-h-full object-contain drop-shadow-[0_10px_20px_rgba(212,175,55,0.25)] group-hover:scale-105 transition-transform duration-500" alt="wine"/>
             <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#1A1A1A] to-transparent pointer-events-none"></div>
           </div>
         </div>
 
-        {/* COMPOSANT DE DEGUSTATION AVEUGLE */}
         <button onClick={() => setShowBlindTasting(true)} className="w-full mt-5 bg-gradient-to-r from-rose-950/40 via-[#1A1A1A] to-[#1A1A1A] text-white rounded-3xl p-4 shadow-lg flex items-center justify-between active:scale-95 transition-transform border border-rose-900/30">
           <div className="flex items-center">
              <div className="bg-[#0a0a0a] p-2.5 rounded-full mr-3 border border-rose-900/50"><EyeOff className="w-5 h-5 text-rose-400"/></div>
-             <div className="text-left">
-               <h3 className="font-bold text-base text-[#F5F5F5]">Faire déguster ce vin à l'aveugle</h3>
-               <p className="text-[9px] text-rose-400 uppercase tracking-widest font-bold">L'IA teste le palais de vos invités</p>
-             </div>
+             <div className="text-left"><h3 className="font-bold text-base text-[#F5F5F5]">Dégustation aveugle</h3><p className="text-[9px] text-rose-400 uppercase tracking-widest font-bold">L'IA teste vos invités</p></div>
           </div>
           <ChevronRight className="w-5 h-5 text-rose-500" />
         </button>
@@ -1712,7 +1681,7 @@ const ResultsView = ({ ctx }) => {
                   </div>
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
                     <label className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center mb-2">Le Nez (Arômes)</label>
-                    <input type="text" placeholder="Ex: Fruits des bois, Poivré, Vanille..." value={blindNotes.nez} onChange={e=>setBlindNotes({...blindNotes, nez: e.target.value})} className="w-full bg-black/20 border border-white/10 text-white rounded-xl p-3 text-sm outline-none focus:border-rose-500" />
+                    <input type="text" placeholder="Ex: Fruits des bois, Poivré..." value={blindNotes.nez} onChange={e=>setBlindNotes({...blindNotes, nez: e.target.value})} className="w-full bg-black/20 border border-white/10 text-white rounded-xl p-3 text-sm outline-none focus:border-rose-500" />
                   </div>
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
                     <label className="text-xs font-bold text-rose-400 uppercase tracking-widest flex items-center mb-2">La Bouche (Ressenti)</label>
@@ -1732,14 +1701,12 @@ const ResultsView = ({ ctx }) => {
           </div>
         )}
 
-        {/* ONGLETS DES DESCRIPTIONS RETROUVÉS */}
         <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333] mt-6">
           <button onClick={() => setActiveTab('infos')} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'infos' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Fiche Cru</button>
           <button onClick={() => { setActiveTab('service'); fetchProtocol(); }} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'service' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Service IA</button>
           <button onClick={() => setActiveTab('cave')} className={`flex-1 py-3 text-xs font-bold rounded-lg transition-all ${activeTab === 'cave' ? 'bg-[#333] text-[#D4AF37] border border-[#D4AF37]/20 shadow-sm' : 'text-slate-500'}`}>Rangement</button>
         </div>
 
-        {/* CONTENU ONGLET 1 : DESCRIPTION GENERALE */}
         {activeTab === 'infos' && (
           <div className="space-y-4 mt-4 animate-in fade-in">
             <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md"><p className="text-sm text-slate-300 leading-relaxed font-medium">{d.description}</p></div>
@@ -1756,14 +1723,12 @@ const ResultsView = ({ ctx }) => {
                 <span className="text-base font-bold text-white mt-2 block">{d.potentiel_garde}</span>
               </div>
             </div>
-            
             <a href={`https://www.google.com/search?q=${encodeURIComponent('prix vin ' + d.nom + ' ' + tempAnnee)}&tbm=shop`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center space-x-2 py-4 bg-[#1A1A1A] border border-[#333] text-slate-300 rounded-2xl font-bold text-sm hover:border-[#D4AF37] transition-all">
               <Search className="w-4 h-4 text-[#D4AF37]" /><span>Comparer les marchands en ligne</span>
             </a>
           </div>
         )}
 
-        {/* CONTENU ONGLET 2 : PROTOCOLE IA DU SOMMELIER */}
         {activeTab === 'service' && (
           <div className="space-y-4 mt-4 animate-in fade-in">
             <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md">
@@ -1787,8 +1752,6 @@ const ResultsView = ({ ctx }) => {
                 </div>
               ) : null}
             </div>
-
-            {/* Suggestions d'accessoires d'affiliation */}
             <a href={getAmazonAffiliateLink(getRecommendedAccessory(tempType).search)} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl shadow-sm hover:border-[#D4AF37]/50 transition-all">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-[#0a0a0a] rounded-xl text-[#D4AF37] border border-[#222]"><ShoppingCart className="w-4 h-4"/></div>
@@ -1799,10 +1762,8 @@ const ResultsView = ({ ctx }) => {
           </div>
         )}
 
-        {/* CONTENU ONGLET 3 : RANGEMENT ET PARTAGE SÉCURISÉ */}
         {activeTab === 'cave' && (
           <div className="space-y-4 mt-4 animate-in fade-in">
-            {/* Stock et Wishlist (Inchangé) */}
             <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md">
               <div className="flex items-center justify-between bg-[#0a0a0a] p-3 rounded-2xl border border-[#333]">
                 <span className="text-sm font-bold text-slate-400 ml-2">Bouteilles en cave :</span>
@@ -1817,14 +1778,13 @@ const ResultsView = ({ ctx }) => {
               )}
             </div>
 
-            {/* Rangement (Inchangé) */}
             <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1 block mb-2">Notes & Rangement</label>
-              <input type="text" value={tempLocation} onChange={(e) => setTempLocation(e.target.value)} onBlur={() => ctx.genericUpdate(currentItem.id, { location: tempLocation })} placeholder="Emplacement exact (ex: Étagère A3)..." className="w-full bg-[#0a0a0a] border border-[#333] text-white rounded-xl p-3.5 text-sm font-medium outline-none focus:border-[#D4AF37] mb-3" />
+              <input type="text" value={tempLocation} onChange={(e) => setTempLocation(e.target.value)} onBlur={() => ctx.genericUpdate(currentItem.id, { location: tempLocation })} list="shelf-suggestions" placeholder="Emplacement exact (ex: Étagère A3)..." className="w-full bg-[#0a0a0a] border border-[#333] text-white rounded-xl p-3.5 text-sm font-medium outline-none focus:border-[#D4AF37] mb-3" />
+              <datalist id="shelf-suggestions">{existingLocations.map(loc => <option key={loc} value={loc} />)}</datalist>
               <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} onBlur={() => ctx.genericUpdate(currentItem.id, { notes: tempNotes })} placeholder="Notes privées (Arômes, accords tentés...)" className="w-full bg-[#0a0a0a] border border-[#333] text-white rounded-2xl p-4 text-sm h-24 outline-none focus:border-[#D4AF37] resize-none" />
             </div>
 
-            {/* POINT 4 : PARTAGE INSTAGRAMMABLE UGC */}
             <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#333] shadow-md space-y-3">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1 block mb-2">Partage Prestige</label>
               <div className="grid grid-cols-5 gap-2 mb-4 bg-[#0a0a0a] p-2 rounded-2xl border border-[#333]">
@@ -1832,17 +1792,7 @@ const ResultsView = ({ ctx }) => {
               </div>
               <button onClick={() => ctx.generateAndShareInstagramImage(ctx.showToast)} className="w-full py-4 bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 text-white font-black text-sm rounded-full shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-transform"><Share2 className="w-5 h-5"/><span>Gérer mon image Story "Instagrammable"</span></button>
             </div>
-
-            <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-4 bg-red-950/20 text-red-400 font-bold rounded-2xl border border-red-900/40 hover:bg-red-900 hover:text-white transition-colors">Supprimer définitivement</button>
-          
-            {/* LE CANVAS CACHÉ POUR LA CAPTURE D'ÉCRAN (POINT 4) */}
-            <InstagramShareCanvas wine={currentItem} rating={rating} notes={tempNotes} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
+            <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-
 // =========================================================================
 // CAMÉRA ET ANALYSE
 // =========================================================================
