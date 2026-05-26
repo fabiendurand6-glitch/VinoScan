@@ -423,7 +423,18 @@ const allQuestions = [
   { q: "Lequel de ces cépages est blanc ?", options: ["Cabernet Franc", "Viognier", "Gamay"], ans: "Viognier" },
   { q: "Quel vin est traditionnellement muté à l'alcool ?", options: ["Le Porto", "Le Champagne", "Le Beaujolais"], ans: "Le Porto" },
   { q: "Que signifie 'Blanc de Blancs' pour un Champagne ?", options: ["Fait avec du raisin blanc", "Sans ajout de sucre", "Vieilli en cuve inox"], ans: "Fait avec du raisin blanc" },
-  { q: "Quel est le grand cépage rouge de la rive droite à Bordeaux ?", options: ["Cabernet Sauvignon", "Merlot", "Malbec"], ans: "Merlot" }
+  { q: "Quel est le grand cépage rouge de la rive droite à Bordeaux ?", options: ["Cabernet Sauvignon", "Merlot", "Malbec"], ans: "Merlot" },
+  { q: "À quelle température idéale doit-on servir un grand vin rouge liquoreux ?", options: ["6-8°C", "10-12°C", "16-18°C"], ans: "10-12°C" },
+  { q: "De quel pays le Chianti est-il originaire ?", options: ["Espagne", "Italie", "Portugal"], ans: "Italie" },
+  { q: "Quel cépage est roi dans l'appellation Chablis ?", options: ["Chardonnay", "Sauvignon Blanc", "Chenin Blanc"], ans: "Chardonnay" },
+  { q: "Quelle maladie de la vigne a presque détruit le vignoble français au 19e siècle ?", options: ["Le Mildiou", "Le Phylloxéra", "L'Oïdium"], ans: "Le Phylloxéra" },
+  { q: "Qu'est-ce qu'un vin 'Bouchonné' ?", options: ["Un vin scellé à la cire", "Un vin altéré par le TCA", "Un vin non filtré"], ans: "Un vin altéré par le TCA" },
+  { q: "Dans quelle région trouve-t-on l'appellation Châteauneuf-du-Pape ?", options: ["Vallée du Rhône", "Languedoc", "Provence"], ans: "Vallée du Rhône" },
+  { q: "Combien de bouteilles contient un Mathusalem ?", options: ["4", "8", "12"], ans: "8" },
+  { q: "Lequel de ces vins est un grand cru de Saint-Émilion ?", options: ["Château Cheval Blanc", "Château Margaux", "Château d'Yquem"], ans: "Château Cheval Blanc" },
+  { q: "Que mesure le degré Brix ?", options: ["Le taux d'alcool", "La teneur en sucre du raisin", "L'acidité du vin"], ans: "La teneur en sucre du raisin" },
+  { q: "Quel est le cépage principal des vins rouges de la Rioja en Espagne ?", options: ["Tempranillo", "Grenache", "Syrah"], ans: "Tempranillo" },
+  { q: "Qu'est-ce que le 'Pigeage' ?", options: ["Tailler la vigne en hiver", "Enfoncer le chapeau de marc dans le moût", "Filtrer le vin avant mise en bouteille"], ans: "Enfoncer le chapeau de marc dans le moût" }
 ];
 
 const QuizView = ({ ctx }) => {
@@ -705,15 +716,24 @@ const CellarView = ({ ctx }) => {
           <button onClick={() => setCellarTab('STOCK')} className={`flex-1 py-2 text-sm font-bold rounded-lg ${cellarTab === 'STOCK' ? 'bg-[#1A1A1A] text-[#D4AF37]' : 'text-slate-500'}`}>En Cave</button>
           <button onClick={() => setCellarTab('WISHLIST')} className={`flex-1 py-2 text-sm font-bold rounded-lg ${cellarTab === 'WISHLIST' ? 'bg-[#1A1A1A] text-[#D4AF37]' : 'text-slate-500'}`}>Achats</button>
         </div>
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center space-x-2">
-            {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => (
-              <button key={t} onClick={() => setFilterType(t)} className={`px-3 py-1 rounded-full text-xs font-bold border ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t === 'ALL' ? 'Tous' : t}</button>
-            ))}
+        {/* NOUVEAUX FILTRES CAVE (Type + Apogée) */}
+        <div className="flex flex-col space-y-3 mb-2">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => (
+                <button key={t} onClick={() => setFilterType(t)} className={`px-4 py-1.5 rounded-full text-xs font-bold border whitespace-nowrap transition-colors ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t === 'ALL' ? 'Tous' : t}</button>
+              ))}
+            </div>
+            <div className="flex bg-[#0a0a0a] rounded-lg p-0.5 border border-[#333] shrink-0 ml-2">
+              <button onClick={() => { setViewMode('list'); setReorgMode(false); }} className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-[#1A1A1A] text-[#F5F5F5]' : 'text-slate-600'}`}><List className="w-4 h-4" /></button>
+              <button onClick={() => setViewMode('shelves')} className={`p-1.5 rounded-md ${viewMode === 'shelves' ? 'bg-[#1A1A1A] text-[#F5F5F5]' : 'text-slate-600'}`}><LayoutGrid className="w-4 h-4" /></button>
+            </div>
           </div>
-          <div className="flex bg-[#0a0a0a] rounded-lg p-0.5 border border-[#333]">
-            <button onClick={() => { setViewMode('list'); setReorgMode(false); }} className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-[#1A1A1A] text-[#F5F5F5]' : 'text-slate-600'}`}><List className="w-4 h-4" /></button>
-            <button onClick={() => setViewMode('shelves')} className={`p-1.5 rounded-md ${viewMode === 'shelves' ? 'bg-[#1A1A1A] text-[#F5F5F5]' : 'text-slate-600'}`}><LayoutGrid className="w-4 h-4" /></button>
+          
+          <div className="flex items-center space-x-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-1">
+            {[{id: 'ALL', label: 'Toutes maturités'}, {id: 'APOGEE', label: 'À boire'}, {id: 'A_GARDER', label: 'À garder'}, {id: 'DECLIN', label: 'Déclin'}].map(a => (
+              <button key={a.id} onClick={() => setFilterApogee(a.id)} className={`px-4 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap transition-colors ${filterApogee === a.id ? 'bg-emerald-900/40 text-emerald-400 border-emerald-500/50' : 'bg-[#1A1A1A] border-[#333] text-slate-500'}`}>{a.label}</button>
+            ))}
           </div>
         </div>
       </div>
@@ -732,12 +752,14 @@ const CellarView = ({ ctx }) => {
           <div className="space-y-4">
             {filteredItems.map(item => (
               <div key={item.id} onClick={() => ctx.openExistingWine(item, 'cellar')} className="bg-[#1A1A1A] rounded-3xl shadow-md border border-[#333] overflow-hidden flex items-stretch cursor-pointer">
-                <div className="flex-1 p-5"><h3 className="font-serif text-[#F5F5F5] text-lg font-bold">{item.data.nom}</h3><p className="text-xs text-slate-400">{item.data.annee} • {item.data.region}</p></div>
-                <div className="w-24 bg-[#0a0a0a] border-l border-[#333] p-2 flex items-center justify-center relative">
-                  <img src={item.image || fallbackImg} className="max-h-full object-contain" alt="wine" />
-                  {item.stock > 1 && <span className="absolute -top-1 -right-1 bg-[#D4AF37] text-black text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold">x{item.stock}</span>}
-                </div>
-              </div>
+                <div className="flex-1 p-5">
+                 <div className="flex justify-between items-start">
+                 <h3 className="font-serif text-[#F5F5F5] text-lg font-bold line-clamp-1">{item.data.nom}</h3>
+                 <span className="text-emerald-400 font-bold bg-emerald-900/30 px-2 py-0.5 rounded-lg text-xs shrink-0 ml-2">{item.data.prix_unitaire_nombre}€</span>
+               </div>
+               <p className="text-xs text-slate-400 mt-1">{item.data.annee} • {item.data.region}</p>
+             </div>
+            </div>
             ))}
           </div>
         ) : (
@@ -752,7 +774,13 @@ const CellarView = ({ ctx }) => {
                                <img src={bottle.image || fallbackImg} className="max-h-full object-contain" alt={bottle.data.nom} />
                                {cellarTab === 'STOCK' && bottle.stock > 1 && <span className="absolute -top-2 -right-2 bg-[#D4AF37] text-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold">x{bottle.stock}</span>}
                             </div>
-                            <div className="flex flex-col items-center text-center"><h4 className="text-xs font-bold text-[#F5F5F5] leading-tight line-clamp-2">{bottle.data.nom}</h4><span className="text-[10px] text-slate-400 mt-1">{bottle.data.annee}</span></div>
+                            <div className="flex flex-col items-center text-center mt-1">
+                             <h4 className="text-[11px] font-bold text-[#F5F5F5] leading-tight line-clamp-2">{bottle.data.nom}</h4>
+                             <div className="flex items-center space-x-2 mt-1">
+                               <span className="text-[10px] text-slate-400">{bottle.data.annee}</span>
+                               <span className="text-[10px] font-bold text-emerald-400">{bottle.data.prix_unitaire_nombre}€</span>
+                             </div>
+                           </div>
                          </div>
                       ))}
                    </div>
@@ -1156,7 +1184,14 @@ export default function App() {
     if (typeof type === 'function') type = 'ALL'; 
     setView('analyzing'); setPreviousView('recommendation');
     try {
-      const prompt = `Trouve 3 suggestions de grands vins réels. Format JSON avec clé racine "vins": {"vins": [{"nom":"Vin","type_simplifie":"ROUGE","annee":"2019","region":"","description":"","prix_unitaire_nombre":25,"potentiel_garde":"","accord_parfait":""}]}. Contraintes obligatoires -> Type: ${type}, Repas: ${food}, Budget: ${price}.`;
+      // CORRECTION ICI : Traduction du budget en Euros pour l'IA
+      let budgetStr = "Peu importe";
+      if (price === 'BUDGET') budgetStr = "Maximum 15€";
+      else if (price === 'MEDIUM') budgetStr = "Entre 15€ et 35€";
+      else if (price === 'PREMIUM') budgetStr = "Plus de 35€";
+
+      const prompt = `Trouve 3 suggestions de grands vins réels. Format JSON avec clé racine "vins": {"vins": [{"nom":"Vin","type_simplifie":"ROUGE","annee":"2019","region":"","description":"","prix_unitaire_nombre":25,"potentiel_garde":"","accord_parfait":""}]}. Contraintes obligatoires -> Type: ${type}, Repas: ${food}, Budget: ${budgetStr}.`;
+      
       const result = await ctx.callGemini(prompt);
       let parsed = extractJSON(result.candidates[0].content.parts[0].text);
       setRecommendationList((parsed.vins || parsed).map(v => normalizeData(v))); 
