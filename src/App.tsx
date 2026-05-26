@@ -393,6 +393,7 @@ const HomeView = ({ ctx }) => (
 const ManualSearchView = ({ ctx }) => {
   const [searchTerms, setSearchTerms] = useState('');
   const handleSearch = (e) => { e.preventDefault(); if(searchTerms.trim()) ctx.searchWineText(searchTerms); };
+  
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 select-none">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center border-b border-[#333]">
@@ -405,7 +406,8 @@ const ManualSearchView = ({ ctx }) => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
             <input autoFocus type="text" value={searchTerms} onChange={e => setSearchTerms(e.target.value)} placeholder="Ex: Château Margaux 2015" className="w-full pl-12 pr-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-2xl outline-none focus:border-[#D4AF37] text-lg transition-colors"/>
           </div>
-          <button type="submit" disabled={!searchTerms.trim()} className="w-full py-4 bg-[#D4AF37] text-black rounded-full font-black text-lg shadow-lg disabled:opacity-50 hover:bg-[#AA7C11] transition-all">Rechercher</button>
+          {/* CORRECTION ICI : Remplacement de query par searchTerms */}
+          <button type="submit" disabled={!searchTerms.trim()} className="w-full py-4 bg-[#D4AF37] text-black rounded-full font-black text-lg shadow-[0_0_15px_rgba(212,175,55,0.3)] disabled:opacity-50 hover:bg-[#AA7C11] transition-all">Rechercher</button>
         </form>
       </div>
     </div>
@@ -1147,12 +1149,15 @@ export default function App() {
     if (typeof type === 'function') type = 'ALL'; 
     setView('analyzing'); setPreviousView('recommendation');
     try {
-      const prompt = `Trouve 3 suggestions de grands vins. Format JSON racine "vins": {"vins": [{"nom":"Vin","type_simplifie":"ROUGE","annee":"2019","region":"","description":"","prix_unitaire_nombre":25,"potentiel_garde":"","accord_parfait":""}]}`;
+      const prompt = `Trouve 3 suggestions de grands vins. Format JSON racine "vins": {"vins": [{"nom":"Vin","type_simplifie":"ROUGE","annee":"2019","region":"","description":"","prix_unitaire_nombre":25,"potentiel_garde":"","accord_parfait":""}]}. Contraintes exigées -> Type: ${type}, Repas: ${food}, Budget: ${price}.`;
       const result = await callGemini(prompt);
       let parsed = extractJSON(result.candidates[0].content.parts[0].text);
       setRecommendationList((parsed.vins || parsed).map(v => normalizeData(v))); 
       setView('recommendationList');
-    } catch (err) { setErrorMsg("Erreur oenologique."); setView('error'); }
+    } catch (err) { 
+      setErrorMsg("Erreur oenologique."); 
+      setView('error'); 
+    }
   };
 
   const genericUpdate = async (id, f) => {
