@@ -644,6 +644,7 @@ const CellarView = ({ ctx }) => {
   const [cellarTab, setCellarTab] = useState('STOCK');
   const [filterType, setFilterType] = useState('ALL');
   const [filterApogee, setFilterApogee] = useState('ALL');
+  const [filterFood, setFilterFood] = useState('ALL'); // 🌟 Restauré !
   const [viewMode, setViewMode] = useState('shelves'); 
   const [reorgMode, setReorgMode] = useState(false);
   const [selectedBottle, setSelectedBottle] = useState(null);
@@ -655,9 +656,15 @@ const CellarView = ({ ctx }) => {
     return cellarItems.filter(item => {
       const matchType = filterType === 'ALL' || item.data.type_simplifie === filterType;
       const matchApogee = filterApogee === 'ALL' || item.data.statut_apogee === filterApogee;
-      return matchType && matchApogee;
+      const accordsStr = ((item.data.accord_parfait || "") + " " + (item.data.accords_mets || []).join(" ")).toUpperCase();
+      let matchFood = true;
+      if (filterFood === 'VIANDE') matchFood = accordsStr.includes('VIANDE');
+      else if (filterFood === 'POISSON') matchFood = accordsStr.includes('POISSON') || accordsStr.includes('MER');
+      else if (filterFood === 'FROMAGE') matchFood = accordsStr.includes('FROMAGE');
+      else if (filterFood === 'APERITIF') matchFood = accordsStr.includes('APERITIF');
+      return matchType && matchApogee && matchFood;
     });
-  }, [cellarItems, filterType, filterApogee]);
+  }, [cellarItems, filterType, filterApogee, filterFood]);
 
   const existingLocations = Array.from(new Set(ctx.scanHistory.map(s => s.location).filter(Boolean))).sort();
   const groupedByLocation = useMemo(() => {
