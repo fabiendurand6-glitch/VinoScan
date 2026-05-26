@@ -1134,7 +1134,7 @@ const AccountView = ({ ctx }) => {
     setIsSensoryLoading(false);
   };
 
-  const prem = { name: len Mesozoic >= 50 ? "Maître Sommelier" : len >= 20 ? "Connaisseur Émérite" : len >= 5 ? "Amateur Éclairé" : "Novice Curieux", req: len >= 50 ? 50 : len >= 20 ? 50 : len >= 5 ? 20 : 5 };
+  const prem = { name: len >= 50 ? "Maître Sommelier" : len >= 20 ? "Connaisseur Émérite" : len >= 5 ? "Amateur Éclairé" : "Novice Curieux", req: len >= 50 ? 50 : len >= 20 ? 50 : len >= 5 ? 20 : 5 };
   const formattedChartData = useMemo(() => { if (!valueHistory || valueHistory.length < 2) return []; return valueHistory.map(h => ({ date: h.dateStr, valeur: h.value })); }, [valueHistory]);
 
   return (
