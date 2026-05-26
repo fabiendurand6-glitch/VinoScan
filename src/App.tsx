@@ -126,12 +126,14 @@ const normalizeData = (data) => {
     let type = data.type ? String(data.type) : "Vin";
     let description = data.description ? String(data.description) : "Un excellent vin.";
     
-    let gardeMin = 2, gardeMax = 5;
-    const gardeMatches = String(data.potentiel_garde || "").match(/\d+/g);
-    if (gardeMatches && gardeMatches.length >= 1) {
-       gardeMin = parseInt(gardeMatches[0], 10);
-       if (gardeMatches.length >= 2) gardeMax = parseInt(gardeMatches[1], 10);
-       else gardeMax = gardeMin + 3;
+    let gardeMin = data.garde_min !== undefined ? Number(data.garde_min) : 2;
+    let gardeMax = data.garde_max !== undefined ? Number(data.garde_max) : 5;
+    if (!data.garde_min && data.potentiel_garde) {
+      const gardeMatches = String(data.potentiel_garde).match(/\d+/g);
+      if (gardeMatches && gardeMatches.length >= 1) {
+         gardeMin = parseInt(gardeMatches[0], 10);
+         gardeMax = gardeMatches.length >= 2 ? parseInt(gardeMatches[1], 10) : gardeMin + 3;
+      }
     }
     const dynamicDates = recalculateDates(annee, gardeMin, gardeMax);
 
@@ -263,31 +265,46 @@ const SommelierButton = ({ text }) => {
 };
 
 const InstagramShareCanvas = ({ wine, rating, notes }) => (
-  <div id="vs-share-canvas" className="fixed -left-[9999px] top-0 w-[1080px] h-[1920px] bg-[#0a0a0a] text-white flex flex-col font-sans overflow-hidden select-none" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1594498653385-d5172b532c00?q=80&w=1080&auto=format&fit=crop')`, backgroundSize: 'cover' }}>
-    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
-    <div className="relative z-10 flex flex-col items-center p-16 h-full border-[16px] border-[#D4AF37]/20 m-10 rounded-[60px] shadow-2xl bg-black/40">
-      <div className="flex items-center space-x-6 mt-10">
-        <div className="w-24 h-24 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] rounded-full flex items-center justify-center border-4 border-[#D4AF37] shadow-xl"><Wine className="w-12 h-12 text-[#D4AF37]" /></div>
-        <h1 className="text-8xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#AA7C11]">VinoScan</h1>
+  <div id="vs-share-canvas" className="fixed -left-[9999px] top-0 w-[1080px] h-[1920px] bg-gradient-to-br from-[#1a1a1a] to-[#050505] text-white flex flex-col font-sans overflow-hidden">
+    <div className="w-full h-full border-[12px] border-[#D4AF37] p-16 flex flex-col items-center justify-between">
+      
+      {/* Header */}
+      <div className="flex flex-col items-center mt-12">
+        <div className="w-28 h-28 bg-[#0a0a0a] rounded-full flex items-center justify-center border-4 border-[#D4AF37] mb-6">
+          <Wine className="w-14 h-14 text-[#D4AF37]" />
+        </div>
+        <h1 className="text-6xl font-serif font-bold text-[#D4AF37]">VinoScan</h1>
       </div>
-      <div className="flex-1 flex items-center justify-center my-20 w-full relative">
-        <div className="absolute w-96 h-96 bg-[#D4AF37]/20 rounded-full blur-3xl opacity-60"></div>
-        <img src={wine.image || getGenericImageForType(wine.data.type_simplifie)} className="h-[700px] object-contain drop-shadow-[0_20px_50px_rgba(212,175,55,0.4)] relative z-10" alt="wine" />
+
+      {/* Image Bouteille */}
+      <div className="flex-1 flex items-center justify-center w-full my-12 bg-white/5 rounded-[40px] p-8 border border-[#333]">
+        <img crossOrigin="anonymous" src={wine.image || getGenericImageForType(wine.data.type_simplifie)} className="max-h-[800px] object-contain drop-shadow-2xl" alt="Bouteille" />
       </div>
-      <div className="w-full text-center space-y-6 bg-[#1a1a1a]/80 p-12 rounded-[40px] border border-[#333] backdrop-blur-md mb-12">
-        <h2 className="text-7xl font-serif font-black text-white leading-tight">{wine.data.nom}</h2>
+
+      {/* Infos Vin */}
+      <div className="w-full text-center space-y-6 bg-[#0a0a0a] p-12 rounded-[40px] border-2 border-[#D4AF37]/50 mb-12 shadow-2xl">
+        <h2 className="text-6xl font-serif font-black text-white leading-tight">{wine.data.nom}</h2>
         <p className="text-4xl text-[#D4AF37] uppercase font-bold tracking-widest">{wine.data.type_simplifie} • {wine.data.annee} • {wine.data.region}</p>
+        
         {rating > 0 && (
-          <div className="flex items-center justify-center space-x-4 pt-4 border-t border-[#333]">
-            {Array.from({length: 5}).map((_, i) => <Star key={i} className={`w-14 h-14 ${i < rating ? 'text-[#D4AF37] fill-current' : 'text-slate-600'}`} />)}
+          <div className="flex items-center justify-center space-x-4 pt-6 border-t border-[#333]">
+            {Array.from({length: 5}).map((_, i) => <Star key={i} className={`w-12 h-12 ${i < rating ? 'text-[#D4AF37] fill-current' : 'text-slate-600'}`} />)}
           </div>
         )}
-        {notes && <div className="pt-6 border-t border-[#333]"><p className="text-4xl text-slate-300 italic leading-snug">"{notes.length > 150 ? notes.substring(0, 147) + '...' : notes}"</p></div>}
+        
+        {notes && (
+          <div className="pt-6 border-t border-[#333] mt-6">
+            <p className="text-4xl text-slate-300 italic leading-snug">"{notes.length > 130 ? notes.substring(0, 127) + '...' : notes}"</p>
+          </div>
+        )}
       </div>
-      <div className="w-full border-t-4 border-[#D4AF37]/50 pt-10 text-center space-y-4">
-        <p className="text-3xl text-slate-400 font-medium">Scanné et analysé avec intelligence par VinoScan</p>
-        <p className="text-5xl text-[#D4AF37] font-black uppercase tracking-wider">vinoscan.com</p>
+
+      {/* Footer */}
+      <div className="w-full pt-8 text-center border-t-2 border-[#D4AF37]/30">
+        <p className="text-3xl text-slate-400 mb-4">Scanné avec l'IA</p>
+        <p className="text-5xl text-[#D4AF37] font-black tracking-widest">VINOSCAN.COM</p>
       </div>
+
     </div>
   </div>
 );
@@ -1007,6 +1024,18 @@ const ResultsView = ({ ctx }) => {
           </div>
         )}
 
+        {activeTab === 'infos' && (
+         <div className="space-y-4 animate-in fade-in">
+           <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] text-sm text-slate-300 leading-relaxed">{d.description}</div>
+           <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
+             <div><span className="text-xs text-slate-500 block">Prix Indicatif</span><span className="text-2xl font-black text-[#D4AF37]">{tempPrix} €</span></div>               <div className="text-right"><span className="text-xs text-slate-500 block">Garde</span><span className="text-sm font-bold text-white">{d.potentiel_garde}</span></div>
+           </div>
+           {/* NOUVEAU : Bouton Amazon */}
+           <a href={getAmazonAffiliateLink(d.nom + " vin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black py-4 rounded-2xl shadow-lg hover:bg-[#AA7C11] transition-colors">
+             Rechercher sur Amazon
+            </a>
+          </div>
+        )}
         {activeTab === 'service' && (
           <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-[#333] space-y-4 animate-in fade-in">
             {isLoadingProtocol ? <p className="text-center text-xs text-slate-500">Chargement du protocole...</p> : protocol ? (
@@ -1039,6 +1068,22 @@ const ResultsView = ({ ctx }) => {
             <InstagramShareCanvas wine={currentItem} rating={rating} notes={tempNotes} />
           </div>
         )}
+        <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
+         {/* NOUVEAU : Édition du Type et de l'Année */}
+         <div className="flex space-x-2">
+           <select value={tempType} onChange={e => { setTempType(e.target.value); ctx.updateDataField(currentItem.id, 'type_simplifie', e.target.value); }} className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]">
+             <option value="ROUGE">Rouge</option>
+             <option value="BLANC">Blanc</option>
+             <option value="ROSE">Rosé</option>
+             <option value="PETILLANT">Pétillant</option>
+           </select>
+           <input type="text" value={tempAnnee} onChange={e => setTempAnnee(e.target.value)} onBlur={() => ctx.updateDataField(currentItem.id, 'annee', tempAnnee)} placeholder="Année (ex: 2018)" className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+         </div>
+         {/* FIN NOUVEAU */}
+  
+         <input type="text" value={tempLocation} onChange={e=>setTempLocation(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {location: tempLocation})} placeholder="Rangement (ex: Étagère A)..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+         <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation personnelles..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
+       </div>
       </div>
     </div>
   );
@@ -1146,7 +1191,7 @@ export default function App() {
   const analyzeImage = async (b64) => {
     setView('analyzing');
     try {
-      const prompt = `Expert Sommelier. Identifie le vin. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":20,"potentiel_garde":"5 ans","accord_parfait":"viande"}`;
+      const prompt = `Expert Sommelier. Identifie le vin. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":20,"garde_min":5,"garde_max":15,"accord_parfait":"viande"}`;
       const p1 = await callGemini(prompt, b64.split(',')[1]);
       await processAIResult(p1.candidates[0].content.parts[0].text, b64);
     } catch(e) { setErrorMsg("Erreur d'analyse IA."); setView('error'); }
