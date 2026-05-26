@@ -1109,13 +1109,6 @@ const AlertsView = ({ ctx }) => {
   );
 };
 
-
-// =========================================================================
-// VUE PROFIL ENRICHIE (GRAPHES INVESTISSEMENT & ADN - POINTS 1 & 3)
-// =========================================================================
-// =========================================================================
-// PROFIL, FILTRE DE SÉCURITÉ ET APPLI PRINCIPALE
-// =========================================================================
 const AccountView = ({ ctx }) => {
   const { user, scanHistory, valueHistory, fetchAIRecommendation, analyzeSensoryDNA, showToast } = ctx;
   const items = scanHistory.filter(i => i.stock > 0);
@@ -1134,7 +1127,10 @@ const AccountView = ({ ctx }) => {
     setIsSensoryLoading(false);
   };
 
-  const prem = { name: len >= 50 ? "Maître Sommelier" : len >= 20 ? "Connaisseur Émérite" : len >= 5 ? "Amateur Éclairé" : "Novice Curieux", req: len >= 50 ? 50 : len >= 20 ? 50 : len >= 5 ? 20 : 5 };
+  const prem = { 
+    name: len >= 50 ? "Maître Sommelier" : len >= 20 ? "Connaisseur Émérite" : len >= 5 ? "Amateur Éclairé" : "Novice Curieux", 
+    req: len >= 50 ? 50 : len >= 20 ? 50 : len >= 5 ? 20 : 5 
+  };
   const formattedChartData = useMemo(() => { if (!valueHistory || valueHistory.length < 2) return []; return valueHistory.map(h => ({ date: h.dateStr, valeur: h.value })); }, [valueHistory]);
 
   return (
