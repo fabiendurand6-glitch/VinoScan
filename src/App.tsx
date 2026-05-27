@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe, X, Trophy, TrendingUp, BarChart3, Target, Focus, Settings, Trash2, Bell, DollarSign
+  Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe, X, Trophy, TrendingUp, BarChart3, Target, Focus, Settings, Trash2, Bell, DollarSignMedal, Check
 } from 'lucide-react';
 
 import { 
@@ -888,16 +888,16 @@ const BADGES = [
   { id: 'b2', name: 'Amateur', desc: '10 vins scannés', icon: '🥉', check: (h) => h.length >= 10 },
   { id: 'b3', name: 'Passionné', desc: '50 vins scannés', icon: '🥈', check: (h) => h.length >= 50 },
   { id: 'b4', name: 'Sommelier', desc: '100 vins scannés', icon: '🥇', check: (h) => h.length >= 100 },
-  { id: 'b5', name: 'Sang de la Terre', desc: '5 vins rouges', icon: '🩸', check: (h) => h.filter(v => v.data.type_simplifie === 'ROUGE').length >= 5 },
-  { id: 'b6', name: 'Larmes d\'Or', desc: '5 vins blancs', icon: '🥂', check: (h) => h.filter(v => v.data.type_simplifie === 'BLANC').length >= 5 },
-  { id: 'b7', name: 'Fête', desc: '3 pétillants', icon: '🍾', check: (h) => h.filter(v => v.data.type_simplifie === 'PETILLANT').length >= 3 },
-  { id: 'b8', name: 'Trésorier', desc: 'Cave > 100€', icon: '💰', check: (h) => h.reduce((acc, c) => acc + (c.data.prix_unitaire_nombre * c.stock), 0) >= 100 },
-  { id: 'b9', name: 'Investisseur', desc: 'Cave > 500€', icon: '💎', check: (h) => h.reduce((acc, c) => acc + (c.data.prix_unitaire_nombre * c.stock), 0) >= 500 },
-  { id: 'b10', name: 'Patrimoine', desc: 'Cave > 1000€', icon: '👑', check: (h) => h.reduce((acc, c) => acc + (c.data.prix_unitaire_nombre * c.stock), 0) >= 1000 },
-  { id: 'b11', name: 'Explorateur', desc: '3 régions', icon: '🌍', check: (h) => new Set(h.map(v => v.data.region).filter(Boolean)).size >= 3 },
-  { id: 'b12', name: 'Globe-Trotter', desc: '5 régions', icon: '🗺️', check: (h) => new Set(h.map(v => v.data.region).filter(Boolean)).size >= 5 },
+  { id: 'b5', name: 'Sang de la Terre', desc: '5 vins rouges', icon: '🩸', check: (h) => h.filter(v => v.data?.type_simplifie === 'ROUGE').length >= 5 },
+  { id: 'b6', name: 'Larmes d\'Or', desc: '5 vins blancs', icon: '🥂', check: (h) => h.filter(v => v.data?.type_simplifie === 'BLANC').length >= 5 },
+  { id: 'b7', name: 'Fête', desc: '3 pétillants', icon: '🍾', check: (h) => h.filter(v => v.data?.type_simplifie === 'PETILLANT').length >= 3 },
+  { id: 'b8', name: 'Trésorier', desc: 'Cave > 100€', icon: '💰', check: (h) => h.reduce((acc, c) => acc + ((c.data?.prix_unitaire_nombre || 0) * (parseInt(c.stock) || 0)), 0) >= 100 },
+  { id: 'b9', name: 'Investisseur', desc: 'Cave > 500€', icon: '💎', check: (h) => h.reduce((acc, c) => acc + ((c.data?.prix_unitaire_nombre || 0) * (parseInt(c.stock) || 0)), 0) >= 500 },
+  { id: 'b10', name: 'Patrimoine', desc: 'Cave > 1000€', icon: '👑', check: (h) => h.reduce((acc, c) => acc + ((c.data?.prix_unitaire_nombre || 0) * (parseInt(c.stock) || 0)), 0) >= 1000 },
+  { id: 'b11', name: 'Explorateur', desc: '3 régions', icon: '🌍', check: (h) => new Set(h.map(v => v.data?.region).filter(Boolean)).size >= 3 },
+  { id: 'b12', name: 'Globe-Trotter', desc: '5 régions', icon: '🗺️', check: (h) => new Set(h.map(v => v.data?.region).filter(Boolean)).size >= 5 },
   { id: 'b13', name: 'Plume', desc: '10 notes ajoutées', icon: '✍️', check: (h) => h.filter(v => v.notes && v.notes.length > 5).length >= 10 },
-  { id: 'b14', name: 'Archiviste', desc: 'Vin < 2015', icon: '⏳', check: (h) => h.some(v => parseInt(v.data.annee) < 2015) },
+  { id: 'b14', name: 'Archiviste', desc: 'Vin < 2015', icon: '⏳', check: (h) => h.some(v => parseInt(v.data?.annee) < 2015) },
   { id: 'b15', name: 'Gardien', desc: '10 bouteilles en stock', icon: '🛡️', check: (h) => h.reduce((acc, c) => acc + (parseInt(c.stock) || 0), 0) >= 10 }
 ];
 
