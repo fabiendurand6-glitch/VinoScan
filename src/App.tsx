@@ -637,20 +637,53 @@ const RecommendationView = ({ ctx }) => {
         )}
 
         {recMode === 'buy' && (
-          <div className="space-y-10">
-            <div className="space-y-4"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Euro className="w-5 h-5 text-[#D4AF37]" /><span>Budget</span></h3><div className="flex flex-wrap gap-2">{['ALL', 'BUDGET', 'MEDIUM', 'PREMIUM'].map(p => <button key={p} onClick={() => setFilterPrice(p)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterPrice === p ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{p}</button>)}</div></div>
-            <div className="space-y-4"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Utensils className="w-5 h-5 text-[#D4AF37]" /><span>Repas</span></h3><div className="flex flex-wrap gap-2">{['ALL', 'APERITIF', 'VIANDE_ROUGE', 'POISSON', 'FROMAGE'].map(f => <button key={f} onClick={() => setFilterFood(f)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterFood === f ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{f}</button>)}</div></div>
-            <div className="space-y-4"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Wine className="w-5 h-5 text-[#D4AF37]" /><span>Type</span></h3><div className="flex flex-wrap gap-2">{['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => <button key={t} onClick={() => setFilterType(t)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t}</button>)}</div></div>
-            <button onClick={handleRecommend} className="w-full py-5 bg-[#D4AF37] text-black font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 mt-8"><Sparkles className="w-6 h-6" /><span>Trouver la perle rare</span></button>
+         <div className="space-y-10">
+          <div className="space-y-4">
+          <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Euro className="w-5 h-5 text-[#D4AF37]" /><span>Budget</span></h3>
+            <div className="flex flex-wrap gap-2">
+            {[{id: 'ALL', label: 'Peu importe'}, {id: 'BUDGET', label: '- de 15 €'}, {id: 'MEDIUM', label: '15 € à 35 €'}, {id: 'PREMIUM', label: '+ de 35 €'}].map(p => (
+             <button key={p.id} onClick={() => setFilterPrice(p.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterPrice === p.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{p.label}</button>
+            ))}
+         </div>
+         </div>
+           <div className="space-y-4">
+            <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Utensils className="w-5 h-5 text-[#D4AF37]" /><span>Repas</span></h3>
+             <div className="flex flex-wrap gap-2">
+             {[{id: 'ALL', label: 'Peu importe'}, {id: 'APERITIF', label: 'Apéritif'}, {id: 'VIANDE_ROUGE', label: 'Viande Rouge'}, {id: 'POISSON', label: 'Poisson'}, {id: 'FROMAGE', label: 'Fromage'}].map(f => (
+             <button key={f.id} onClick={() => setFilterFood(f.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterFood === f.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{f.label}</button>
+           ))}
           </div>
+       </div>
+           <div className="space-y-4">
+            <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Wine className="w-5 h-5 text-[#D4AF37]" /><span>Type</span></h3>
+             <div className="flex flex-wrap gap-2">
+             {[{id: 'ALL', label: 'Tous'}, {id: 'ROUGE', label: 'Rouge'}, {id: 'BLANC', label: 'Blanc'}, {id: 'PETILLANT', label: 'Pétillant'}, {id: 'ROSE', label: 'Rosé'}].map(t => (
+             <button key={t.id} onClick={() => setFilterType(t.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterType === t.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t.label}</button>
+           ))}
+          </div>
+         </div>
+          <button onClick={handleRecommend} className="w-full py-5 bg-[#D4AF37] text-black font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 mt-8"><Sparkles className="w-6 h-6" /><span>Trouver la perle rare</span></button>
+         </div>
         )}
 
         {recMode === 'boutique' && (
           <div className="space-y-8 pb-10">
-            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden"><img src={imgTirebouchon} className="h-48 w-full object-cover opacity-70" alt="Tire-bouchon"/><div className="p-5"><h5 className="font-serif text-xl font-bold text-white mb-2">Tire-Bouchon Pro</h5><a href={getAmazonAffiliateLink("tire bouchon sommelier professionnel")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] py-3 rounded-xl">Découvrir</a></div></div>
-            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden"><img src={imgCarafe} className="h-48 w-full object-cover opacity-80" alt="Carafe"/><div className="p-5"><h5 className="font-serif text-xl font-bold text-white mb-2">Carafe Cristal</h5><a href={getAmazonAffiliateLink("carafe a decanter vin cristal")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] py-3 rounded-xl">Découvrir</a></div></div>
-            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden"><img src={imgVerres} className="h-48 w-full object-cover opacity-70" alt="Verres"/><div className="p-5"><h5 className="font-serif text-xl font-bold text-white mb-2">Verres Universels</h5><a href={getAmazonAffiliateLink("verres de degustation vin cristallin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] py-3 rounded-xl">Découvrir</a></div></div>
-            <div className="bg-gradient-to-b from-[#1A1A1A] to-[#0a0a0a] rounded-3xl shadow-lg border border-[#D4AF37]/30 overflow-hidden"><img src={imgCoravin} className="h-48 w-full object-cover opacity-60" alt="Coravin"/><div className="p-5"><h5 className="font-serif text-xl font-bold text-white mb-2">Système Coravin</h5><a href={getAmazonAffiliateLink("coravin systeme preservation vin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black py-3 rounded-xl">Découvrir</a></div></div>
+            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden">
+              <div className="h-44 w-full relative"><div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-transparent to-transparent z-10"></div><img src={imgTirebouchon} className="h-full w-full object-cover" alt="Tire-bouchon"/></div>
+              <div className="p-5 relative z-20 -mt-8"><h5 className="font-serif text-xl font-bold text-white mb-3 drop-shadow-md">Tire-Bouchon Pro</h5><a href={getAmazonAffiliateLink("tire bouchon sommelier professionnel")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a></div>
+            </div>
+            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden">
+              <div className="h-44 w-full relative"><div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-transparent to-transparent z-10"></div><img src={imgCarafe} className="h-full w-full object-cover" alt="Carafe"/></div>
+              <div className="p-5 relative z-20 -mt-8"><h5 className="font-serif text-xl font-bold text-white mb-3 drop-shadow-md">Carafe Cristal</h5><a href={getAmazonAffiliateLink("carafe a decanter vin cristal")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a></div>
+            </div>
+             <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden">
+              <div className="h-44 w-full relative"><div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-transparent to-transparent z-10"></div><img src={imgVerres} className="h-full w-full object-cover" alt="Verres"/></div>
+              <div className="p-5 relative z-20 -mt-8"><h5 className="font-serif text-xl font-bold text-white mb-3 drop-shadow-md">Verres Universels</h5><a href={getAmazonAffiliateLink("verres de degustation vin cristallin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a></div>
+            </div>
+            <div className="bg-gradient-to-b from-[#1A1A1A] to-[#0a0a0a] rounded-3xl shadow-lg border border-[#D4AF37]/50 overflow-hidden">
+               <div className="h-44 w-full relative"><div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-transparent to-transparent z-10"></div><img src={imgCoravin} className="h-full w-full object-cover" alt="Coravin"/></div>
+              <div className="p-5 relative z-20 -mt-8"><h5 className="font-serif text-xl font-bold text-white mb-3 drop-shadow-md">Système Coravin</h5><a href={getAmazonAffiliateLink("coravin systeme preservation vin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black py-3 rounded-xl hover:bg-[#AA7C11] transition-colors">Découvrir</a></div>
+            </div>
           </div>
         )}
       </div>
@@ -759,9 +792,13 @@ const CellarView = ({ ctx }) => {
               ))}
             </div>
             <div className="flex bg-[#0a0a0a] rounded-lg p-0.5 border border-[#333] shrink-0 ml-2">
-              <button onClick={() => { setViewMode('list'); setReorgMode(false); }} className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-[#1A1A1A] text-[#F5F5F5]' : 'text-slate-600'}`}><List className="w-4 h-4" /></button>
-              <button onClick={() => setViewMode('shelves')} className={`p-1.5 rounded-md ${viewMode === 'shelves' ? 'bg-[#1A1A1A] text-[#F5F5F5]' : 'text-slate-600'}`}><LayoutGrid className="w-4 h-4" /></button>
-            </div>
+             {cellarTab === 'STOCK' && (
+               <>
+                  <button onClick={() => { setViewMode('list'); setReorgMode(false); }} className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-[#1A1A1A] text-[#F5F5F5]' : 'text-slate-600'}`}><List className="w-4 h-4" /></button>
+                  <button onClick={() => setViewMode('shelves')} className={`p-1.5 rounded-md ${viewMode === 'shelves' ? 'bg-[#1A1A1A] text-[#F5F5F5]' : 'text-slate-600'}`}><LayoutGrid className="w-4 h-4" /></button>
+               </>
+             )}
+           </div>
           </div>
           
           <div className="flex items-center space-x-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-1">
@@ -782,7 +819,7 @@ const CellarView = ({ ctx }) => {
         
         {filteredItems.length === 0 && <div className="text-center p-6 opacity-50 mt-10"><Archive className="w-16 h-16 mx-auto mb-4 text-slate-600" /><p className="font-medium text-slate-400">Aucun vin ne correspond.</p></div>}
 
-        {viewMode === 'list' ? (
+        {(viewMode === 'list' || cellarTab === 'WISHLIST') ? (
           <div className="space-y-4">
             {filteredItems.map(item => (
               <div key={item.id} onClick={() => ctx.openExistingWine(item, 'cellar')} className="bg-[#1A1A1A] rounded-3xl shadow-md border border-[#333] overflow-hidden flex items-stretch cursor-pointer">
