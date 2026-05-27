@@ -13,6 +13,10 @@ import html2canvas from 'html2canvas';
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import imgTirebouchon from './assets/tirebouchon.jpg';
+import imgCarafe from './assets/carafe.jpg';
+import imgVerres from './assets/verres.jpg';
+import imgCoravin from './assets/coravin.jpg';
 
 // =========================================================================
 // CONFIGURATION SÉCURISÉEe
