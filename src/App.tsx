@@ -866,13 +866,20 @@ const HistoryView = ({ ctx }) => {
 };
 
 const AlertsView = ({ ctx }) => {
-  const { alerts, goBack, user } = ctx;
+  const { alerts, user } = ctx;
   const markAllAsRead = () => { if (!user) return; alerts.forEach(a => { if (!a.read) updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', a.id), { read: true }); }); };
   const handleAlertClick = (alert) => { updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', alert.id), { read: true }); if (alert.scanId) { const wine = ctx.scanHistory.find(s => s.id === alert.scanId); if (wine) ctx.openExistingWine(wine, 'alerts'); } };
+  
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] select-none">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 border-b border-[#333] flex items-center justify-between shadow-sm">
-        <div className="flex items-center"><button onClick={goBack} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Notifications</h1></div>
+        <div className="flex items-center">
+          {/* CORRECTION DU BOUTON RETOUR ICI */}
+          <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Notifications</h1>
+        </div>
         {alerts.some(a => !a.read) && <button onClick={markAllAsRead} className="text-xs text-slate-400 hover:text-[#D4AF37]">Tout lire</button>}
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -1040,18 +1047,12 @@ const ResultsView = ({ ctx }) => {
   if (!currentItem && ctx.analysisResult) currentItem = ctx.scanHistory.find(s => s.data?.nom === ctx.analysisResult.nom);
   
   const d = currentItem?.data;
-  const scanIdToUse = currentItem?.id;
   const stock = currentItem?.stock || 0;
-  const isWishlist = currentItem?.wishlist || false;
   const rating = currentItem?.rating || 0;
 
   const [activeTab, setActiveTab] = useState('infos');
   const [protocol, setProtocol] = useState(null); 
   const [isLoadingProtocol, setIsLoadingProtocol] = useState(false);
-  const [showBlindTasting, setShowBlindTasting] = useState(false);
-  const [blindNotes, setBlindNotes] = useState({ robe: '', nez: '', bouche: '' });
-  const [blindResult, setBlindResult] = useState(null);
-  const [isBlindLoading, setIsBlindLoading] = useState(false);
 
   const [tempType, setTempType] = useState(d?.type_simplifie || 'ROUGE');
   const [tempAnnee, setTempAnnee] = useState(d?.annee || 'N.M.');
@@ -1082,16 +1083,6 @@ const ResultsView = ({ ctx }) => {
     finally { setIsLoadingProtocol(false); }
   };
 
-  const finishBlindTasting = async () => {
-    setIsBlindLoading(true);
-    try {
-      const prompt = `Le vin réel est : "${d.nom} ${tempAnnee} (${tempType})". Notes de l'invité : Robe=${blindNotes.robe}, Nez=${blindNotes.nez}, Bouche=${blindNotes.bouche}. Donne une note sur 10. Réponds en JSON strict : {"note": "ex: 8/10", "commentaire": "Ton verdict pour l'invité en 25 mots max, sois fun."}`;
-      const res = await ctx.callGemini(prompt);
-      setBlindResult(extractJSON(res.candidates[0].content.parts[0].text));
-    } catch(e) { setBlindResult({ note: "7/10", commentaire: "Dégustation honorable !" }); } 
-    finally { setIsBlindLoading(false); }
-  };
-
   const fallbackImg = "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=800&q=80";
 
   return (
@@ -1100,6 +1091,7 @@ const ResultsView = ({ ctx }) => {
         <SommelierButton text={`Dégustation du cru ${d.nom}. Fenêtre optimale d'apogée : ${d.apogee}.`} />
         <button onClick={ctx.goBack} className="p-3 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full"><X className="w-5 h-5"/></button>
       </div>
+      
       <div className="p-5 space-y-6">
         <div className="bg-[#1A1A1A] rounded-3xl border border-[#333] flex p-5 shadow-xl">
           <div className="flex-1 min-w-0 pr-4">
@@ -1120,20 +1112,21 @@ const ResultsView = ({ ctx }) => {
         {activeTab === 'infos' && (
           <div className="space-y-4 animate-in fade-in">
             <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] text-sm text-slate-300 leading-relaxed">{d.description}</div>
-           <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
-             <div><span className="text-xs text-slate-500 block">Prix Indicatif</span><span className="text-2xl font-black text-[#D4AF37]">{tempPrix} €</span></div>
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
+              <div><span className="text-xs text-slate-500 block">Prix Indicatif</span><span className="text-2xl font-black text-[#D4AF37]">{tempPrix} €</span></div>
               <div className="text-right"><span className="text-xs text-slate-500 block">Garde</span><span className="text-sm font-bold text-white">{d.potentiel_garde}</span></div>
-           </div>
-           {(() => {
+            </div>
+            {(() => {
               const acc = getRecommendedAccessory(tempType);
               return (
-            <a href={getAmazonAffiliateLink(acc.search)} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black py-4 rounded-2xl shadow-lg hover:bg-[#AA7C11] transition-colors mt-4">
-             Accessoire recommandé : {acc.name}
-           </a>
-           );
-          })()}
+                <a href={getAmazonAffiliateLink(acc.search)} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black py-4 rounded-2xl shadow-lg hover:bg-[#AA7C11] transition-colors mt-4">
+                  Accessoire recommandé : {acc.name}
+                </a>
+              );
+            })()}
           </div>
         )}
+
         {activeTab === 'service' && (
           <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-[#333] space-y-4 animate-in fade-in">
             {isLoadingProtocol ? <p className="text-center text-xs text-slate-500">Chargement du protocole...</p> : protocol ? (
@@ -1147,59 +1140,58 @@ const ResultsView = ({ ctx }) => {
           </div>
         )}
 
-         {activeTab === 'cave' && (
-  <div className="space-y-4 animate-in fade-in">
-    <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
-      <span className="text-sm font-bold text-slate-300">Bouteilles en stock :</span>
-      <div className="flex items-center space-x-3">
-        <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-8 h-8 bg-[#0a0a0a] border border-[#333] rounded font-bold">-</button>
-        <span className="text-lg font-black text-[#D4AF37] w-6 text-center">{stock}</span>
-        <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-8 h-8 bg-[#D4AF37] text-black rounded font-bold">+</button>
-      </div>
-    </div>
-    
-    <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
-      <div className="flex space-x-2">
-        <select value={tempType} onChange={e => { 
-            setTempType(e.target.value); 
-            const updatedData = normalizeData({...currentItem.data, type_simplifie: e.target.value});
-            ctx.genericUpdate(currentItem.id, { data: updatedData });
-          }} className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]">
-          <option value="ROUGE">Rouge</option>
-          <option value="BLANC">Blanc</option>
-          <option value="ROSE">Rosé</option>
-          <option value="PETILLANT">Pétillant</option>
-        </select>
-        <input type="text" value={tempAnnee} onChange={e => setTempAnnee(e.target.value)} onBlur={() => {
-            const updatedData = normalizeData({...currentItem.data, annee: tempAnnee});
-            ctx.genericUpdate(currentItem.id, { data: updatedData });
-          }} placeholder="Année (ex: 2018)" className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
-      </div>
-      <input type="text" value={tempLocation} onChange={e=>setTempLocation(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {location: tempLocation})} placeholder="Rangement (ex: Étagère A)..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
-      <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation personnelles..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
-    </div>
-    
-    <button onClick={() => ctx.generateAndShareInstagramImage(ctx.showToast)} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
-    <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-3 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-bold">Supprimer de l'application</button>
-    <InstagramShareCanvas wine={currentItem} rating={rating} notes={tempNotes} />
-  </div>
+        {activeTab === 'cave' && (
+          <div className="space-y-4 animate-in fade-in">
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
+              <span className="text-sm font-bold text-slate-300">Bouteilles en stock :</span>
+              <div className="flex items-center space-x-3">
+                <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-8 h-8 bg-[#0a0a0a] border border-[#333] rounded font-bold">-</button>
+                <span className="text-lg font-black text-[#D4AF37] w-6 text-center">{stock}</span>
+                <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-8 h-8 bg-[#D4AF37] text-black rounded font-bold">+</button>
+              </div>
+            </div>
+            
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
+              <div className="flex space-x-2">
+                <select value={tempType} onChange={e => { 
+                    const newType = e.target.value;
+                    setTempType(newType); 
+                    
+                    let gMin = 2, gMax = 5;
+                    if (newType === 'ROUGE') { gMin = 3; gMax = 10; }
+                    else if (newType === 'BLANC') { gMin = 2; gMax = 6; }
+                    else if (newType === 'PETILLANT') { gMin = 1; gMax = 5; }
+                    else if (newType === 'ROSE') { gMin = 1; gMax = 3; }
+
+                    const updatedData = normalizeData({
+                      ...currentItem.data, 
+                      type_simplifie: newType,
+                      garde_min: gMin,
+                      garde_max: gMax
+                    });
+                    ctx.genericUpdate(currentItem.id, { data: updatedData });
+                  }} 
+                  className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"
+                >
+                  <option value="ROUGE">Rouge</option>
+                  <option value="BLANC">Blanc</option>
+                  <option value="ROSE">Rosé</option>
+                  <option value="PETILLANT">Pétillant</option>
+                </select>
+                <input type="text" value={tempAnnee} onChange={e => setTempAnnee(e.target.value)} onBlur={() => {
+                    const updatedData = normalizeData({...currentItem.data, annee: tempAnnee});
+                    ctx.genericUpdate(currentItem.id, { data: updatedData });
+                  }} placeholder="Année (ex: 2018)" className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+              </div>
+              <input type="text" value={tempLocation} onChange={e=>setTempLocation(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {location: tempLocation})} placeholder="Rangement (ex: Étagère A)..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+              <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation personnelles..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
+            </div>
+            
+            <button onClick={() => ctx.generateAndShareInstagramImage(ctx.showToast)} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
+            <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-3 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-bold">Supprimer de l'application</button>
+            <InstagramShareCanvas wine={currentItem} rating={rating} notes={tempNotes} />
+          </div>
         )}
-        <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
-         {/* NOUVEAU : Édition du Type et de l'Année */}
-         <div className="flex space-x-2">
-           <select value={tempType} onChange={e => { setTempType(e.target.value); ctx.updateDataField(currentItem.id, 'type_simplifie', e.target.value); }} className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]">
-             <option value="ROUGE">Rouge</option>
-             <option value="BLANC">Blanc</option>
-             <option value="ROSE">Rosé</option>
-             <option value="PETILLANT">Pétillant</option>
-           </select>
-           <input type="text" value={tempAnnee} onChange={e => setTempAnnee(e.target.value)} onBlur={() => ctx.updateDataField(currentItem.id, 'annee', tempAnnee)} placeholder="Année (ex: 2018)" className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
-         </div>
-         {/* FIN NOUVEAU */}
-  
-         <input type="text" value={tempLocation} onChange={e=>setTempLocation(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {location: tempLocation})} placeholder="Rangement (ex: Étagère A)..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
-         <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation personnelles..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
-       </div>
       </div>
     </div>
   );
