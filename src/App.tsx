@@ -15,7 +15,7 @@ import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWith
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs } from 'firebase/firestore';
 
 // =========================================================================
-// CONFIGURATION SÉCURISÉE
+// CONFIGURATION SÉCURISÉEe
 // =========================================================================
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
