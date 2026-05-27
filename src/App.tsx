@@ -11,7 +11,7 @@ import {
 import html2canvas from 'html2canvas';
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs } from 'firebase/firestore';
 
 // =========================================================================
@@ -883,14 +883,50 @@ const AlertsView = ({ ctx }) => {
   );
 };
 
+const BADGES = [
+  { id: 'b1', name: 'Premier Bouchon', desc: '1er vin scanné', icon: '🍷', check: (h) => h.length >= 1 },
+  { id: 'b2', name: 'Amateur', desc: '10 vins scannés', icon: '🥉', check: (h) => h.length >= 10 },
+  { id: 'b3', name: 'Passionné', desc: '50 vins scannés', icon: '🥈', check: (h) => h.length >= 50 },
+  { id: 'b4', name: 'Sommelier', desc: '100 vins scannés', icon: '🥇', check: (h) => h.length >= 100 },
+  { id: 'b5', name: 'Sang de la Terre', desc: '5 vins rouges', icon: '🩸', check: (h) => h.filter(v => v.data.type_simplifie === 'ROUGE').length >= 5 },
+  { id: 'b6', name: 'Larmes d\'Or', desc: '5 vins blancs', icon: '🥂', check: (h) => h.filter(v => v.data.type_simplifie === 'BLANC').length >= 5 },
+  { id: 'b7', name: 'Fête', desc: '3 pétillants', icon: '🍾', check: (h) => h.filter(v => v.data.type_simplifie === 'PETILLANT').length >= 3 },
+  { id: 'b8', name: 'Trésorier', desc: 'Cave > 100€', icon: '💰', check: (h) => h.reduce((acc, c) => acc + (c.data.prix_unitaire_nombre * c.stock), 0) >= 100 },
+  { id: 'b9', name: 'Investisseur', desc: 'Cave > 500€', icon: '💎', check: (h) => h.reduce((acc, c) => acc + (c.data.prix_unitaire_nombre * c.stock), 0) >= 500 },
+  { id: 'b10', name: 'Patrimoine', desc: 'Cave > 1000€', icon: '👑', check: (h) => h.reduce((acc, c) => acc + (c.data.prix_unitaire_nombre * c.stock), 0) >= 1000 },
+  { id: 'b11', name: 'Explorateur', desc: '3 régions', icon: '🌍', check: (h) => new Set(h.map(v => v.data.region).filter(Boolean)).size >= 3 },
+  { id: 'b12', name: 'Globe-Trotter', desc: '5 régions', icon: '🗺️', check: (h) => new Set(h.map(v => v.data.region).filter(Boolean)).size >= 5 },
+  { id: 'b13', name: 'Plume', desc: '10 notes ajoutées', icon: '✍️', check: (h) => h.filter(v => v.notes && v.notes.length > 5).length >= 10 },
+  { id: 'b14', name: 'Archiviste', desc: 'Vin < 2015', icon: '⏳', check: (h) => h.some(v => parseInt(v.data.annee) < 2015) },
+  { id: 'b15', name: 'Gardien', desc: '10 bouteilles en stock', icon: '🛡️', check: (h) => h.reduce((acc, c) => acc + (parseInt(c.stock) || 0), 0) >= 10 }
+];
+
 const AccountView = ({ ctx }) => {
   const { user, scanHistory, valueHistory, analyzeSensoryDNA, showToast } = ctx;
   const items = scanHistory.filter(i => i.stock > 0);
   const len = scanHistory.filter(i => i.in_history !== false).length;
   const totalB = items.reduce((a, c) => a + (parseInt(c.stock) || 0), 0);
   const totalV = items.reduce((a, c) => a + ((c.data?.prix_unitaire_nombre || 0) * (parseInt(c.stock) || 0)), 0);
+  
   const [sensoryData, setSensoryData] = useState(null);
   const [isSensoryLoading, setIsSensoryLoading] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [tempName, setTempName] = useState(user?.displayName || '');
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  const saveProfile = async () => {
+    if (!tempName.trim()) return;
+    setIsSavingName(true);
+    try {
+      await updateProfile(user, { displayName: tempName });
+      showToast("Profil mis à jour !");
+      setIsEditingProfile(false);
+    } catch (e) {
+      showToast("Erreur de sauvegarde.");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   const generateADN = async () => {
     const allNotes = scanHistory.filter(i => i.notes && i.notes.length > 10).map(i => i.notes).join(' | ');
@@ -901,7 +937,6 @@ const AccountView = ({ ctx }) => {
     setIsSensoryLoading(false);
   };
 
-  const prem = { name: len >= 50 ? "Maître Sommelier" : len >= 20 ? "Connaisseur Émérite" : len >= 5 ? "Amateur Éclairé" : "Novice Curieux", req: len >= 50 ? 50 : len >= 20 ? 50 : len >= 5 ? 20 : 5 };
   const formattedChartData = useMemo(() => { if (!valueHistory || valueHistory.length < 2) return []; return valueHistory.map(h => ({ date: h.dateStr, valeur: h.value })); }, [valueHistory]);
 
   return (
@@ -910,12 +945,29 @@ const AccountView = ({ ctx }) => {
         <div><h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Mon Club</h1><p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest mt-1">Sauvegarde active</p></div>
         <div className="w-14 h-14 rounded-full bg-[#0a0a0a] flex items-center justify-center border border-[#D4AF37]/50"><Award className="w-7 h-7 text-[#D4AF37]" /></div>
       </div>
+      
       <div className="p-5 space-y-6">
-        <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Grade</p>
-          <h3 className="font-serif text-2xl font-bold text-[#D4AF37]">{prem.name}</h3>
-          <p className="text-sm text-slate-400 mt-2">{len} crus scannés</p>
+        
+        {/* PROFIL ÉDITABLE */}
+        <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg flex justify-between items-center">
+          <div className="flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Membre Privé</p>
+            {isEditingProfile ? (
+              <div className="flex items-center space-x-2 mt-2">
+                <input autoFocus type="text" value={tempName} onChange={(e) => setTempName(e.target.value)} placeholder="Votre nom..." className="bg-black border border-[#D4AF37] text-white rounded-lg px-3 py-2 text-sm outline-none w-full" />
+                <button onClick={saveProfile} disabled={isSavingName} className="p-2 bg-[#D4AF37] text-black rounded-lg">{isSavingName ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4" />}</button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between mt-1">
+                <h3 className="font-serif text-2xl font-bold text-[#F5F5F5] truncate pr-4">{user?.displayName || "Anonyme"}</h3>
+                <button onClick={() => setIsEditingProfile(true)} className="p-2 bg-[#0a0a0a] border border-[#333] rounded-full text-slate-400 hover:text-[#D4AF37] shrink-0"><Edit3 className="w-4 h-4" /></button>
+              </div>
+            )}
+            <p className="text-xs text-slate-400 mt-2">{user?.email}</p>
+          </div>
         </div>
+
+        {/* VALORISATION */}
         <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg">
           <h3 className="font-serif text-lg font-bold text-white mb-4 flex items-center"><TrendingUp className="w-5 h-5 mr-2 text-emerald-400"/> Valorisation de la Cave</h3>
           <p className="text-2xl font-black text-emerald-400">{totalV.toFixed(0)} € <span className="text-xs text-slate-500 font-medium">({totalB} bouteilles)</span></p>
@@ -927,6 +979,25 @@ const AccountView = ({ ctx }) => {
             </div>
           ) : <p className="text-xs text-slate-500 italic mt-4">Le graphique se construira au fil des mois.</p>}
         </div>
+
+        {/* COLLECTION DE BADGES */}
+        <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg">
+          <h3 className="font-serif text-lg font-bold text-white mb-4 flex items-center"><Medal className="w-5 h-5 mr-2 text-[#D4AF37]"/> Collection de Badges</h3>
+          <div className="grid grid-cols-3 gap-3">
+            {BADGES.map(badge => {
+              const unlocked = badge.check(scanHistory);
+              return (
+                <div key={badge.id} className={`flex flex-col items-center p-3 rounded-2xl border text-center transition-all ${unlocked ? 'bg-[#0a0a0a] border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.1)]' : 'bg-[#0a0a0a] border-[#333] opacity-40 grayscale'}`}>
+                  <span className="text-2xl mb-1">{badge.icon}</span>
+                  <h4 className={`text-[9px] font-bold uppercase leading-tight ${unlocked ? 'text-[#D4AF37]' : 'text-slate-500'}`}>{badge.name}</h4>
+                  <p className="text-[8px] text-slate-400 mt-1">{badge.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ADN SENSORIEL */}
         <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg">
           <h3 className="font-serif text-lg font-bold text-white mb-2 flex items-center"><Target className="w-5 h-5 mr-2 text-[#D4AF37]"/> Profil Sensoriel ADN</h3>
           {sensoryData ? (
@@ -939,7 +1010,8 @@ const AccountView = ({ ctx }) => {
             <button onClick={generateADN} disabled={isSensoryLoading} className="w-full mt-4 py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center justify-center space-x-2">{isSensoryLoading ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4"/>}<span>Générer mon ADN sensoriel</span></button>
           )}
         </div>
-        <button onClick={() => auth.signOut()} className="w-full py-4 bg-red-950/20 text-red-400 font-bold rounded-2xl border border-red-900/40 flex items-center justify-center"><LogOut className="w-4 h-4 mr-3" /> Se déconnecter</button>
+
+        <button onClick={() => signOut(auth)} className="w-full py-4 bg-red-950/20 text-red-400 font-bold rounded-2xl border border-red-900/40 flex items-center justify-center"><LogOut className="w-4 h-4 mr-3" /> Se déconnecter</button>
       </div>
     </div>
   );
