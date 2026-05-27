@@ -913,6 +913,7 @@ const AccountView = ({ ctx }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [tempName, setTempName] = useState(user?.displayName || '');
   const [isSavingName, setIsSavingName] = useState(false);
+  const [showAllBadges, setShowAllBadges] = useState(false);
 
   const saveProfile = async () => {
     if (!tempName.trim()) return;
@@ -982,15 +983,28 @@ const AccountView = ({ ctx }) => {
 
         {/* COLLECTION DE BADGES */}
         <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg">
-          <h3 className="font-serif text-lg font-bold text-white mb-4 flex items-center"><Medal className="w-5 h-5 mr-2 text-[#D4AF37]"/> Collection de Badges</h3>
-          <div className="flex space-x-3 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-serif text-lg font-bold text-white flex items-center">
+              <Medal className="w-5 h-5 mr-2 text-[#D4AF37]"/> Collection de Badges
+            </h3>
+            <button 
+              onClick={() => setShowAllBadges(!showAllBadges)} 
+              className="text-[10px] uppercase font-bold tracking-wider text-slate-400 hover:text-[#D4AF37] transition-colors"
+            >
+              {showAllBadges ? 'Réduire' : 'Voir tout'}
+            </button>
+          </div>
+          
+          <div className={showAllBadges 
+            ? "grid grid-cols-3 gap-3" 
+            : "flex space-x-3 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"}>
             {BADGES.map(badge => {
               const unlocked = badge.check(scanHistory);
               return (
-                <div key={badge.id} className={`shrink-0 w-28 flex flex-col items-center p-3 rounded-2xl border text-center transition-all ${unlocked ? 'bg-[#0a0a0a] border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.1)]' : 'bg-[#0a0a0a] border-[#333] opacity-40 grayscale'}`}>
+                <div key={badge.id} className={`${showAllBadges ? 'w-full' : 'shrink-0 w-28'} flex flex-col items-center p-3 rounded-2xl border text-center transition-all ${unlocked ? 'bg-[#0a0a0a] border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.1)]' : 'bg-[#0a0a0a] border-[#333] opacity-40 grayscale'}`}>
                   <span className="text-3xl mb-2">{badge.icon}</span>
-                 <h4 className={`text-[10px] font-bold uppercase leading-tight ${unlocked ? 'text-[#D4AF37]' : 'text-slate-500'}`}>{badge.name}</h4>
-                 <p className="text-[9px] text-slate-400 mt-1">{badge.desc}</p>
+                  <h4 className={`text-[10px] font-bold uppercase leading-tight ${unlocked ? 'text-[#D4AF37]' : 'text-slate-500'}`}>{badge.name}</h4>
+                  <p className="text-[9px] text-slate-400 mt-1">{badge.desc}</p>
                 </div>
               );
             })}
