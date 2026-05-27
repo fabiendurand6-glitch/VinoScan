@@ -597,11 +597,6 @@ const RecommendationView = ({ ctx }) => {
       setIsPairingLoading(false); 
     }
   };
-
-  const imgTirebouchon = "https://images.unsplash.com/photo-1536642131557-7dc5e648f5eb?auto=format&fit=crop&w=800&q=80";
-  const imgCarafe = "https://images.unsplash.com/photo-1585553616435-2dc0a54e271d?auto=format&fit=crop&w=800&q=80";
-  const imgVerres = "https://images.unsplash.com/photo-1578339031418-410a566f1088?auto=format&fit=crop&w=800&q=80";
-  const imgCoravin = "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80";
   
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none">
