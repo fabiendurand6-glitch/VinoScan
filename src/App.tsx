@@ -594,14 +594,14 @@ const RecommendationView = ({ ctx }) => {
     }
   };
 
-  const imgTirebouchon = "https://images.unsplash.com/photo-1585652874135-c335805e7144?auto=format&fit=crop&w=800&q=80";
+  const imgTirebouchon = "https://images.unsplash.com/photo-1536642131557-7dc5e648f5eb?auto=format&fit=crop&w=800&q=80";
   const imgCarafe = "https://images.unsplash.com/photo-1585553616435-2dc0a54e271d?auto=format&fit=crop&w=800&q=80";
   const imgVerres = "https://images.unsplash.com/photo-1578339031418-410a566f1088?auto=format&fit=crop&w=800&q=80";
-  const imgCoravin = "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=800&q=80";
-
+  const imgCoravin = "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80";
+  
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none">
-      <div className="bg-[#1A1A1A] pt-12 pb-6 px-6 border-b border-[#333] flex items-center sticky top-0 z-10">
+      <div className="bg-[#1A1A1A] pt-12 pb-6 px-6 border-b border-[#333] flex items-center sticky top-0 z-50">
         {recMode !== 'menu' && <button onClick={() => setRecMode('menu')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button>}
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-[#0a0a0a] border border-[#D4AF37]/50 rounded-2xl flex items-center justify-center shadow-lg transform -rotate-3"><Sparkles className="w-6 h-6 text-[#D4AF37]" /></div>
@@ -667,22 +667,37 @@ const RecommendationView = ({ ctx }) => {
         )}
 
         {recMode === 'boutique' && (
-          <div className="space-y-8 pb-10">
-            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden">
-              <div className="h-44 w-full relative"><div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-transparent to-transparent z-10"></div><img src={imgTirebouchon} className="h-full w-full object-cover" alt="Tire-bouchon"/></div>
-              <div className="p-5 relative z-20 -mt-8"><h5 className="font-serif text-xl font-bold text-white mb-3 drop-shadow-md">Tire-Bouchon Pro</h5><a href={getAmazonAffiliateLink("tire bouchon sommelier professionnel")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a></div>
+          <div className="space-y-6 pb-10">
+            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden flex flex-col">
+              <img src={imgTirebouchon} className="h-40 w-full object-cover" alt="Tire-bouchon"/>
+              <div className="p-5">
+                <h5 className="font-serif text-xl font-bold text-white mb-3">Tire-Bouchon Pro</h5>
+                <a href={getAmazonAffiliateLink("tire bouchon sommelier professionnel")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a>
+              </div>
             </div>
-            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden">
-              <div className="h-44 w-full relative"><div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-transparent to-transparent z-10"></div><img src={imgCarafe} className="h-full w-full object-cover" alt="Carafe"/></div>
-              <div className="p-5 relative z-20 -mt-8"><h5 className="font-serif text-xl font-bold text-white mb-3 drop-shadow-md">Carafe Cristal</h5><a href={getAmazonAffiliateLink("carafe a decanter vin cristal")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a></div>
+
+            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden flex flex-col">
+              <img src={imgCarafe} className="h-40 w-full object-cover" alt="Carafe"/>
+              <div className="p-5">
+                <h5 className="font-serif text-xl font-bold text-white mb-3">Carafe Cristal</h5>
+                <a href={getAmazonAffiliateLink("carafe a decanter vin cristal")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a>
+              </div>
             </div>
-             <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden">
-              <div className="h-44 w-full relative"><div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-transparent to-transparent z-10"></div><img src={imgVerres} className="h-full w-full object-cover" alt="Verres"/></div>
-              <div className="p-5 relative z-20 -mt-8"><h5 className="font-serif text-xl font-bold text-white mb-3 drop-shadow-md">Verres Universels</h5><a href={getAmazonAffiliateLink("verres de degustation vin cristallin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a></div>
-            </div>
-            <div className="bg-gradient-to-b from-[#1A1A1A] to-[#0a0a0a] rounded-3xl shadow-lg border border-[#D4AF37]/50 overflow-hidden">
-               <div className="h-44 w-full relative"><div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-transparent to-transparent z-10"></div><img src={imgCoravin} className="h-full w-full object-cover" alt="Coravin"/></div>
-              <div className="p-5 relative z-20 -mt-8"><h5 className="font-serif text-xl font-bold text-white mb-3 drop-shadow-md">Système Coravin</h5><a href={getAmazonAffiliateLink("coravin systeme preservation vin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black py-3 rounded-xl hover:bg-[#AA7C11] transition-colors">Découvrir</a></div>
+
+            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden flex flex-col">
+              <img src={imgVerres} className="h-40 w-full object-cover" alt="Verres"/>
+              <div className="p-5">
+                <h5 className="font-serif text-xl font-bold text-white mb-3">Verres Universels</h5>
+                <a href={getAmazonAffiliateLink("verres de degustation vin cristallin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a>
+              </div>
+             </div>
+
+            <div className="bg-[#0a0a0a] rounded-3xl shadow-lg border border-[#D4AF37]/50 overflow-hidden flex flex-col">
+                <img src={imgCoravin} className="h-40 w-full object-cover" alt="Coravin"/>
+              <div className="p-5">
+                <h5 className="font-serif text-xl font-bold text-[#D4AF37] mb-3">Système Coravin</h5>
+                <a href={getAmazonAffiliateLink("coravin systeme preservation vin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black hover:bg-[#AA7C11] py-3 rounded-xl transition-colors">Découvrir</a>
+              </div>
             </div>
           </div>
         )}
