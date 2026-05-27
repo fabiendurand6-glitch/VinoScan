@@ -393,15 +393,19 @@ const HomeView = ({ ctx }) => (
       <p className="text-[#D4AF37]/60 max-w-sm mx-auto text-sm font-medium uppercase tracking-widest">Le Sommelier dans votre poche</p>
     </div>
     <div className="w-full max-w-sm space-y-4 pt-8 relative z-10">
-      <button onClick={() => ctx.startCamera('bottle')} className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black p-5 rounded-full shadow-lg active:scale-95 transition-all hover:bg-[#AA7C11]">
-        <Camera className="w-6 h-6" /><span className="font-black text-xl">Scanner une bouteille</span>
+    <button onClick={() => ctx.startCamera('bottle')} className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black p-5 rounded-full shadow-lg active:scale-95 transition-all hover:bg-[#AA7C11]">
+        <Camera className="w-6 h-6" /><span className="font-bold text-xl">Scanner une bouteille</span>
       </button>
-      <button onClick={() => ctx.startCamera('receipt')} className="w-full flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#F5F5F5] p-5 rounded-full active:scale-95 transition-all hover:border-[#D4AF37]/50 shadow-md">
-        <Receipt className="w-6 h-6 text-slate-400" /><span className="font-bold text-lg">Scanner une facture</span>
+      
+      {/* Carte des Vins en grand bouton */}
+      <button onClick={() => ctx.setView('menuConfig')} className="w-full flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#F5F5F5] p-5 rounded-full active:scale-95 transition-all hover:border-[#D4AF37]/50 shadow-md">
+        <BookOpen className="w-6 h-6 text-slate-400" /><span className="font-bold text-lg">Carte des vins</span>
       </button>
+      
       <div className="flex space-x-4 pt-2">
-        <button onClick={() => ctx.setView('menuConfig')} className="flex-1 flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#D4AF37] p-5 rounded-full shadow-sm active:scale-95 hover:border-[#D4AF37]/50 transition-colors">
-          <BookOpen className="w-5 h-5" /><span className="font-bold text-xs uppercase">Carte Vins</span>
+        {/* Facture en petit bouton */}
+        <button onClick={() => ctx.startCamera('receipt')} className="flex-1 flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#D4AF37] p-5 rounded-full shadow-sm active:scale-95 hover:border-[#D4AF37]/50 transition-colors">
+          <Receipt className="w-5 h-5" /><span className="font-bold text-xs uppercase">Facture</span>
         </button>
         <button onClick={() => ctx.setView('quiz')} className="flex-1 flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#D4AF37] p-5 rounded-full shadow-sm active:scale-95 hover:border-[#D4AF37]/50 transition-colors">
           <Gamepad2 className="w-5 h-5" /><span className="font-bold text-xs uppercase">Mini-Jeu</span>
@@ -1204,6 +1208,10 @@ const ResultsView = ({ ctx }) => {
 const CameraView = ({ ctx }) => (
   <div className="relative h-full w-full bg-black flex flex-col overflow-hidden select-none">
     <button onClick={() => { ctx.stopCamera(); ctx.setView('home'); }} className="absolute top-12 left-6 z-20 p-3 bg-black/50 text-white rounded-full border border-white/10"><ChevronLeft className="w-6 h-6" /></button>
+    
+    {/* BOUTON BASCULE CAMÉRA */}
+    <button onClick={ctx.toggleCamera} className="absolute top-12 right-6 z-20 p-3 bg-black/50 text-white rounded-full border border-white/10 hover:bg-[#D4AF37] hover:text-black transition-colors"><RefreshCw className="w-6 h-6" /></button>
+    
     <video ref={ctx.videoRef} autoPlay playsInline className="min-w-full min-h-full object-cover flex-1" />
     <div className="absolute bottom-0 w-full h-32 bg-black/90 flex items-center justify-center pb-8 z-20">
       <button onClick={ctx.capturePhoto} className="w-20 h-20 bg-white/10 border border-white/20 rounded-full flex items-center justify-center"><div className="w-14 h-14 bg-[#D4AF37] rounded-full shadow-lg"></div></button>
@@ -1238,6 +1246,7 @@ export default function App() {
   const [menuPrefs, setMenuPrefs] = useState({ food: 'ALL', type: 'ALL' });
   const [valueHistory, setValueHistory] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [facingMode, setFacingMode] = useState('environment');
   
   const videoRef = useRef(null); 
   const canvasRef = useRef(null); 
@@ -1271,12 +1280,26 @@ export default function App() {
 
   const showToast = (m) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3000); };
   
-  const startCamera = async (mode = 'bottle') => {
+  const startCamera = async (mode = cameraMode, face = facingMode) => {
     if (!navigator.mediaDevices?.getUserMedia) { setErrorMsg("Caméra indisponible."); setView('error'); return; }
-    try { setCameraMode(mode); const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); streamRef.current = s; setView('camera'); setTimeout(()=>{if(videoRef.current)videoRef.current.srcObject=s;},100); } 
+    try { 
+      setCameraMode(mode); 
+      setFacingMode(face);
+      const s = await navigator.mediaDevices.getUserMedia({video:{facingMode: face}}); 
+      streamRef.current = s; 
+      setView('camera'); 
+      setTimeout(()=>{if(videoRef.current)videoRef.current.srcObject=s;},100); 
+    } 
     catch(e){ setErrorMsg("Erreur d'accès à la caméra."); setView('error'); }
   };
+  
   const stopCamera = () => { if(streamRef.current){ streamRef.current.getTracks().forEach(t=>t.stop()); streamRef.current=null; } };
+  
+  const toggleCamera = () => {
+    const newFace = facingMode === 'environment' ? 'user' : 'environment';
+    stopCamera();
+    startCamera(cameraMode, newFace);
+  };
   
   const capturePhoto = async () => {
     if(videoRef.current && canvasRef.current) {
@@ -1383,7 +1406,7 @@ export default function App() {
     analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField,
     processRecommendationSelection: (w)=>processAIResult(JSON.stringify(w), null), genericUpdate, updateStock, 
     goBack:()=>setView(previousView), openExistingWine:(i,o)=>{setImageSrc(i.image);setAnalysisResult(i.data);setCurrentScanId(i.id);setPreviousView(o);setView('results');}, 
-    videoRef, canvasRef, cameraMode, handleKeyDown, callGemini, valueHistory, alerts, analyzeSensoryDNA, generateAndShareInstagramImage 
+    videoRef, canvasRef, cameraMode, handleKeyDown, callGemini, valueHistory, alerts, analyzeSensoryDNA, generateAndShareInstagramImage, toggleCamera 
   };
 
   if (isAuthLoading) return <div className="h-[100dvh] bg-[#0a0a0a] flex items-center justify-center"><Wine className="w-12 h-12 text-[#D4AF37] animate-pulse" /></div>;
