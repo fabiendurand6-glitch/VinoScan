@@ -397,12 +397,12 @@ const HomeView = ({ ctx }) => (
       <p className="text-[#D4AF37]/60 max-w-sm mx-auto text-sm font-medium uppercase tracking-widest">Le Sommelier dans votre poche</p>
     </div>
     <div className="w-full max-w-sm space-y-4 pt-8 relative z-10">
-    <button onClick={() => ctx.startCamera('bottle')} className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black p-5 rounded-full shadow-lg active:scale-95 transition-all hover:bg-[#AA7C11]">
+      <button onClick={() => ctx.startCamera('bottle')} className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black p-5 rounded-full shadow-lg active:scale-95 transition-all hover:bg-[#AA7C11]">
         <Camera className="w-6 h-6" /><span className="font-bold text-xl">Scanner une bouteille</span>
       </button>
       
       {/* Carte des Vins en grand bouton */}
-      <button onClick={() => ctx.setView('menuConfig')} className="w-full flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#F5F5F5] p-5 rounded-full active:scale-95 transition-all hover:border-[#D4AF37]/50 shadow-md">
+      <button onClick={() => { if (!ctx.requirePremium()) ctx.setView('menuConfig'); }} className="w-full flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#F5F5F5] p-5 rounded-full active:scale-95 transition-all hover:border-[#D4AF37]/50 shadow-md">
         <BookOpen className="w-6 h-6 text-slate-400" /><span className="font-bold text-lg">Carte des vins</span>
       </button>
       
@@ -1083,7 +1083,10 @@ const AccountView = ({ ctx }) => {
               </ResponsiveContainer>
             </div>
           ) : (
-            <button onClick={generateADN} disabled={isSensoryLoading} className="w-full mt-4 py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center justify-center space-x-2">{isSensoryLoading ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4"/>}<span>Générer mon ADN sensoriel</span></button>
+            <button onClick={() => { if (!ctx.requirePremium()) generateADN(); }} disabled={isSensoryLoading} className="w-full mt-4 py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center justify-center space-x-2">
+              {isSensoryLoading ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4"/>}
+              <span>Générer mon ADN sensoriel</span>
+            </button>
           )}
         </div>
 
@@ -1238,7 +1241,7 @@ const ResultsView = ({ ctx }) => {
               <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation personnelles..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
             </div>
             
-            <button onClick={() => ctx.generateAndShareInstagramImage(ctx.showToast)} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
+            <button onClick={() => { if (!ctx.requirePremium()) ctx.generateAndShareInstagramImage(ctx.showToast); }} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
             <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-3 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-bold">Supprimer de l'application</button>
             <InstagramShareCanvas wine={currentItem} rating={rating} notes={tempNotes} />
           </div>
@@ -1272,6 +1275,33 @@ const AnalyzingView = () => (
   </div>
 );
 
+const PaywallView = ({ ctx }) => (
+  <div className="flex flex-col h-full bg-[#0a0a0a] justify-center p-6 text-center select-none relative overflow-hidden">
+    <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl"></div>
+    <div className="relative z-10 space-y-6">
+      <div className="w-20 h-20 bg-[#1a1a1a] border-2 border-[#D4AF37] rounded-full flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(212,175,55,0.2)]">
+        <Sparkles className="w-10 h-10 text-[#D4AF37] animate-pulse" />
+      </div>
+      <h2 className="text-3xl font-serif font-black text-white">Devenez Membre Privé</h2>
+      <p className="text-sm text-slate-400 max-w-xs mx-auto">
+        Libérez la pleine puissance de votre sommelier de poche. Scans IA illimités, accords de cave sur-mesure et ADN sensoriel.
+      </p>
+      <div className="space-y-4 pt-4">
+        <div className="bg-[#1A1A1A] border border-[#333] p-5 rounded-3xl flex justify-between items-center text-left">
+          <div><h4 className="font-bold text-white text-lg">Mensuel</h4><p className="text-xs text-slate-500">Sans engagement</p></div>
+          <button onClick={() => { ctx.setIsPremium(true); ctx.setView('home'); ctx.showToast("Bienvenue dans le Club Premium !"); }} className="bg-[#D4AF37] text-black font-black px-4 py-3 rounded-xl text-sm">3,99 € / mois</button>
+        </div>
+        <div className="bg-[#1A1A1A] border-2 border-[#D4AF37] p-5 rounded-3xl flex justify-between items-center text-left relative">
+          <span className="absolute -top-3 right-6 bg-[#D4AF37] text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Meilleure Offre</span>
+          <div><h4 className="font-bold text-white text-lg">Annuel</h4><p className="text-xs text-slate-400 font-medium text-[#D4AF37]">Économisez 35%</p></div>
+          <button onClick={() => { ctx.setIsPremium(true); ctx.setView('home'); ctx.showToast("Bienvenue dans le Club Premium !"); }} className="bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black font-black px-4 py-3 rounded-xl text-sm">29,99 € / an</button>
+        </div>
+      </div>
+      <button onClick={() => ctx.setView(ctx.previousView !== 'paywall' ? ctx.previousView : 'home')} className="text-xs text-slate-500 font-bold uppercase tracking-wider hover:text-white pt-6">Plus tard</button>
+    </div>
+  </div>
+);
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -1290,7 +1320,27 @@ export default function App() {
   const [valueHistory, setValueHistory] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [facingMode, setFacingMode] = useState('environment');
+  const [isPremium, setIsPremium] = useState(false);
   
+  const requirePremium = () => {
+    if (!isPremium) { setPreviousView(view); setView('paywall'); return true; }
+    return false;
+  };
+
+  const checkUsageLimit = (type, limit) => {
+    if (isPremium) return true;
+    const key = `vs_usage_${type}_${new Date().getMonth()}`;
+    const current = parseInt(localStorage.getItem(key) || '0');
+    if (current >= limit) { setPreviousView(view); setView('paywall'); return false; }
+    return true;
+  };
+
+  const incrementUsage = (type) => {
+    const key = `vs_usage_${type}_${new Date().getMonth()}`;
+    const current = parseInt(localStorage.getItem(key) || '0');
+    localStorage.setItem(key, current + 1);
+  };
+
   const videoRef = useRef(null); 
   const canvasRef = useRef(null); 
   const streamRef = useRef(null);
@@ -1324,6 +1374,10 @@ export default function App() {
   const showToast = (m) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3000); };
   
   const startCamera = async (mode = cameraMode, face = facingMode) => {
+    // Blocages Freemium
+    if (mode === 'bottle' && !checkUsageLimit('photo', 5)) return;
+    if (mode !== 'bottle' && requirePremium()) return;
+
     if (!navigator.mediaDevices?.getUserMedia) { setErrorMsg("Caméra indisponible."); setView('error'); return; }
     try { 
       setCameraMode(mode); 
@@ -1369,17 +1423,20 @@ export default function App() {
   const analyzeImage = async (b64) => {
     setView('analyzing');
     try {
-      const prompt = `Expert Sommelier. Identifie le vin. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":20,"garde_min":2,"garde_max":10,"accord_parfait":"viande"}. IMPORTANT: 'garde_min' et 'garde_max' doivent être des entiers stricts représentant les années de garde conseillées.`;
+      const prompt = `Expert Sommelier. Identifie le vin. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":20,"garde_min":2,"garde_max":10,"accord_parfait":"viande"}. IMPORTANT: 'garde_min' et 'garde_max' doivent être des entiers stricts.`;
       const p1 = await callGemini(prompt, b64.split(',')[1]);
+      incrementUsage('photo'); // On compte +1 scan
       await processAIResult(p1.candidates[0].content.parts[0].text, b64);
     } catch(e) { setErrorMsg("Erreur d'analyse IA."); setView('error'); }
   };
 
   const searchWineText = async (textQuery) => {
+    if (!checkUsageLimit('manual', 10)) return; // Limite de 10
     setView('analyzing'); setPreviousView('home');
     try {
-      const prompt = `Recherche le vin : "${textQuery}". JSON strict: {"nom":"${textQuery}","type_simplifie":"ROUGE","annee":"2020","region":"","description":"","prix_unitaire_nombre":15,"potentiel_garde":"5 ans","accord_parfait":""}`;
+      const prompt = `Recherche le vin : "${textQuery}". JSON strict: {"nom":"${textQuery}","type_simplifie":"ROUGE","annee":"2020","region":"","description":"","prix_unitaire_nombre":15,"garde_min":2,"garde_max":10,"accord_parfait":""}`;
       const result = await callGemini(prompt);
+      incrementUsage('manual'); // On compte +1 recherche
       await processAIResult(result.candidates[0].content.parts[0].text, null);
     } catch (err) { setErrorMsg("Erreur de recherche."); setView('error'); }
   };
@@ -1449,7 +1506,8 @@ export default function App() {
     analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField,
     processRecommendationSelection: (w)=>processAIResult(JSON.stringify(w), null), genericUpdate, updateStock, 
     goBack:()=>setView(previousView), openExistingWine:(i,o)=>{setImageSrc(i.image);setAnalysisResult(i.data);setCurrentScanId(i.id);setPreviousView(o);setView('results');}, 
-    videoRef, canvasRef, cameraMode, handleKeyDown, callGemini, valueHistory, alerts, analyzeSensoryDNA, generateAndShareInstagramImage, toggleCamera 
+    videoRef, canvasRef, cameraMode, handleKeyDown, callGemini, valueHistory, alerts, analyzeSensoryDNA, generateAndShareInstagramImage,
+    toggleCamera, isPremium, setIsPremium, requirePremium
   };
 
   if (isAuthLoading) return <div className="h-[100dvh] bg-[#0a0a0a] flex items-center justify-center"><Wine className="w-12 h-12 text-[#D4AF37] animate-pulse" /></div>;
@@ -1471,6 +1529,7 @@ export default function App() {
         <div className={['home', 'cellar', 'history', 'account', 'recommendation'].includes(view) ? "pt-16 pb-16 h-full" : "h-full"}>
           {view === 'home' && <HomeView ctx={ctx} />}
           {view === 'account' && <AccountView ctx={ctx} />}
+          {view === 'paywall' && <PaywallView ctx={ctx} />} 
           {view === 'history' && <HistoryView ctx={ctx} />}
           {view === 'cellar' && <CellarView ctx={ctx} />}
           {view === 'recommendation' && <RecommendationView ctx={ctx} />}
@@ -1483,6 +1542,7 @@ export default function App() {
           {view === 'quiz' && <QuizView ctx={ctx} />}
           {view === 'alerts' && <AlertsView ctx={ctx} />}
           {view === 'error' && (
+          
             <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#0a0a0a] pt-20"><AlertTriangle className="w-16 h-16 text-red-500 mb-4" /><h2 className="text-xl font-bold text-white mb-2">Erreur technique</h2><p className="text-sm text-slate-400 mb-6">{errorMsg}</p><button onClick={()=>setView('home')} className="px-6 py-3 bg-[#D4AF37] text-black font-bold rounded-xl shadow-lg">Retour</button></div>
           )}
         </div>
