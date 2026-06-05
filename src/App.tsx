@@ -1687,10 +1687,24 @@ export default function App() {
     setView('analyzing');
     try {
       const prompt = `Expert Sommelier. Identifie le vin. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":20,"garde_min":2,"garde_max":10,"accord_parfait":"viande"}. IMPORTANT: 'garde_min' et 'garde_max' doivent être des entiers stricts.`;
-      const p1 = await callGemini(prompt, b64.split(',')[1]);
-      incrementUsage('photo'); // On compte +1 scan
+      
+      // Extraction sécurisée du base64
+      const cleanB64 = b64.includes(',') ? b64.split(',')[1] : b64;
+      
+      const p1 = await callGemini(prompt, cleanB64);
+      incrementUsage('photo'); 
+      
+      if (!p1.candidates?.[0]?.content?.parts?.[0]?.text) {
+        throw new Error("Réponse vide du serveur Gemini.");
+      }
+      
       await processAIResult(p1.candidates[0].content.parts[0].text, b64);
-    } catch(e) { setErrorMsg("Erreur d'analyse IA."); setView('error'); }
+    } catch(e) {
+      console.error("Détail Erreur IA:", e);
+      // Affiche la vraie cause sur l'écran d'erreur
+      setErrorMsg(`Détail : ${e.message}`); 
+      setView('error'); 
+    }
   };
 
   const searchWineText = async (textQuery) => {
