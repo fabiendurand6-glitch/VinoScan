@@ -1734,9 +1734,22 @@ export default function App() {
     setScanHistory(p=>p.map(i=>i.id===id?{...i,...f}:i));
     if(user && !id.startsWith('temp_')){ try{ await updateDoc(doc(db,'artifacts',appId,'users',user.uid,'scans',id), f); }catch(e){} }
   };
-  const updateStock = async (id, cur, ch) => {
-    const ns = Math.max(0, parseInt(cur)+ch); setScanHistory(p=>p.map(i=>i.id===id?{...i,stock:ns}:i));
-    if(user && !id.startsWith('temp_')){ try{ const r=doc(db,'artifacts',appId,'users',user.uid,'scans',id); if(ns===0 && !scanHistory.find(s=>s.id===id).wishlist){ await deleteDoc(r); setScanHistory(p=>p.filter(i=>i.id!==id)); } else await updateDoc(r,{stock:ns}); }catch(e){} }
+  const updateStock = async (id, currentStock, change) => {
+    const newStock = Math.max(0, currentStock + change);
+    
+    // Sécurité : on vérifie que l'utilisateur est connecté
+    if (!user) {
+      console.error("Utilisateur non connecté");
+      return;
+    }
+
+    try {
+      // On envoie le nouveau stock directement à Firebase
+      const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'scans', id);
+      await updateDoc(docRef, { stock: newStock });
+    } catch (e) {
+      console.error("Erreur lors de la modification du stock :", e);
+    }
   };
   const updateDataField = async (id, fieldName, value) => {
     const currentItem = scanHistory.find(item => item.id === id); if (!currentItem) return;
