@@ -1373,12 +1373,6 @@ export default function App() {
   };
   // ----------------------------------------------
 
-  const incrementUsage = (type) => {
-    const key = `vs_usage_${type}_${new Date().getMonth()}`;
-    const current = parseInt(localStorage.getItem(key) || '0');
-    localStorage.setItem(key, current + 1);
-  };
-
   const videoRef = useRef(null); 
   const canvasRef = useRef(null); 
   const streamRef = useRef(null);
