@@ -397,7 +397,7 @@ const AuthView = ({ auth }) => {
 };
 
 const HomeView = ({ ctx }) => (
-  <div className="flex flex-col items-center justify-center h-full p-6 space-y-8 pb-20 relative bg-[#0a0a0a] overflow-hidden select-none">
+  <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none p-5">
     <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-[#D4AF37]/10 to-transparent pointer-events-none"></div>
     <div className="text-center space-y-4 relative z-10 mt-10">
       <div className="mx-auto w-32 h-32 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] rounded-full flex items-center justify-center shadow-lg border border-[#D4AF37]/30"><Wine className="w-14 h-14 text-[#D4AF37]" /></div>
@@ -1016,7 +1016,7 @@ const AccountView = ({ ctx }) => {
   const formattedChartData = useMemo(() => { if (!valueHistory || valueHistory.length < 2) return []; return valueHistory.map(h => ({ date: h.dateStr, valeur: h.value })); }, [valueHistory]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none">
+    <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none p-5">
       <div className="bg-[#1A1A1A] pt-12 pb-6 px-6 border-b border-[#333] flex justify-between items-center shadow-xl sticky top-0 z-10">
         <div><h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Mon Club</h1><p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest mt-1">Sauvegarde active</p></div>
         <div className="w-14 h-14 rounded-full bg-[#0a0a0a] flex items-center justify-center border border-[#D4AF37]/50"><Award className="w-7 h-7 text-[#D4AF37]" /></div>
