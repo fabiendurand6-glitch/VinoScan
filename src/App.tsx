@@ -1346,6 +1346,53 @@ const PaywallView = ({ ctx }) => (
   </div>
 );
 
+const CompareView = ({ ctx }) => (
+  <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none p-5">
+    <div className="flex items-center justify-between mb-6 pt-6">
+      <h2 className="text-2xl font-serif font-bold text-[#D4AF37]">Comparateur</h2>
+      <button onClick={() => ctx.setView('home')} className="p-2 bg-[#1A1A1A] border border-[#333] rounded-full text-slate-400"><X className="w-5 h-5"/></button>
+    </div>
+
+    <p className="text-sm text-slate-400 mb-6">Prenez en photo les bouteilles qui vous font hésiter en rayon. L'IA choisira la pépite.</p>
+
+    <div className="bg-[#1A1A1A] p-4 rounded-3xl border border-[#333] mb-6 shadow-lg">
+      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pour quel plat / occasion ?</label>
+      <input 
+        type="text" 
+        value={ctx.compareContext} 
+        onChange={(e) => ctx.setCompareContext(e.target.value)} 
+        placeholder="Ex: Un barbecue, du poisson, un cadeau..." 
+        className="w-full bg-black border border-[#333] text-white rounded-xl p-4 text-sm outline-none focus:border-[#D4AF37] transition-colors"
+      />
+    </div>
+
+    <div className="grid grid-cols-2 gap-4 mb-8">
+      {ctx.compareBasket.map((imgBase64, index) => (
+        <div key={index} className="relative h-40 bg-black rounded-2xl border border-[#333] overflow-hidden shadow-md">
+          <img src={imgBase64} className="w-full h-full object-cover opacity-80" alt={`Vin ${index + 1}`} />
+          <button onClick={() => ctx.removeCompareImage(index)} className="absolute top-2 right-2 bg-red-500/90 text-white p-2 rounded-full shadow-lg active:scale-90"><X className="w-3 h-3" /></button>
+        </div>
+      ))}
+      
+      {/* Bouton pour prendre une photo (Ouvre la caméra native du téléphone) */}
+      <label className="h-40 flex flex-col items-center justify-center bg-[#1A1A1A] border-2 border-dashed border-[#333] rounded-2xl cursor-pointer hover:border-[#D4AF37]/50 transition-colors text-slate-400 hover:text-[#D4AF37] shadow-inner">
+        <Camera className="w-8 h-8 mb-2" />
+        <span className="text-xs font-bold uppercase tracking-wider">Ajouter un vin</span>
+        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={ctx.handleAddCompareImage} />
+      </label>
+    </div>
+
+    <button 
+      onClick={ctx.launchComparison}
+      disabled={ctx.compareBasket.length < 2}
+      className={`w-full py-5 font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 transition-all ${ctx.compareBasket.length >= 2 ? 'bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black hover:scale-[1.02]' : 'bg-[#1A1A1A] text-slate-600 border border-[#333]'}`}
+    >
+      <Sparkles className="w-6 h-6" />
+      <span>Analyser la sélection ({ctx.compareBasket.length})</span>
+    </button>
+  </div>
+);
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
