@@ -1666,20 +1666,37 @@ export default function App() {
   };
 
   const processAIResult = async (aiText, sourceImage) => {
-    const data = normalizeData(extractJSON(aiText)); setAnalysisResult(data);
-    const img = sourceImage || getGenericImageForType(data.type_simplifie); setImageSrc(img);
-    const obj = { id: 'temp_'+Date.now(), image: img, data, stock: 0, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
+    const data = normalizeData(extractJSON(aiText)); 
+    setAnalysisResult(data);
+    const img = sourceImage || getGenericImageForType(data.type_simplifie); 
+    setImageSrc(img);
     
-    setScanHistory(p=>[obj,...p]); setCurrentScanId(obj.id); setPreviousView('home'); setView('results');
+    const scanId = Date.now().toString();
+    const obj = { id: scanId, image: img, data, stock: 0, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
     
-    if(user){ 
+    setScanHistory(p=>[obj,...p]); 
+    setCurrentScanId(scanId); 
+    setPreviousView('home'); 
+    setView('results');
+    
+    // Sécurité maximale : On lit la session Firebase directement au lieu de la variable React
+    const activeUser = auth.currentUser;
+    
+    if (activeUser) { 
       try { 
-        const r = await addDoc(collection(db,'artifacts',appId,'users',user.uid,'scans'), obj); 
-        setCurrentScanId(r.id); 
-        setScanHistory(p=>p.map(i=>i.id===obj.id?{...i,id:r.id}:i)); 
-      } catch(e){
-        alert("🚨 Erreur Firebase : " + e.message + "\n\nTes règles Firestore empêchent l'écriture. Va sur la console Firebase pour les débloquer.");
+        const docRef = doc(db, 'artifacts', appId, 'users', activeUser.uid, 'scans', scanId);
+        await setDoc(docRef, obj); 
+      } catch(e) {
+        if (e.message.includes("larger than the limit") || e.code === "resource-exhausted") {
+          alert("🚨 Firebase refuse l'envoi : La photo pèse plus de 1 Mo. Le document est trop lourd.");
+        } else if (e.code === "permission-denied") {
+          alert("🚨 Erreur de droits : Tes règles Firebase empêchent toujours l'écriture.");
+        } else {
+          alert(`🚨 Erreur Firebase inattendue : ${e.message}`);
+        }
       } 
+    } else {
+      alert("🚨 Utilisateur introuvable : Vous n'êtes pas connecté au moment de la sauvegarde.");
     }
   };
 
