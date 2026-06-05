@@ -87,7 +87,15 @@ const callGemini = async (prompt, b64Data = null) => {
   const model = 'gemini-2.5-flash'; 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const parts = [{ text: prompt }];
-  if (b64Data) parts.push({ inlineData: { mimeType: "image/jpeg", data: b64Data } });
+  
+  // Gère automatiquement 1 image ou un tableau de plusieurs images
+  if (b64Data) {
+    if (Array.isArray(b64Data)) {
+      b64Data.forEach(img => parts.push({ inlineData: { mimeType: "image/jpeg", data: img } }));
+    } else {
+      parts.push({ inlineData: { mimeType: "image/jpeg", data: b64Data } });
+    }
+  }
   
   const payload = { contents: [{ role: "user", parts }], generationConfig: { responseMimeType: "application/json" } };
   try {
@@ -1447,29 +1455,22 @@ export default function App() {
     setPreviousView('compare');
     
     try {
-      const prompt = `Sommelier expert. Voici ${compareBasket.length} photos de bouteilles. Contexte/Repas : "${compareContext || 'Général'}". Analyse-les et choisis la meilleure option. JSON strict : {"gagnant":"Nom du vin","justification":"Pourquoi (max 20 mots)","alternatives":"Avis rapide sur les autres (max 20 mots)"}`;
+      const prompt = `Sommelier expert. Voici ${compareBasket.length} photos de bouteilles. Contexte/Repas : "${compareContext || 'Général'}". Analyse-les et choisis la meilleure option. Réponds UNIQUEMENT en JSON pur : {"gagnant":"Nom du vin","justification":"Pourquoi (max 20 mots)","alternatives":"Avis rapide sur les autres (max 20 mots)"}`;
       
-      const imageParts = compareBasket.map(img => ({
-        inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] }
-      }));
-
-      // Remplace TA_CLE_API par ta vraie variable d'environnement ou clé
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }, ...imageParts] }]
-          })
-      });
+      // On retire l'en-tête "data:image/jpeg;base64," de chaque image de la galerie
+      const cleanImages = compareBasket.map(img => img.split(',')[1]);
       
-      const data = await res.json();
-      let cleanText = data.candidates[0].content.parts[0].text;
-      cleanText = cleanText.replace(/```json/g, '').replace(/```/g, ''); // Nettoyage
+      // Appel propre de ta fonction
+      const res = await callGemini(prompt, cleanImages);
+      
+      let cleanText = res.candidates[0].content.parts[0].text;
+      cleanText = cleanText.replace(/```json/g, '').replace(/```/g, ''); 
       
       setCompareResult(JSON.parse(cleanText));
       incrementUsage('rayon');
       setView('compare'); 
     } catch (e) {
+      console.error("Erreur IA Comparateur :", e);
       setErrorMsg("Erreur d'analyse des bouteilles.");
       setView('error');
     }
