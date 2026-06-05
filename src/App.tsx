@@ -1600,6 +1600,7 @@ export default function App() {
 
   useEffect(() => {
     if (!user) { setScanHistory([]); setValueHistory([]); setAlerts([]); return; }
+    
     const unsubScans = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'scans'), (s) => {
       let sc = []; let totalV = 0;
       s.forEach(d => { 
@@ -1611,9 +1612,13 @@ export default function App() {
       });
       sc.sort((a, b) => b.timestamp - a.timestamp); setScanHistory(sc);
       if (totalV > 0) saveCellarValueSnapshot(user, totalV);
+    }, (error) => {
+      alert("🚨 Lecture Firebase bloquée : " + error.message);
     });
+
     const unsubValue = onSnapshot(firestoreQuery(collection(db, 'artifacts', appId, 'users', user.uid, 'value_history'), orderBy('timestamp', 'asc')), (s) => { let vh = []; s.forEach(d => vh.push(d.data())); setValueHistory(vh); });
     const unsubAlerts = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'alerts'), (s) => { let al = []; s.forEach(d => al.push(d.data())); al.sort((a, b) => b.timestamp - a.timestamp); setAlerts(al); });
+    
     return () => { unsubScans(); unsubValue(); unsubAlerts(); };
   }, [user]);
 
@@ -1664,8 +1669,18 @@ export default function App() {
     const data = normalizeData(extractJSON(aiText)); setAnalysisResult(data);
     const img = sourceImage || getGenericImageForType(data.type_simplifie); setImageSrc(img);
     const obj = { id: 'temp_'+Date.now(), image: img, data, stock: 0, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
+    
     setScanHistory(p=>[obj,...p]); setCurrentScanId(obj.id); setPreviousView('home'); setView('results');
-    if(user){ try { const r = await addDoc(collection(db,'artifacts',appId,'users',user.uid,'scans'), obj); setCurrentScanId(r.id); setScanHistory(p=>p.map(i=>i.id===obj.id?{...i,id:r.id}:i)); } catch(e){} }
+    
+    if(user){ 
+      try { 
+        const r = await addDoc(collection(db,'artifacts',appId,'users',user.uid,'scans'), obj); 
+        setCurrentScanId(r.id); 
+        setScanHistory(p=>p.map(i=>i.id===obj.id?{...i,id:r.id}:i)); 
+      } catch(e){
+        alert("🚨 Erreur Firebase : " + e.message + "\n\nTes règles Firestore empêchent l'écriture. Va sur la console Firebase pour les débloquer.");
+      } 
+    }
   };
 
   const analyzeImage = async (b64) => {
@@ -1843,16 +1858,20 @@ export default function App() {
 
   return (
     <ErrorBoundary onReset={() => setView('home')}>
-      <div className="w-full max-w-md mx-auto h-[100dvh] bg-[#0a0a0a] sm:border-x sm:border-[#333] overflow-hidden relative text-[#F5F5F5] font-sans select-none" style={{'--gold-primary': '#D4AF37'}}>
+      <div className="w-full max-w-md mx-auto h-[100dvh] bg-[#0a0a0a] sm:border-x sm:border-[#333] flex flex-col relative text-[#F5F5F5] font-sans select-none overflow-hidden" style={{'--gold-primary': '#D4AF37'}}>
+        
+        {/* EN-TÊTE FIXE */}
         {['home', 'cellar', 'history', 'account', 'recommendation'].includes(view) && (
-          <div className="absolute top-0 w-full h-16 bg-[#1a1a1a]/80 backdrop-blur-sm border-b border-[#333] flex items-center justify-between px-5 z-30">
+          <div className="w-full h-16 shrink-0 bg-[#1a1a1a]/80 backdrop-blur-sm border-b border-[#333] flex items-center justify-between px-5 z-30">
             <h2 className="text-xl font-serif font-bold text-[#D4AF37]">VinoScan</h2>
             <button onClick={() => setView('alerts')} className="relative p-2 bg-[#0a0a0a] rounded-full border border-[#333] text-slate-400 hover:border-[#D4AF37]/50 transition-all">
               <Bell className="w-5 h-5" /> {unreadAlerts > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-[#1a1a1a]">{unreadAlerts}</span>}
             </button>
           </div>
         )}
-        <div className={['home', 'cellar', 'history', 'account', 'recommendation'].includes(view) ? "pt-16 pb-16 h-full" : "h-full"}>
+
+        {/* CONTENU QUI SCROLL LIBREMENT */}
+        <div className="flex-1 overflow-y-auto pb-20">
           {view === 'home' && <HomeView ctx={ctx} />}
           {view === 'account' && <AccountView ctx={ctx} />}
           {view === 'paywall' && <PaywallView ctx={ctx} />} 
@@ -1869,11 +1888,14 @@ export default function App() {
           {view === 'quiz' && <QuizView ctx={ctx} />}
           {view === 'alerts' && <AlertsView ctx={ctx} />}
           {view === 'error' && (
-          
             <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#0a0a0a] pt-20"><AlertTriangle className="w-16 h-16 text-red-500 mb-4" /><h2 className="text-xl font-bold text-white mb-2">Erreur technique</h2><p className="text-sm text-slate-400 mb-6">{errorMsg}</p><button onClick={()=>setView('home')} className="px-6 py-3 bg-[#D4AF37] text-black font-bold rounded-xl shadow-lg">Retour</button></div>
           )}
         </div>
+
+        {/* BARRE DU BAS FIXE */}
         {['home', 'cellar', 'history', 'account', 'recommendation'].includes(view) && <NavigationBar ctx={ctx} />}
+        
+        {/* POPUPS ET TOASTS */}
         {scanAction && (
           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"><div className="bg-[#1a1a1a] border border-[#333] rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl"><h3 className="text-xl font-bold text-white mb-2">Supprimer ?</h3><div className="flex space-x-3 mt-6"><button onClick={()=>setScanAction(null)} className="flex-1 py-3 bg-[#333] rounded-xl font-bold">Annuler</button><button onClick={()=>{ ctx.genericUpdate(scanAction.id, { in_history: false, stock: 0 }); setScanAction(null); setView('home'); ctx.showToast("Supprimé."); }} className="flex-1 py-3 bg-red-600/20 text-red-400 border border-red-600/40 rounded-xl font-bold">Supprimer</button></div></div></div>
         )}
