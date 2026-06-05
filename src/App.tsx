@@ -1331,8 +1331,8 @@ const PaywallView = ({ ctx }) => (
             <li>✅ Comparateur au rayon (4/mois)</li>
             <li>✅ 5 Scans API Expert / mois</li>
           </ul>
-          <button onClick={() => { ctx.setUserTier('AMATEUR'); ctx.setView('home'); ctx.showToast("Bienvenue dans le Club Amateur !"); }} className="w-full bg-[#333] text-white font-bold py-3 rounded-xl hover:bg-[#444] transition-colors">
-            Choisir ce forfait
+          <button onClick={() => ctx.showToast("Paiement sécurisé en cours de liaison...")} className="w-full bg-[#333] text-white font-bold py-3 rounded-xl hover:bg-[#444] transition-colors">
+           Choisir ce forfait
           </button>
         </div>
 
@@ -1354,8 +1354,8 @@ const PaywallView = ({ ctx }) => (
             <li>⚡ Comparateur au rayon illimité</li>
             <li>⚡ Scans API Expert illimités</li>
           </ul>
-          <button onClick={() => { ctx.setUserTier('COLLECTIONNEUR'); ctx.setView('home'); ctx.showToast("Bienvenue dans le Club Collectionneur !"); }} className="w-full bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black font-black py-3 rounded-xl shadow-lg hover:scale-[1.02] transition-transform">
-            Devenir Collectionneur
+          <button onClick={() => ctx.showToast("Paiement sécurisé en cours de liaison...")} className="w-full bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black font-black py-3 rounded-xl shadow-lg hover:scale-[1.02] transition-transform">
+           Devenir Collectionneur
           </button>
         </div>
       </div>
