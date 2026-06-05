@@ -1668,35 +1668,31 @@ export default function App() {
   const processAIResult = async (aiText, sourceImage) => {
     const data = normalizeData(extractJSON(aiText)); 
     setAnalysisResult(data);
-    const img = sourceImage || getGenericImageForType(data.type_simplifie); 
-    setImageSrc(img);
+    
+    // 1. Affichage de la vraie photo à l'écran
+    const localImg = sourceImage || getGenericImageForType(data.type_simplifie); 
+    setImageSrc(localImg);
     
     const scanId = Date.now().toString();
-    const obj = { id: scanId, image: img, data, stock: 0, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
+    const objLocal = { id: scanId, image: localImg, data, stock: 0, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
     
-    setScanHistory(p=>[obj,...p]); 
+    // 2. L'interface se met à jour instantanément pour l'utilisateur
+    setScanHistory(p=>[objLocal,...p]); 
     setCurrentScanId(scanId); 
     setPreviousView('home'); 
     setView('results');
     
-    // Sécurité maximale : On lit la session Firebase directement au lieu de la variable React
     const activeUser = auth.currentUser;
-    
     if (activeUser) { 
       try { 
+        // 3. ENVOI SÉCURISÉ : On force l'image générique (légère) pour éviter le crash réseau
+        const objFirebase = { ...objLocal, image: getGenericImageForType(data.type_simplifie) };
+        
         const docRef = doc(db, 'artifacts', appId, 'users', activeUser.uid, 'scans', scanId);
-        await setDoc(docRef, obj); 
+        await setDoc(docRef, objFirebase); 
       } catch(e) {
-        if (e.message.includes("larger than the limit") || e.code === "resource-exhausted") {
-          alert("🚨 Firebase refuse l'envoi : La photo pèse plus de 1 Mo. Le document est trop lourd.");
-        } else if (e.code === "permission-denied") {
-          alert("🚨 Erreur de droits : Tes règles Firebase empêchent toujours l'écriture.");
-        } else {
-          alert(`🚨 Erreur Firebase inattendue : ${e.message}`);
-        }
+        alert(`🚨 Erreur Firebase : ${e.message}`);
       } 
-    } else {
-      alert("🚨 Utilisateur introuvable : Vous n'êtes pas connecté au moment de la sauvegarde.");
     }
   };
 
