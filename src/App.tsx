@@ -1016,7 +1016,7 @@ const AccountView = ({ ctx }) => {
   const formattedChartData = useMemo(() => { if (!valueHistory || valueHistory.length < 2) return []; return valueHistory.map(h => ({ date: h.dateStr, valeur: h.value })); }, [valueHistory]);
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none">
+    <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none">
       <div className="bg-[#1A1A1A] pt-12 pb-6 px-6 border-b border-[#333] flex justify-between items-center shadow-xl sticky top-0 z-10">
         <div><h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Mon Club</h1><p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest mt-1">Sauvegarde active</p></div>
         <div className="w-14 h-14 rounded-full bg-[#0a0a0a] flex items-center justify-center border border-[#D4AF37]/50"><Award className="w-7 h-7 text-[#D4AF37]" /></div>
@@ -1153,7 +1153,7 @@ const ResultsView = ({ ctx }) => {
   const fallbackImg = "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=800&q=80";
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none">
+    <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none">
       <div className="bg-[#1a1a1a] p-4 flex justify-between items-center border-b border-[#333] sticky top-0 z-20">
         <SommelierButton text={`Dégustation du cru ${d.nom}. Fenêtre optimale d'apogée : ${d.apogee}.`} />
         <button onClick={ctx.goBack} className="p-3 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full"><X className="w-5 h-5"/></button>
@@ -1368,7 +1368,7 @@ const PaywallView = ({ ctx }) => (
 );
 
 const CompareView = ({ ctx }) => (
-  <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none p-5">
+  <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none p-5">
     <div className="flex items-center justify-between mb-6 pt-6">
       <h2 className="text-2xl font-serif font-bold text-[#D4AF37]">Comparateur</h2>
       <button onClick={() => ctx.setView('home')} className="p-2 bg-[#1A1A1A] border border-[#333] rounded-full text-slate-400"><X className="w-5 h-5"/></button>
@@ -1377,33 +1377,47 @@ const CompareView = ({ ctx }) => (
     {/* AFFICHAGE DU RÉSULTAT */}
     {ctx.compareResult ? (
       <div className="animate-in slide-in-from-top-4 mb-6">
-        <button 
-          onClick={() => ctx.processRecommendationSelection({
-            nom: ctx.compareResult.gagnant, 
-            description: ctx.compareResult.justification,
-            type_simplifie: "ROUGE" // Type par défaut modifiable plus tard
-          })}
-          className="w-full text-left bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] p-6 rounded-3xl mb-4 shadow-xl active:scale-95 transition-transform"
-        >
-          <h3 className="font-black text-xl mb-3 flex items-center text-black">
-            <Award className="w-6 h-6 mr-2 text-black"/> 
-            {ctx.compareResult.gagnant}
-          </h3>
-          <div className="bg-black/10 p-3 rounded-xl mb-3">
-            <p className="text-sm font-black text-black mb-1">Le verdict :</p>
-            <p className="text-sm font-semibold text-black leading-snug">{ctx.compareResult.justification}</p>
-          </div>
-          <p className="text-xs italic text-black/80 font-bold mb-4">Autres options : {ctx.compareResult.alternatives}</p>
-          
-          <div className="flex items-center justify-center bg-black text-[#D4AF37] py-3 rounded-xl text-xs font-bold uppercase tracking-wider">
-            <span>Ouvrir la fiche et ajouter</span>
-          </div>
-        </button>
+      <button 
+        onClick={() => ctx.processRecommendationSelection({
+          nom: ctx.compareResult.gagnant, 
+          description: ctx.compareResult.justification,
+          type_simplifie: "ROUGE",
+          stock: 0 // Force le stock à 0 par défaut
+        })}
+        className="w-full text-left bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] p-6 rounded-3xl mb-4 shadow-xl active:scale-95 transition-transform"
+      >
+        <h3 className="font-black text-xl mb-3 flex items-center text-black">
+          <Award className="w-6 h-6 mr-2 text-black"/> 
+          {ctx.compareResult.gagnant}
+        </h3>
+        <div className="bg-black/10 p-3 rounded-xl mb-3">
+          <p className="text-sm font-black text-black mb-1">Le verdict :</p>
+          <p className="text-sm font-semibold text-black leading-snug">{ctx.compareResult.justification}</p>
+        </div>
+        
+        {/* Alternatives cliquables */}
+        <div className="mt-4 space-y-2">
+          <p className="text-xs text-black/80 font-bold uppercase tracking-wider mb-2">Autres options détectées :</p>
+          {ctx.compareResult.alternatives?.map((alt, index) => (
+            <div 
+              key={index} 
+              onClick={(e) => {
+                e.stopPropagation(); // Évite de cliquer sur le gagnant en même temps
+                ctx.processRecommendationSelection({ nom: alt.nom, description: alt.avis, type_simplifie: "ROUGE", stock: 0 });
+              }}
+              className="bg-black/5 border border-black/10 p-3 rounded-xl active:scale-95 transition-transform"
+            >
+              <p className="text-sm font-bold text-black">{alt.nom}</p>
+              <p className="text-xs text-black/80 font-medium">{alt.avis}</p>
+            </div>
+          ))}
+        </div>
+      </button>
 
-        <button onClick={() => {ctx.setCompareResult(null); ctx.setCompareBasket([]); ctx.setCompareContext('');}} className="w-full bg-[#1A1A1A] text-white py-4 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#333]">
-          Nouvelle comparaison
-        </button>
-      </div>
+      <button onClick={() => {ctx.setCompareResult(null); ctx.setCompareBasket([]); ctx.setCompareContext('');}} className="w-full bg-[#1A1A1A] text-white py-4 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#333]">
+        Nouvelle comparaison
+      </button>
+    </div>
     ) : (
       <>
         <p className="text-sm text-slate-400 mb-6">Prenez en photo les bouteilles qui vous font hésiter. L'IA choisira la pépite.</p>
@@ -1485,8 +1499,8 @@ export default function App() {
     setPreviousView('compare');
     
     try {
-      const prompt = `Sommelier expert. Voici ${compareBasket.length} photos de bouteilles. Contexte/Repas : "${compareContext || 'Général'}". Analyse-les et choisis la meilleure option. Réponds UNIQUEMENT en JSON pur : {"gagnant":"Nom du vin","justification":"Pourquoi (max 20 mots)","alternatives":"Avis rapide sur les autres (max 20 mots)"}`;
-      
+      const prompt = `Sommelier expert. Voici ${compareBasket.length} photos de bouteilles. Contexte/Repas : "${compareContext || 'Général'}". Analyse-les et choisis la meilleure option. Réponds UNIQUEMENT en JSON pur : {"gagnant":"Nom du vin","justification":"Pourquoi (max 20 mots)","alternatives":[{"nom":"Nom autre vin", "avis":"Avis (max 15 mots)"}]}`;
+
       // On retire l'en-tête "data:image/jpeg;base64," de chaque image de la galerie
       const cleanImages = compareBasket.map(img => img.split(',')[1]);
       
