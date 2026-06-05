@@ -1178,10 +1178,23 @@ const ResultsView = ({ ctx }) => {
 
         {activeTab === 'infos' && (
           <div className="space-y-4 animate-in fade-in">
-            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] text-sm text-slate-300 leading-relaxed">{d.description}</div>
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] text-sm text-slate-300 leading-relaxed">
+              {d.description}
+            </div>
+            
+            {/* NOUVEAU : Boutons de stock sur la page principale */}
+            <div className="bg-gradient-to-r from-[#1A1A1A] to-[#222] p-4 rounded-2xl border border-[#D4AF37]/30 flex justify-between items-center shadow-lg">
+              <span className="text-sm font-bold text-[#D4AF37]">En cave :</span>
+              <div className="flex items-center space-x-3">
+                <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-10 h-10 bg-[#0a0a0a] border border-[#333] text-white rounded-xl font-bold active:scale-95">-</button>
+                <span className="text-xl font-black text-white w-6 text-center">{stock}</span>
+                <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-10 h-10 bg-[#D4AF37] text-black rounded-xl font-black active:scale-95">+</button>
+              </div>
+            </div>
+
             <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
               <div><span className="text-xs text-slate-500 block">Prix Indicatif</span><span className="text-2xl font-black text-[#D4AF37]">{tempPrix} €</span></div>
-              <div className="text-right"><span className="text-xs text-slate-500 block">Garde</span><span className="text-sm font-bold text-white">{d.potentiel_garde}</span></div>
+              <div className="text-right"><span className="text-xs text-slate-500 block">Garde</span><span className="text-sm font-bold text-white">{d.potentiel_garde || 'N.C.'}</span></div>
             </div>
             {(() => {
               const acc = getRecommendedAccessory(tempType);
@@ -1363,14 +1376,31 @@ const CompareView = ({ ctx }) => (
 
     {/* AFFICHAGE DU RÉSULTAT */}
     {ctx.compareResult ? (
-      <div className="bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] p-6 rounded-3xl mb-6 text-black shadow-xl animate-in slide-in-from-top-4">
-        <h3 className="font-black text-xl mb-3 flex items-center"><Award className="w-6 h-6 mr-2"/> {ctx.compareResult.gagnant}</h3>
-        <div className="bg-black/10 p-3 rounded-xl mb-3">
-          <p className="text-sm font-bold mb-1">Le verdict :</p>
-          <p className="text-sm font-medium">{ctx.compareResult.justification}</p>
-        </div>
-        <p className="text-xs italic opacity-80 font-medium">Autres options : {ctx.compareResult.alternatives}</p>
-        <button onClick={() => {ctx.setCompareResult(null); ctx.setCompareBasket([]); ctx.setCompareContext('');}} className="mt-5 w-full bg-black text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider">
+      <div className="animate-in slide-in-from-top-4 mb-6">
+        <button 
+          onClick={() => ctx.processRecommendationSelection({
+            nom: ctx.compareResult.gagnant, 
+            description: ctx.compareResult.justification,
+            type_simplifie: "ROUGE" // Type par défaut modifiable plus tard
+          })}
+          className="w-full text-left bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] p-6 rounded-3xl mb-4 shadow-xl active:scale-95 transition-transform"
+        >
+          <h3 className="font-black text-xl mb-3 flex items-center text-black">
+            <Award className="w-6 h-6 mr-2 text-black"/> 
+            {ctx.compareResult.gagnant}
+          </h3>
+          <div className="bg-black/10 p-3 rounded-xl mb-3">
+            <p className="text-sm font-black text-black mb-1">Le verdict :</p>
+            <p className="text-sm font-semibold text-black leading-snug">{ctx.compareResult.justification}</p>
+          </div>
+          <p className="text-xs italic text-black/80 font-bold mb-4">Autres options : {ctx.compareResult.alternatives}</p>
+          
+          <div className="flex items-center justify-center bg-black text-[#D4AF37] py-3 rounded-xl text-xs font-bold uppercase tracking-wider">
+            <span>Ouvrir la fiche et ajouter</span>
+          </div>
+        </button>
+
+        <button onClick={() => {ctx.setCompareResult(null); ctx.setCompareBasket([]); ctx.setCompareContext('');}} className="w-full bg-[#1A1A1A] text-white py-4 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#333]">
           Nouvelle comparaison
         </button>
       </div>
