@@ -415,6 +415,11 @@ const HomeView = ({ ctx }) => (
           <Gamepad2 className="w-5 h-5" /><span className="font-bold text-xs uppercase">Mini-Jeu</span>
         </button>
       </div>
+      <div className="pt-2 pb-2">
+        <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.setView('compare'); }} className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-slate-900 to-black border border-slate-800 text-[#D4AF37] p-5 rounded-full shadow-lg active:scale-95 transition-all hover:border-[#D4AF37]/30">
+          <Layers className="w-6 h-6" /><span className="font-bold text-sm uppercase tracking-widest">Comparateur de Rayon</span>
+        </button>
+      </div>
       <div className="flex space-x-4">
         <label className="flex-1 flex flex-col items-center justify-center space-y-1 bg-[#1A1A1A] border border-[#333] text-slate-400 py-4 rounded-3xl cursor-pointer shadow-sm active:scale-95 hover:text-[#D4AF37] transition-colors">
           <ImageIcon className="w-6 h-6 mb-1" /><span className="font-bold text-[10px] uppercase">Galerie</span>
@@ -1360,6 +1365,42 @@ export default function App() {
   const [alerts, setAlerts] = useState([]);
   const [facingMode, setFacingMode] = useState('environment');
   const [isPremium, setIsPremium] = useState(false);
+  // --- COMPARATEUR DE RAYON ---
+  const [compareBasket, setCompareBasket] = useState([]);
+  const [compareContext, setCompareContext] = useState('');
+
+  const handleAddCompareImage = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Blocage selon le palier
+    if (userTier === 'FREE' && compareBasket.length >= 2) { showToast("Gratuit : 2 bouteilles max."); return; }
+    if (userTier === 'AMATEUR' && compareBasket.length >= 4) { showToast("Amateur : 4 bouteilles max."); return; }
+
+    const reader = new FileReader();
+    reader.onload = (event) => setCompareBasket([...compareBasket, event.target.result]);
+    reader.readAsDataURL(file);
+  };
+
+  const removeCompareImage = (index) => {
+    setCompareBasket(compareBasket.filter((_, i) => i !== index));
+  };
+
+  const launchComparison = async () => {
+    if (!checkUsageLimit('rayon')) return;
+    if (compareBasket.length < 2) { showToast("Ajoutez au moins 2 vins à comparer."); return; }
+    
+    setView('analyzing');
+    setPreviousView('compare');
+    incrementUsage('rayon');
+    
+    // Simulation temporaire avant de brancher la vraie IA (Étape suivante)
+    setTimeout(() => {
+       showToast("Prêt pour l'IA multi-images !");
+       setView('compare');
+    }, 2000);
+  };
+  // -----------------------------
   
   // --- NOUVEAU SYSTÈME DE PALIERS ET LIMITES ---
   // userTier peut être : 'FREE', 'AMATEUR', ou 'COLLECTIONNEUR'
@@ -1578,7 +1619,7 @@ export default function App() {
     processRecommendationSelection: (w)=>processAIResult(JSON.stringify(w), null), genericUpdate, updateStock, 
     goBack:()=>setView(previousView), openExistingWine:(i,o)=>{setImageSrc(i.image);setAnalysisResult(i.data);setCurrentScanId(i.id);setPreviousView(o);setView('results');}, 
     videoRef, canvasRef, cameraMode, handleKeyDown, callGemini, valueHistory, alerts, analyzeSensoryDNA, generateAndShareInstagramImage,
-    toggleCamera, userTier, setUserTier, requireTier
+    toggleCamera, userTier, setUserTier, requireTier, compareBasket, setCompareBasket, compareContext, setCompareContext, handleAddCompareImage, removeCompareImage, launchComparison,
   };
 
   if (isAuthLoading) return <div className="h-[100dvh] bg-[#0a0a0a] flex items-center justify-center"><Wine className="w-12 h-12 text-[#D4AF37] animate-pulse" /></div>;
@@ -1601,6 +1642,7 @@ export default function App() {
           {view === 'home' && <HomeView ctx={ctx} />}
           {view === 'account' && <AccountView ctx={ctx} />}
           {view === 'paywall' && <PaywallView ctx={ctx} />} 
+          {view === 'compare' && <CompareView ctx={ctx} />}
           {view === 'history' && <HistoryView ctx={ctx} />}
           {view === 'cellar' && <CellarView ctx={ctx} />}
           {view === 'recommendation' && <RecommendationView ctx={ctx} />}
