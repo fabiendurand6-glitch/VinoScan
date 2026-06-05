@@ -1765,18 +1765,19 @@ export default function App() {
     scanHistory, setScanHistory, scanAction, setScanAction, recommendationList, currentScanId, setCurrentScanId, 
     toastMsg, showToast, startCamera, stopCamera, capturePhoto, handleFileUpload, analyzeImage, searchWineText, 
     analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField,
+
+    // 1. Création d'une nouvelle bouteille avec stock à 0
     processRecommendationSelection: async (w) => {
       if (!user) { ctx.showToast("Connectez-vous pour ajouter à la cave."); return; }
       
       const scanId = Date.now().toString();
       const newItem = {
         data: w,
-        stock: 0, // Force le stock à 0
-        timestamp: Date.now() // Indispensable pour ton onSnapshot
+        stock: 0,
+        timestamp: Date.now()
       };
 
       try {
-        // Envoi direct à Firebase au lieu de setScanHistory local
         await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', scanId), newItem);
         setCurrentScanId(scanId);
         setPreviousView(view);
@@ -1786,7 +1787,51 @@ export default function App() {
         ctx.showToast("Erreur lors de la sauvegarde.");
       }
     },
-    goBack:()=>setView(previousView), openExistingWine:(i,o)=>{setImageSrc(i.image);setAnalysisResult(i.data);setCurrentScanId(i.id);setPreviousView(o);setView('results');}, 
+
+    // 2. Mise à jour fluide du stock (+ / -)
+    updateStock: async (id, currentStock, change) => {
+      const newStock = Math.max(0, currentStock + change);
+      
+      setScanHistory(prev => prev.map(item => 
+        item.id === id ? { ...item, stock: newStock } : item
+      ));
+
+      if (user) {
+        try {
+          const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'scans', id);
+          await updateDoc(docRef, { stock: newStock });
+        } catch (e) {
+          console.error("Erreur de sauvegarde Firebase :", e);
+        }
+      }
+    },
+
+    // 3. Mise à jour fluide des textes (Année, Notes, Emplacement)
+    genericUpdate: async (id, fieldsToUpdate) => {
+      setScanHistory(prev => prev.map(item => 
+        item.id === id ? { ...item, ...fieldsToUpdate } : item
+      ));
+
+      if (user) {
+        try {
+          const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'scans', id);
+          await updateDoc(docRef, fieldsToUpdate);
+        } catch (e) {
+          console.error("Erreur de sauvegarde Firebase :", e);
+        }
+      }
+    },
+
+    goBack: () => setView(previousView), 
+    
+    openExistingWine: (i, o) => {
+      setImageSrc(i.image);
+      setAnalysisResult(i.data);
+      setCurrentScanId(i.id);
+      setPreviousView(o);
+      setView('results');
+    }, 
+    
     videoRef, canvasRef, cameraMode, handleKeyDown, callGemini, valueHistory, alerts, analyzeSensoryDNA, generateAndShareInstagramImage,
     toggleCamera, userTier, setUserTier, requireTier, compareBasket, setCompareBasket, compareContext, setCompareContext, handleAddCompareImage, removeCompareImage, launchComparison, compareResult, setCompareResult
   };
