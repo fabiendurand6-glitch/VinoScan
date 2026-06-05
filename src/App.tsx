@@ -1577,7 +1577,24 @@ export default function App() {
   const streamRef = useRef(null);
 
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (u) => { setUser(u); setIsAuthLoading(false); });
+    const unsubAuth = onAuthStateChanged(auth, (u) => { 
+      setUser(u); 
+      setIsAuthLoading(false); 
+      
+      if (u) {
+        // Écoute le champ "tier" dans le document de l'utilisateur
+        const userDocRef = doc(db, 'artifacts', appId, 'users', u.uid);
+        onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists() && docSnap.data().tier) {
+            setUserTier(docSnap.data().tier);
+          } else {
+            setUserTier('FREE'); // Niveau par défaut
+          }
+        });
+      } else {
+        setUserTier('FREE');
+      }
+    });
     return () => unsubAuth();
   }, []);
 
@@ -1646,7 +1663,7 @@ export default function App() {
   const processAIResult = async (aiText, sourceImage) => {
     const data = normalizeData(extractJSON(aiText)); setAnalysisResult(data);
     const img = sourceImage || getGenericImageForType(data.type_simplifie); setImageSrc(img);
-    const obj = { id: 'temp_'+Date.now(), image: img, data, stock: 1, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
+    const obj = { id: 'temp_'+Date.now(), image: img, data, stock: 0, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
     setScanHistory(p=>[obj,...p]); setCurrentScanId(obj.id); setPreviousView('home'); setView('results');
     if(user){ try { const r = await addDoc(collection(db,'artifacts',appId,'users',user.uid,'scans'), obj); setCurrentScanId(r.id); setScanHistory(p=>p.map(i=>i.id===obj.id?{...i,id:r.id}:i)); } catch(e){} }
   };
@@ -1735,7 +1752,27 @@ export default function App() {
     scanHistory, setScanHistory, scanAction, setScanAction, recommendationList, currentScanId, setCurrentScanId, 
     toastMsg, showToast, startCamera, stopCamera, capturePhoto, handleFileUpload, analyzeImage, searchWineText, 
     analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField,
-    processRecommendationSelection: (w)=>processAIResult(JSON.stringify(w), null), genericUpdate, updateStock, 
+    processRecommendationSelection: async (w) => {
+      if (!user) { ctx.showToast("Connectez-vous pour ajouter à la cave."); return; }
+      
+      const scanId = Date.now().toString();
+      const newItem = {
+        data: w,
+        stock: 0, // Force le stock à 0
+        timestamp: Date.now() // Indispensable pour ton onSnapshot
+      };
+
+      try {
+        // Envoi direct à Firebase au lieu de setScanHistory local
+        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', scanId), newItem);
+        setCurrentScanId(scanId);
+        setPreviousView(view);
+        setView('results');
+      } catch (e) {
+        console.error("Erreur Firebase :", e);
+        ctx.showToast("Erreur lors de la sauvegarde.");
+      }
+    },
     goBack:()=>setView(previousView), openExistingWine:(i,o)=>{setImageSrc(i.image);setAnalysisResult(i.data);setCurrentScanId(i.id);setPreviousView(o);setView('results');}, 
     videoRef, canvasRef, cameraMode, handleKeyDown, callGemini, valueHistory, alerts, analyzeSensoryDNA, generateAndShareInstagramImage,
     toggleCamera, userTier, setUserTier, requireTier, compareBasket, setCompareBasket, compareContext, setCompareContext, handleAddCompareImage, removeCompareImage, launchComparison, compareResult, setCompareResult
