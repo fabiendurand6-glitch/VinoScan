@@ -1353,43 +1353,48 @@ const CompareView = ({ ctx }) => (
       <button onClick={() => ctx.setView('home')} className="p-2 bg-[#1A1A1A] border border-[#333] rounded-full text-slate-400"><X className="w-5 h-5"/></button>
     </div>
 
-    <p className="text-sm text-slate-400 mb-6">Prenez en photo les bouteilles qui vous font hésiter en rayon. L'IA choisira la pépite.</p>
-
-    <div className="bg-[#1A1A1A] p-4 rounded-3xl border border-[#333] mb-6 shadow-lg">
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pour quel plat / occasion ?</label>
-      <input 
-        type="text" 
-        value={ctx.compareContext} 
-        onChange={(e) => ctx.setCompareContext(e.target.value)} 
-        placeholder="Ex: Un barbecue, du poisson, un cadeau..." 
-        className="w-full bg-black border border-[#333] text-white rounded-xl p-4 text-sm outline-none focus:border-[#D4AF37] transition-colors"
-      />
-    </div>
-
-    <div className="grid grid-cols-2 gap-4 mb-8">
-      {ctx.compareBasket.map((imgBase64, index) => (
-        <div key={index} className="relative h-40 bg-black rounded-2xl border border-[#333] overflow-hidden shadow-md">
-          <img src={imgBase64} className="w-full h-full object-cover opacity-80" alt={`Vin ${index + 1}`} />
-          <button onClick={() => ctx.removeCompareImage(index)} className="absolute top-2 right-2 bg-red-500/90 text-white p-2 rounded-full shadow-lg active:scale-90"><X className="w-3 h-3" /></button>
+    {/* AFFICHAGE DU RÉSULTAT */}
+    {ctx.compareResult ? (
+      <div className="bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] p-6 rounded-3xl mb-6 text-black shadow-xl animate-in slide-in-from-top-4">
+        <h3 className="font-black text-xl mb-3 flex items-center"><Award className="w-6 h-6 mr-2"/> {ctx.compareResult.gagnant}</h3>
+        <div className="bg-black/10 p-3 rounded-xl mb-3">
+          <p className="text-sm font-bold mb-1">Le verdict :</p>
+          <p className="text-sm font-medium">{ctx.compareResult.justification}</p>
         </div>
-      ))}
-      
-      {/* Bouton pour prendre une photo (Ouvre la caméra native du téléphone) */}
-      <label className="h-40 flex flex-col items-center justify-center bg-[#1A1A1A] border-2 border-dashed border-[#333] rounded-2xl cursor-pointer hover:border-[#D4AF37]/50 transition-colors text-slate-400 hover:text-[#D4AF37] shadow-inner">
-        <Camera className="w-8 h-8 mb-2" />
-        <span className="text-xs font-bold uppercase tracking-wider">Ajouter un vin</span>
-        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={ctx.handleAddCompareImage} />
-      </label>
-    </div>
+        <p className="text-xs italic opacity-80 font-medium">Autres options : {ctx.compareResult.alternatives}</p>
+        <button onClick={() => {ctx.setCompareResult(null); ctx.setCompareBasket([]); ctx.setCompareContext('');}} className="mt-5 w-full bg-black text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider">
+          Nouvelle comparaison
+        </button>
+      </div>
+    ) : (
+      <>
+        <p className="text-sm text-slate-400 mb-6">Prenez en photo les bouteilles qui vous font hésiter. L'IA choisira la pépite.</p>
+        
+        <div className="bg-[#1A1A1A] p-4 rounded-3xl border border-[#333] mb-6 shadow-lg">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pour quel plat / occasion ?</label>
+          <input type="text" value={ctx.compareContext} onChange={(e) => ctx.setCompareContext(e.target.value)} placeholder="Ex: Barbecue, Poisson, Cadeau..." className="w-full bg-black border border-[#333] text-white rounded-xl p-4 text-sm outline-none focus:border-[#D4AF37] transition-colors" />
+        </div>
 
-    <button 
-      onClick={ctx.launchComparison}
-      disabled={ctx.compareBasket.length < 2}
-      className={`w-full py-5 font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 transition-all ${ctx.compareBasket.length >= 2 ? 'bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black hover:scale-[1.02]' : 'bg-[#1A1A1A] text-slate-600 border border-[#333]'}`}
-    >
-      <Sparkles className="w-6 h-6" />
-      <span>Analyser la sélection ({ctx.compareBasket.length})</span>
-    </button>
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          {ctx.compareBasket.map((imgBase64, index) => (
+            <div key={index} className="relative h-40 bg-black rounded-2xl border border-[#333] overflow-hidden shadow-md">
+              <img src={imgBase64} className="w-full h-full object-cover opacity-80" alt={`Vin ${index + 1}`} />
+              <button onClick={() => ctx.removeCompareImage(index)} className="absolute top-2 right-2 bg-red-500/90 text-white p-2 rounded-full shadow-lg active:scale-90"><X className="w-3 h-3" /></button>
+            </div>
+          ))}
+          
+          <label className="h-40 flex flex-col items-center justify-center bg-[#1A1A1A] border-2 border-dashed border-[#333] rounded-2xl cursor-pointer hover:border-[#D4AF37]/50 transition-colors text-slate-400 hover:text-[#D4AF37] shadow-inner">
+            <Camera className="w-8 h-8 mb-2" />
+            <span className="text-xs font-bold uppercase tracking-wider">Ajouter un vin</span>
+            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={ctx.handleAddCompareImage} />
+          </label>
+        </div>
+
+        <button onClick={ctx.launchComparison} disabled={ctx.compareBasket.length < 2} className={`w-full py-5 font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 transition-all ${ctx.compareBasket.length >= 2 ? 'bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black hover:scale-[1.02]' : 'bg-[#1A1A1A] text-slate-600 border border-[#333]'}`}>
+          <Sparkles className="w-6 h-6" /><span>Analyser la sélection ({ctx.compareBasket.length})</span>
+        </button>
+      </>
+    )}
   </div>
 );
 
@@ -1415,6 +1420,7 @@ export default function App() {
   // --- COMPARATEUR DE RAYON ---
   const [compareBasket, setCompareBasket] = useState([]);
   const [compareContext, setCompareContext] = useState('');
+  const [compareResult, setCompareResult] = useState(null);
 
   const handleAddCompareImage = (e) => {
     const file = e.target.files[0];
@@ -1435,17 +1441,38 @@ export default function App() {
 
   const launchComparison = async () => {
     if (!checkUsageLimit('rayon')) return;
-    if (compareBasket.length < 2) { showToast("Ajoutez au moins 2 vins à comparer."); return; }
+    if (compareBasket.length < 2) { showToast("Ajoutez au moins 2 vins."); return; }
     
     setView('analyzing');
     setPreviousView('compare');
-    incrementUsage('rayon');
     
-    // Simulation temporaire avant de brancher la vraie IA (Étape suivante)
-    setTimeout(() => {
-       showToast("Prêt pour l'IA multi-images !");
-       setView('compare');
-    }, 2000);
+    try {
+      const prompt = `Sommelier expert. Voici ${compareBasket.length} photos de bouteilles. Contexte/Repas : "${compareContext || 'Général'}". Analyse-les et choisis la meilleure option. JSON strict : {"gagnant":"Nom du vin","justification":"Pourquoi (max 20 mots)","alternatives":"Avis rapide sur les autres (max 20 mots)"}`;
+      
+      const imageParts = compareBasket.map(img => ({
+        inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] }
+      }));
+
+      // Remplace TA_CLE_API par ta vraie variable d'environnement ou clé
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=TA_CLE_API`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }, ...imageParts] }]
+          })
+      });
+      
+      const data = await res.json();
+      let cleanText = data.candidates[0].content.parts[0].text;
+      cleanText = cleanText.replace(/```json/g, '').replace(/```/g, ''); // Nettoyage
+      
+      setCompareResult(JSON.parse(cleanText));
+      incrementUsage('rayon');
+      setView('compare'); 
+    } catch (e) {
+      setErrorMsg("Erreur d'analyse des bouteilles.");
+      setView('error');
+    }
   };
   // -----------------------------
   
@@ -1666,7 +1693,7 @@ export default function App() {
     processRecommendationSelection: (w)=>processAIResult(JSON.stringify(w), null), genericUpdate, updateStock, 
     goBack:()=>setView(previousView), openExistingWine:(i,o)=>{setImageSrc(i.image);setAnalysisResult(i.data);setCurrentScanId(i.id);setPreviousView(o);setView('results');}, 
     videoRef, canvasRef, cameraMode, handleKeyDown, callGemini, valueHistory, alerts, analyzeSensoryDNA, generateAndShareInstagramImage,
-    toggleCamera, userTier, setUserTier, requireTier, compareBasket, setCompareBasket, compareContext, setCompareContext, handleAddCompareImage, removeCompareImage, launchComparison
+    toggleCamera, userTier, setUserTier, requireTier, compareBasket, setCompareBasket, compareContext, setCompareContext, handleAddCompareImage, removeCompareImage, launchComparison, compareResult, setCompareResult
   };
 
   if (isAuthLoading) return <div className="h-[100dvh] bg-[#0a0a0a] flex items-center justify-center"><Wine className="w-12 h-12 text-[#D4AF37] animate-pulse" /></div>;
