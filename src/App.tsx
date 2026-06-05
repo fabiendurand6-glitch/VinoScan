@@ -1322,18 +1322,56 @@ export default function App() {
   const [facingMode, setFacingMode] = useState('environment');
   const [isPremium, setIsPremium] = useState(false);
   
-  const requirePremium = () => {
-    if (!isPremium) { setPreviousView(view); setView('paywall'); return true; }
+  // --- NOUVEAU SYSTÈME DE PALIERS ET LIMITES ---
+  // userTier peut être : 'FREE', 'AMATEUR', ou 'COLLECTIONNEUR'
+  const [userTier, setUserTier] = useState('FREE');
+
+  const requireTier = (minimumTier) => {
+    const tiers = { 'FREE': 0, 'AMATEUR': 1, 'COLLECTIONNEUR': 2 };
+    if (tiers[userTier] < tiers[minimumTier]) {
+      setPreviousView(view);
+      setView('paywall');
+      return true;
+    }
     return false;
   };
 
-  const checkUsageLimit = (type, limit) => {
-    if (isPremium) return true;
+  const checkUsageLimit = (type) => {
+    // Définition de tes règles d'accès selon la conversation
+    const limits = {
+      FREE: { photo: 3, sommelier: 2, menu: 0, facture: 0, rayon: 0, expert: 0 },
+      AMATEUR: { photo: Infinity, sommelier: Infinity, menu: 4, facture: 0, rayon: Infinity, expert: 5 },
+      COLLECTIONNEUR: { photo: Infinity, sommelier: Infinity, menu: Infinity, facture: Infinity, rayon: Infinity, expert: Infinity }
+    };
+
+    const maxLimit = limits[userTier][type];
+    
+    // Si c'est bloqué (0) ou illimité (Infinity)
+    if (maxLimit === Infinity) return true;
+    if (maxLimit === 0) { 
+      setPreviousView(view); 
+      setView('paywall'); 
+      return false; 
+    }
+
+    // Gestion du compteur mensuel
     const key = `vs_usage_${type}_${new Date().getMonth()}`;
     const current = parseInt(localStorage.getItem(key) || '0');
-    if (current >= limit) { setPreviousView(view); setView('paywall'); return false; }
+    
+    if (current >= maxLimit) { 
+      setPreviousView(view); 
+      setView('paywall'); 
+      return false; 
+    }
     return true;
   };
+
+  const incrementUsage = (type) => {
+    const key = `vs_usage_${type}_${new Date().getMonth()}`;
+    const current = parseInt(localStorage.getItem(key) || '0');
+    localStorage.setItem(key, current + 1);
+  };
+  // ----------------------------------------------
 
   const incrementUsage = (type) => {
     const key = `vs_usage_${type}_${new Date().getMonth()}`;
