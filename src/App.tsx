@@ -12,7 +12,7 @@ import html2canvas from 'html2canvas';
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import imgTirebouchon from './assets/tirebouchon.jpg';
 import imgCarafe from './assets/carafe.jpg';
 import imgVerres from './assets/verres.jpg';
@@ -35,7 +35,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true
+});
 const appId = 'vinoscan-app-8d4af';
 
 // =========================================================================
@@ -421,9 +423,9 @@ const HomeView = ({ ctx }) => (
             stock: 1,
             timestamp: Date.now()
           });
-          alert("✅ Écriture réussie !");
+          ctx.showToast("✅ Écriture réussie !");
         } catch (e) {
-          alert("🚨 Erreur Firebase : " + e.message);
+          ctx.showToast("🚨 Erreur Firebase");
         }
       }} className="w-full bg-emerald-600 p-4 rounded-xl text-white font-bold mb-4 shadow-lg active:scale-95">
         TEST CONNEXION FIREBASE
