@@ -411,34 +411,8 @@ const HomeView = ({ ctx }) => (
       </button>
       
       {/* Carte des Vins en grand bouton */}
-      <button onClick={() => { if (!ctx.requirePremium()) ctx.setView('menuConfig'); }} className="w-full flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#F5F5F5] p-5 rounded-full active:scale-95 transition-all hover:border-[#D4AF37]/50 shadow-md">
+      <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.setView('menuConfig'); }} className="w-full flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#F5F5F5] p-5 rounded-full active:scale-95 transition-all hover:border-[#D4AF37]/50 shadow-md">
         <BookOpen className="w-6 h-6 text-slate-400" /><span className="font-bold text-lg">Carte des vins</span>
-      </button>
-      
-      <button onClick={async () => {
-        try {
-          if (!ctx.user) { alert("Erreur : Non connecté"); return; }
-          
-          const token = await ctx.user.getIdToken();
-          const url = `https://firestore.googleapis.com/v1/projects/vinoscan-app-8d4af/databases/(default)/documents/artifacts?documentId=diagnostic_test`;
-          
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fields: { message: { stringValue: "Test direct réussi" } } })
-          });
-          
-          const data = await res.json();
-          if (res.ok) {
-            alert("✅ FIREBASE EST DÉBLOQUÉ ! Le serveur accepte enfin les données.");
-          } else {
-            alert("🚨 BLOCAGE SERVEUR :\nErreur : " + data.error?.status + "\nDétail : " + data.error?.message);
-          }
-        } catch (e) {
-          alert("🚨 BLOCAGE RÉSEAU (Ton navigateur empêche la sortie) : " + e.message);
-        }
-      }} className="w-full bg-blue-600 p-4 rounded-xl text-white font-bold mb-4 shadow-lg active:scale-95">
-        DIAGNOSTIC FIREBASE STRICT
       </button>
 
       <div className="flex space-x-4 pt-2">
@@ -1123,7 +1097,7 @@ const AccountView = ({ ctx }) => {
               </ResponsiveContainer>
             </div>
           ) : (
-            <button onClick={() => { if (!ctx.requirePremium()) generateADN(); }} disabled={isSensoryLoading} className="w-full mt-4 py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center justify-center space-x-2">
+            <button onClick={() => { if (!ctx.requireTier('AMATEUR')) generateADN(); }} disabled={isSensoryLoading} className="w-full mt-4 py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center justify-center space-x-2">
               {isSensoryLoading ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4"/>}
               <span>Générer mon ADN sensoriel</span>
             </button>
@@ -1294,7 +1268,7 @@ const ResultsView = ({ ctx }) => {
               <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation personnelles..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
             </div>
             
-            <button onClick={() => { if (!ctx.requirePremium()) ctx.generateAndShareInstagramImage(ctx.showToast); }} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
+            <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.generateAndShareInstagramImage(ctx.showToast); }} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
             <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-3 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-bold">Supprimer de l'application</button>
             <InstagramShareCanvas wine={currentItem} rating={rating} notes={tempNotes} />
           </div>
@@ -1656,7 +1630,7 @@ export default function App() {
   const startCamera = async (mode = cameraMode, face = facingMode) => {
     // Blocages Freemium
     if (mode === 'bottle' && !checkUsageLimit('photo', 5)) return;
-    if (mode !== 'bottle' && requirePremium()) return;
+    if (mode === 'receipt' && !checkUsageLimit('facture')) return;
 
     if (!navigator.mediaDevices?.getUserMedia) { setErrorMsg("Caméra indisponible."); setView('error'); return; }
     try { 
