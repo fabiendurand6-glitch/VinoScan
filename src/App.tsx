@@ -414,6 +414,21 @@ const HomeView = ({ ctx }) => (
         <BookOpen className="w-6 h-6 text-slate-400" /><span className="font-bold text-lg">Carte des vins</span>
       </button>
       
+      <button onClick={async () => {
+        try {
+          await setDoc(doc(db, 'artifacts', appId, 'users', ctx.user.uid, 'scans', 'TEST_ID'), {
+            data: { nom: "Vin de Test", type_simplifie: "ROUGE", annee: "2024" },
+            stock: 1,
+            timestamp: Date.now()
+          });
+          alert("✅ Écriture réussie !");
+        } catch (e) {
+          alert("🚨 Erreur Firebase : " + e.message);
+        }
+      }} className="w-full bg-emerald-600 p-4 rounded-xl text-white font-bold mb-4 shadow-lg active:scale-95">
+        TEST CONNEXION FIREBASE
+      </button>
+
       <div className="flex space-x-4 pt-2">
         {/* Facture en petit bouton */}
         <button onClick={() => ctx.startCamera('receipt')} className="flex-1 flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#D4AF37] p-5 rounded-full shadow-sm active:scale-95 hover:border-[#D4AF37]/50 transition-colors">
