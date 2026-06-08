@@ -85,7 +85,7 @@ const compressImage = (base64Str, maxWidth = 800) => new Promise((resolve) => {
 });
 
 const callGemini = async (prompt, b64Data = null) => {
-  const model = 'gemini-2.5-flash'; 
+  const model = 'gemini-3.1-flash-lite'; 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const parts = [{ text: prompt }];
   
