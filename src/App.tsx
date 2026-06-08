@@ -418,17 +418,28 @@ const HomeView = ({ ctx }) => (
       
       <button onClick={async () => {
         try {
-          await setDoc(doc(db, 'artifacts', appId, 'users', ctx.user.uid, 'scans', 'TEST_ID'), {
-            data: { nom: "Vin de Test", type_simplifie: "ROUGE", annee: "2024" },
-            stock: 1,
-            timestamp: Date.now()
+          if (!ctx.user) { alert("Erreur : Non connecté"); return; }
+          
+          const token = await ctx.user.getIdToken();
+          const url = `https://firestore.googleapis.com/v1/projects/vinoscan-app-8d4af/databases/(default)/documents/artifacts?documentId=diagnostic_test`;
+          
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fields: { message: { stringValue: "Test direct réussi" } } })
           });
-          ctx.showToast("✅ Écriture réussie !");
+          
+          const data = await res.json();
+          if (res.ok) {
+            alert("✅ FIREBASE EST DÉBLOQUÉ ! Le serveur accepte enfin les données.");
+          } else {
+            alert("🚨 BLOCAGE SERVEUR :\nErreur : " + data.error?.status + "\nDétail : " + data.error?.message);
+          }
         } catch (e) {
-          ctx.showToast("🚨 Erreur Firebase");
+          alert("🚨 BLOCAGE RÉSEAU (Ton navigateur empêche la sortie) : " + e.message);
         }
-      }} className="w-full bg-emerald-600 p-4 rounded-xl text-white font-bold mb-4 shadow-lg active:scale-95">
-        TEST CONNEXION FIREBASE
+      }} className="w-full bg-blue-600 p-4 rounded-xl text-white font-bold mb-4 shadow-lg active:scale-95">
+        DIAGNOSTIC FIREBASE STRICT
       </button>
 
       <div className="flex space-x-4 pt-2">
