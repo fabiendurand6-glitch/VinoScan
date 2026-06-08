@@ -18,7 +18,7 @@ import imgCarafe from './assets/carafe.jpg';
 import imgVerres from './assets/verres.jpg';
 import imgCoravin from './assets/coravin.jpg';
 
-// =========================================================================
+// ========================================================================
 // CONFIGURATION SÉCURISÉEe
 // =========================================================================
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
