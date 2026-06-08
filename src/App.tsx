@@ -25,12 +25,11 @@ const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 const firebaseConfig = { 
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "", 
-  authDomain: "vinoscan-app-8d4af.firebaseapp.com", 
-  projectId: "vinoscan-app-8d4af",
-  storageBucket: "vinoscan-app-8d4af.firebasestorage.app", 
-  messagingSenderId: "757406434839", 
-  appId: "1:757406434839:web:7d531655bcae02b5cbfe52", 
-  measurementId: "G-6EX8K29ZZK" 
+  authDomain: "vinoscan-prestige.firebaseapp.com", 
+  projectId: "vinoscan-prestige",
+  storageBucket: "vinoscan-prestige.firebasestorage.app", 
+  messagingSenderId: "830980961095", 
+  appId: "1:830980961095:web:6b396e8f1f23e834611262",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -38,7 +37,7 @@ const auth = getAuth(app);
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: true
 });
-const appId = 'vinoscan-app-8d4af';
+const appId = 'vinoscan-prestige';
 
 // =========================================================================
 // UTILITAIRES ET MOTEURS (DONNÉES, IMAGES, IA)
