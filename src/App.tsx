@@ -398,68 +398,37 @@ const AuthView = ({ auth }) => {
 };
 
 const BottomNavigation = ({ ctx }) => (
-  <nav className="fixed bottom-0 w-full bg-[#1A1A1A]/95 backdrop-blur-md border-t border-[#333] flex justify-around items-center h-20 z-50">
-    
-    {/* Onglet Cave */}
+  <nav className="absolute bottom-0 w-full bg-[#1A1A1A]/95 backdrop-blur-md border-t border-[#333] flex justify-around items-center h-20 z-50">
     <button onClick={() => ctx.setView('home')} className={`flex flex-col items-center ${ctx.view === 'home' ? 'text-[#D4AF37]' : 'text-gray-500'}`}>
       <span className="text-2xl">🍷</span>
       <span className="text-[10px] mt-1 font-bold">Ma Cave</span>
     </button>
-    
-    {/* Bouton Central (Scan) */}
-    <button 
-      onClick={() => ctx.setView('scanSelector')} 
-      className="w-16 h-16 bg-gradient-to-tr from-[#D4AF37] to-[#F3E5AB] rounded-full flex justify-center items-center text-3xl shadow-[0_0_15px_rgba(212,175,55,0.4)] -mt-8 active:scale-90 transition-transform"
-    >
+    <button onClick={() => ctx.setView('scanSelector')} className="w-16 h-16 bg-gradient-to-tr from-[#D4AF37] to-[#F3E5AB] rounded-full flex justify-center items-center text-3xl shadow-[0_0_15px_rgba(212,175,55,0.4)] -mt-8 active:scale-90 transition-transform">
       📷
     </button>
-    
-    {/* Onglet Profil / Réglages */}
-    <button onClick={() => ctx.setView('profile')} className={`flex flex-col items-center ${ctx.view === 'profile' ? 'text-[#D4AF37]' : 'text-gray-500'}`}>
+    <button onClick={() => ctx.setView('account')} className={`flex flex-col items-center ${ctx.view === 'account' ? 'text-[#D4AF37]' : 'text-gray-500'}`}>
       <span className="text-2xl">👤</span>
       <span className="text-[10px] mt-1 font-bold">Profil</span>
     </button>
-    
   </nav>
 );
 
 const HomeView = ({ ctx }) => (
-  <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none">
-    
-    {/* EN-TÊTE FIXE : Titre et accès Boutique */}
-    <div className="flex justify-between items-center p-5 sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-[#333]">
-      <h1 className="text-2xl font-extrabold text-[#F5F5F5]">
-        Vino<span className="text-[#D4AF37]">Scan</span>
-      </h1>
-      <button 
-        onClick={() => ctx.setView('paywall')}
-        className="px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg bg-[#D4AF37] text-black active:scale-95"
-      >
-        {ctx.userTier === 'FREE' ? '⭐ PREMIUM' : ctx.userTier}
-      </button>
-    </div>
-
+  <div className="flex flex-col h-full bg-[#0a0a0a] pb-32 overflow-y-auto select-none">
     {/* FOND GRAPHIQUE */}
     <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-[#D4AF37]/10 to-transparent pointer-events-none"></div>
 
     {/* CONTENU CENTRAL : Ma Cave */}
     <div className="p-5 relative z-10 space-y-6 mt-2">
-      
       <div className="text-center space-y-3">
         <div className="mx-auto w-24 h-24 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] rounded-full flex items-center justify-center shadow-lg border border-[#D4AF37]/30">
           <Wine className="w-10 h-10 text-[#D4AF37]" />
         </div>
-        <h2 className="text-3xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#AA7C11]">
-          Ma Cave
-        </h2>
-        <p className="text-[#D4AF37]/60 text-xs font-medium uppercase tracking-widest">
-          Gérez votre collection
-        </p>
+        <h2 className="text-3xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#AA7C11]">Ma Cave</h2>
+        <p className="text-[#D4AF37]/60 text-xs font-medium uppercase tracking-widest">Gérez votre collection</p>
       </div>
 
-      {/* Outils Conservés dans l'accueil */}
       <div className="w-full max-w-sm mx-auto space-y-4 pt-4">
-        
         <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.setView('compare'); }} className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-slate-900 to-black border border-slate-800 text-[#D4AF37] p-5 rounded-2xl shadow-lg active:scale-95 transition-all hover:border-[#D4AF37]/30">
           <Layers className="w-6 h-6" />
           <span className="font-bold text-sm uppercase tracking-widest">Comparateur de Rayon</span>
@@ -470,19 +439,16 @@ const HomeView = ({ ctx }) => (
             <Search className="w-5 h-5" />
             <span className="font-bold text-[10px] uppercase">Recherche</span>
           </button>
-
           <button onClick={() => ctx.setView('quiz')} className="flex-1 flex items-center justify-center space-x-2 bg-[#1A1A1A] border border-[#333] text-[#D4AF37] p-4 rounded-2xl shadow-sm active:scale-95 hover:border-[#D4AF37]/50 transition-colors">
             <Gamepad2 className="w-5 h-5" />
             <span className="font-bold text-[10px] uppercase">Mini-Jeu</span>
           </button>
         </div>
         
-        {/* EMPLACEMENT FUTUR DE LA LISTE DES VINS */}
         <div className="pt-8 text-center text-gray-500 text-sm">
           <p>Vos bouteilles scannées apparaîtront ici.</p>
           <p className="text-xs mt-2 opacity-50">Utilisez le bouton central pour scanner</p>
         </div>
-
       </div>
     </div>
   </div>
@@ -1497,6 +1463,22 @@ const CompareView = ({ ctx }) => (
   </div>
 );
 
+const ScanSelectorView = ({ ctx }) => (
+  <div className="flex flex-col items-center justify-center h-full p-6 bg-[#0a0a0a] text-[#F5F5F5] space-y-4 select-none">
+    <h2 className="text-xl font-bold text-[#D4AF37] mb-6">Que voulez-vous numériser ?</h2>
+    <button onClick={() => ctx.startCamera('bottle')} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center justify-center space-x-3">
+      <span className="text-2xl">🍾</span><span className="font-bold">Bouteille ou Étiquette</span>
+    </button>
+    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('menu'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center justify-center space-x-3">
+      <span className="text-2xl">📖</span><span className="font-bold">Carte des Vins (Menu)</span>
+    </button>
+    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('receipt'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center justify-center space-x-3">
+      <span className="text-2xl">🧾</span><span className="font-bold">Facture ou Ticket</span>
+    </button>
+    <button onClick={() => ctx.setView('home')} className="mt-8 text-gray-500 font-semibold p-4 active:scale-95">✕ Annuler</button>
+  </div>
+);
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -1934,13 +1916,21 @@ export default function App() {
     <ErrorBoundary onReset={() => setView('home')}>
       <div className="w-full max-w-md mx-auto h-[100dvh] bg-[#0a0a0a] sm:border-x sm:border-[#333] flex flex-col relative text-[#F5F5F5] font-sans select-none overflow-hidden" style={{'--gold-primary': '#D4AF37'}}>
         
-        {/* EN-TÊTE FIXE */}
+        {/* EN-TÊTE FIXE UNIFIÉ */}
         {['home', 'cellar', 'history', 'account', 'recommendation'].includes(view) && (
-          <div className="w-full h-16 shrink-0 bg-[#1a1a1a]/80 backdrop-blur-sm border-b border-[#333] flex items-center justify-between px-5 z-30">
-            <h2 className="text-xl font-serif font-bold text-[#D4AF37]">VinoScan</h2>
-            <button onClick={() => setView('alerts')} className="relative p-2 bg-[#0a0a0a] rounded-full border border-[#333] text-slate-400 hover:border-[#D4AF37]/50 transition-all">
-              <Bell className="w-5 h-5" /> {unreadAlerts > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-[#1a1a1a]">{unreadAlerts}</span>}
-            </button>
+          <div className="w-full h-16 shrink-0 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-[#333] flex items-center justify-between px-5 z-30">
+            <h1 className="text-2xl font-extrabold text-[#F5F5F5]">
+              Vino<span className="text-[#D4AF37]">Scan</span>
+            </h1>
+            <div className="flex items-center space-x-3">
+              <button onClick={() => setView('alerts')} className="relative p-2 bg-[#1a1a1a] rounded-full border border-[#333] text-slate-400 hover:text-[#D4AF37] transition-all">
+                <Bell className="w-5 h-5" />
+                {unreadAlerts > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-[#1a1a1a]">{unreadAlerts}</span>}
+              </button>
+              <button onClick={() => setView('paywall')} className="px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg bg-[#D4AF37] text-black active:scale-95">
+                {userTier === 'FREE' ? '⭐ PREMIUM' : userTier}
+              </button>
+            </div>
           </div>
         )}
 
@@ -1948,7 +1938,7 @@ export default function App() {
         <div className="flex-1 overflow-y-auto pb-20">
           {view === 'home' && <HomeView ctx={ctx} />}
           {view === 'account' && <AccountView ctx={ctx} />}
-          {view === 'paywall' && <PaywallView ctx={ctx} />} 
+          {view === 'paywall' && <PaywallView ctx={ctx} />}
           {view === 'compare' && <CompareView ctx={ctx} />}
           {view === 'history' && <HistoryView ctx={ctx} />}
           {view === 'cellar' && <CellarView ctx={ctx} />}
@@ -1961,11 +1951,12 @@ export default function App() {
           {view === 'manualSearch' && <ManualSearchView ctx={ctx} />}
           {view === 'quiz' && <QuizView ctx={ctx} />}
           {view === 'alerts' && <AlertsView ctx={ctx} />}
+          {view === 'scanSelector' && <ScanSelectorView ctx={ctx} />}
           {view === 'error' && (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#0a0a0a] pt-20"><AlertTriangle className="w-16 h-16 text-red-500 mb-4" /><h2 className="text-xl font-bold text-white mb-2">Erreur technique</h2><p className="text-sm text-slate-400 mb-6">{errorMsg}</p><button onClick={()=>setView('home')} className="px-6 py-3 bg-[#D4AF37] text-black font-bold rounded-xl shadow-lg">Retour</button></div>
           )}
         </div>
-       
+        
         {/* POPUPS ET TOASTS */}
         {scanAction && (
           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"><div className="bg-[#1a1a1a] border border-[#333] rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl"><h3 className="text-xl font-bold text-white mb-2">Supprimer ?</h3><div className="flex space-x-3 mt-6"><button onClick={()=>setScanAction(null)} className="flex-1 py-3 bg-[#333] rounded-xl font-bold">Annuler</button><button onClick={()=>{ ctx.genericUpdate(scanAction.id, { in_history: false, stock: 0 }); setScanAction(null); setView('home'); ctx.showToast("Supprimé."); }} className="flex-1 py-3 bg-red-600/20 text-red-400 border border-red-600/40 rounded-xl font-bold">Supprimer</button></div></div></div>
@@ -1974,12 +1965,9 @@ export default function App() {
           <div className="absolute top-20 left-0 w-full flex justify-center z-[200] animate-in slide-in-from-top-4"><div className="bg-[#D4AF37] text-black font-bold px-5 py-3 rounded-full shadow-lg border border-[#AA7C11] flex items-center space-x-2"><CheckCircle className="w-4 h-4" /><span>{toastMsg}</span></div></div>
         )}
 
-        {/* L'appel de ta barre de navigation se fait avec cette simple ligne : */}
-        <BottomNavigation ctx={ctx} />
-        );
-
+        {/* BARRE DE NAVIGATION EN BAS */}
+        {view !== 'camera' && view !== 'analyzing' && <BottomNavigation ctx={ctx} />}
       </div>
     </ErrorBoundary>
   );
-  
 }
