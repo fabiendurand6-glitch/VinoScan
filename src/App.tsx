@@ -406,39 +406,35 @@ const HomeView = ({ ctx }) => (
       <p className="text-[#D4AF37]/60 max-w-sm mx-auto text-sm font-medium uppercase tracking-widest">Le Sommelier dans votre poche</p>
     </div>
     <div className="w-full max-w-sm space-y-4 pt-8 relative z-10">
-      <button onClick={() => ctx.startCamera('bottle')} className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black p-5 rounded-full shadow-lg active:scale-95 transition-all hover:bg-[#AA7C11]">
-        <Camera className="w-6 h-6" /><span className="font-bold text-xl">Scanner une bouteille</span>
-      </button>
       
-      {/* Carte des Vins en grand bouton */}
-      <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.setView('menuConfig'); }} className="w-full flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#F5F5F5] p-5 rounded-full active:scale-95 transition-all hover:border-[#D4AF37]/50 shadow-md">
-        <BookOpen className="w-6 h-6 text-slate-400" /><span className="font-bold text-lg">Carte des vins</span>
-      </button>
+    const ScanSelectorView = ({ ctx }) => (
+  <div className="flex flex-col items-center justify-center h-full p-6 bg-[#0a0a0a] text-[#F5F5F5] space-y-4">
+    <h2 className="text-xl font-bold text-[#D4AF37] mb-6">Que voulez-vous numériser ?</h2>
+    
+    <button onClick={() => ctx.startCamera('bottle')} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center justify-center space-x-3">
+      <span className="text-2xl">🍾</span>
+      <span className="font-bold">Bouteille ou Étiquette</span>
+    </button>
+    
+    <button onClick={() => {
+      if (!ctx.requireTier('AMATEUR')) ctx.setView('paywall');
+      else ctx.startCamera('menu');
+    }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center justify-center space-x-3">
+      <span className="text-2xl">📖</span>
+      <span className="font-bold">Carte des Vins (Menu)</span>
+    </button>
 
-      <div className="flex space-x-4 pt-2">
-        {/* Facture en petit bouton */}
-        <button onClick={() => ctx.startCamera('receipt')} className="flex-1 flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#D4AF37] p-5 rounded-full shadow-sm active:scale-95 hover:border-[#D4AF37]/50 transition-colors">
-          <Receipt className="w-5 h-5" /><span className="font-bold text-xs uppercase">Facture</span>
-        </button>
-        <button onClick={() => ctx.setView('quiz')} className="flex-1 flex items-center justify-center space-x-3 bg-[#1A1A1A] border border-[#333] text-[#D4AF37] p-5 rounded-full shadow-sm active:scale-95 hover:border-[#D4AF37]/50 transition-colors">
-          <Gamepad2 className="w-5 h-5" /><span className="font-bold text-xs uppercase">Mini-Jeu</span>
-        </button>
-      </div>
-      <div className="pt-2 pb-2">
-        <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.setView('compare'); }} className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-slate-900 to-black border border-slate-800 text-[#D4AF37] p-5 rounded-full shadow-lg active:scale-95 transition-all hover:border-[#D4AF37]/30">
-          <Layers className="w-6 h-6" /><span className="font-bold text-sm uppercase tracking-widest">Comparateur de Rayon</span>
-        </button>
-      </div>
-      <div className="flex space-x-4">
-        <label className="flex-1 flex flex-col items-center justify-center space-y-1 bg-[#1A1A1A] border border-[#333] text-slate-400 py-4 rounded-3xl cursor-pointer shadow-sm active:scale-95 hover:text-[#D4AF37] transition-colors">
-          <ImageIcon className="w-6 h-6 mb-1" /><span className="font-bold text-[10px] uppercase">Galerie</span>
-          <input type="file" accept="image/*" className="hidden" onChange={(e) => ctx.handleFileUpload(e)} />
-        </label>
-        <button onClick={() => ctx.setView('manualSearch')} className="flex-1 flex flex-col items-center justify-center space-y-1 bg-[#1A1A1A] border border-[#333] text-slate-400 py-4 rounded-3xl shadow-sm active:scale-95 hover:text-[#D4AF37] transition-colors">
-          <Search className="w-6 h-6 mb-1" /><span className="font-bold text-[10px] uppercase">Recherche</span>
-        </button>
-      </div>
-    </div>
+    <button onClick={() => {
+      if (!ctx.requireTier('AMATEUR')) ctx.setView('paywall');
+      else ctx.startCamera('receipt');
+    }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center justify-center space-x-3">
+      <span className="text-2xl">🧾</span>
+      <span className="font-bold">Facture ou Ticket</span>
+    </button>
+
+    <button onClick={() => ctx.setView('home')} className="mt-8 text-gray-500 font-semibold p-4 active:scale-95">
+      ✕ Annuler
+    </button>
   </div>
 );
 
@@ -1807,7 +1803,7 @@ export default function App() {
     user, view, setView, previousView, setPreviousView, imageSrc, analysisResult, errorMsg, setErrorMsg, 
     scanHistory, setScanHistory, scanAction, setScanAction, recommendationList, currentScanId, setCurrentScanId, 
     toastMsg, showToast, startCamera, stopCamera, capturePhoto, handleFileUpload, analyzeImage, searchWineText, 
-    analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField,
+    analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField, requireTier, userTier,
 
     // 1. Création d'une nouvelle bouteille avec stock à 0
     processRecommendationSelection: async (w) => {
