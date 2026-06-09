@@ -414,7 +414,6 @@ const BottomNavigation = ({ ctx }) => (
 );
 
 const HomeView = ({ ctx }) => {
-  const [cellarTab, setCellarTab] = useState('STOCK');
   const [filterType, setFilterType] = useState('ALL');
   const [filterApogee, setFilterApogee] = useState('ALL');
   const [viewMode, setViewMode] = useState('list'); 
@@ -422,7 +421,8 @@ const HomeView = ({ ctx }) => {
   const [selectedBottle, setSelectedBottle] = useState(null);
   const [newShelfName, setNewShelfName] = useState('');
 
-  const cellarItems = ctx.scanHistory.filter(item => cellarTab === 'STOCK' ? item.stock > 0 : item.wishlist === true);
+  // On ne garde que les bouteilles en stock (Finie la liste d'achats)
+  const cellarItems = ctx.scanHistory.filter(item => item.stock > 0);
 
   const filteredItems = useMemo(() => {
     return cellarItems.filter(item => {
@@ -460,50 +460,49 @@ const HomeView = ({ ctx }) => {
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-32 relative select-none overflow-y-auto">
 
-      {/* 1. OUTILS RAPIDES EN HAUT */}
-      <div className="p-4 grid grid-cols-3 gap-3">
-        <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.setView('compare'); }} className="flex flex-col items-center justify-center bg-[#1A1A1A] border border-[#333] text-[#D4AF37] p-3 rounded-2xl shadow-sm active:scale-95 transition-all">
-          <Layers className="w-6 h-6 mb-1" />
-          <span className="font-bold text-[10px] uppercase">Comparer</span>
+      {/* 1. OUTILS RAPIDES EN HAUT (Grille 2x2 pour le Sommelier et la Boutique) */}
+      <div className="p-4 grid grid-cols-2 gap-3">
+        <button onClick={() => ctx.setView('manualEntry')} className="flex flex-col items-center justify-center p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl active:scale-95 transition-all shadow-sm">
+          <Plus className="w-6 h-6 text-[#D4AF37] mb-2" />
+          <span className="font-bold text-[11px] uppercase text-slate-300 tracking-wider">Ajouter</span>
         </button>
-        {/* BOUTON MODIFIÉ ICI */}
-        <button onClick={() => ctx.setView('manualEntry')} className="flex flex-col items-center justify-center bg-[#1A1A1A] border border-[#333] text-slate-400 p-3 rounded-2xl shadow-sm active:scale-95 transition-all hover:text-[#D4AF37]">
-          <Plus className="w-6 h-6 mb-1" />
-          <span className="font-bold text-[10px] uppercase">Ajouter</span>
+        <button onClick={() => ctx.setView('recommendation')} className="flex flex-col items-center justify-center p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl active:scale-95 transition-all shadow-sm">
+          <Sparkles className="w-6 h-6 text-[#D4AF37] mb-2" />
+          <span className="font-bold text-[11px] uppercase text-slate-300 tracking-wider">Sommelier</span>
         </button>
-        <button onClick={() => ctx.setView('quiz')} className="flex flex-col items-center justify-center bg-[#1A1A1A] border border-[#333] text-[#D4AF37] p-3 rounded-2xl shadow-sm active:scale-95 transition-all">
-          <Gamepad2 className="w-6 h-6 mb-1" />
-          <span className="font-bold text-[10px] uppercase">Jouer</span>
+        <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.setView('compare'); }} className="flex flex-col items-center justify-center p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl active:scale-95 transition-all shadow-sm">
+          <Layers className="w-6 h-6 text-[#D4AF37] mb-2" />
+          <span className="font-bold text-[11px] uppercase text-slate-300 tracking-wider">Comparer</span>
+        </button>
+        <button onClick={() => ctx.setView('quiz')} className="flex flex-col items-center justify-center p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl active:scale-95 transition-all shadow-sm">
+          <Gamepad2 className="w-6 h-6 text-[#D4AF37] mb-2" />
+          <span className="font-bold text-[11px] uppercase text-slate-300 tracking-wider">Mini-Jeu</span>
         </button>
       </div>
 
-      {/* 2. FILTRES DE CAVE (Fixés au scroll pour la navigation) */}
+      {/* 2. FILTRES DE CAVE CORRIGÉS (Scroll protégé) */}
       <div className="px-4 pb-2 sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-md pt-2 border-b border-[#333]">
-         <div className="flex bg-[#1a1a1a] p-1 rounded-xl mb-3 border border-[#333]">
-          <button onClick={() => setCellarTab('STOCK')} className={`flex-1 py-2 text-sm font-bold rounded-lg ${cellarTab === 'STOCK' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-500'}`}>En Cave</button>
-          <button onClick={() => setCellarTab('WISHLIST')} className={`flex-1 py-2 text-sm font-bold rounded-lg ${cellarTab === 'WISHLIST' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-500'}`}>Achats</button>
-        </div>
-
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center space-x-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex justify-between items-center">
+          
+          {/* Zone de filtres (Rosé ne sera plus coupé) */}
+          <div className="flex-1 flex items-center space-x-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pr-4">
             {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => (
-              <button key={t} onClick={() => setFilterType(t)} className={`px-4 py-1.5 rounded-full text-[10px] font-bold border whitespace-nowrap transition-colors ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t === 'ALL' ? 'Tous' : t}</button>
+              <button key={t} onClick={() => setFilterType(t)} className={`shrink-0 px-4 py-1.5 rounded-full text-[10px] font-bold border whitespace-nowrap transition-colors ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t === 'ALL' ? 'Tous' : t}</button>
             ))}
           </div>
-          <div className="flex bg-[#1a1a1a] rounded-lg p-0.5 border border-[#333] shrink-0 ml-2">
-            {cellarTab === 'STOCK' && (
-              <>
-                <button onClick={() => { setViewMode('list'); setReorgMode(false); }} className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-600'}`}><List className="w-4 h-4" /></button>
-                <button onClick={() => setViewMode('shelves')} className={`p-1.5 rounded-md ${viewMode === 'shelves' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-600'}`}><LayoutGrid className="w-4 h-4" /></button>
-              </>
-            )}
+
+          {/* Boutons de vue fixés à droite */}
+          <div className="flex bg-[#1a1a1a] rounded-lg p-0.5 border border-[#333] shrink-0 shadow-[-10px_0_15px_#0a0a0a]">
+            <button onClick={() => { setViewMode('list'); setReorgMode(false); }} className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-600'}`}><List className="w-4 h-4" /></button>
+            <button onClick={() => setViewMode('shelves')} className={`p-1.5 rounded-md ${viewMode === 'shelves' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-600'}`}><LayoutGrid className="w-4 h-4" /></button>
           </div>
+
         </div>
       </div>
 
       {/* 3. LISTE DES BOUTEILLES */}
       <div className="flex-1 p-4 space-y-4">
-      {viewMode === 'shelves' && cellarTab === 'STOCK' && (
+        {viewMode === 'shelves' && (
           <div className="flex justify-between items-center bg-[#1A1A1A] border border-[#333] rounded-xl p-3 mb-2">
             <p className="text-[10px] text-slate-400 font-bold uppercase"><b className="text-[#D4AF37]">Rangement :</b> Sur smartphone, utilisez :</p>
             <button onClick={() => { setReorgMode(!reorgMode); setSelectedBottle(null); }} className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold border ${reorgMode ? 'bg-[#D4AF37] text-black border-[#D4AF37] animate-pulse' : 'bg-[#0a0a0a] border-[#333] text-slate-400'}`}><GripHorizontal className="w-3 h-3" /><span>Tactile</span></button>
@@ -512,7 +511,7 @@ const HomeView = ({ ctx }) => {
         
         {filteredItems.length === 0 && <div className="text-center p-6 opacity-50 mt-10"><Archive className="w-16 h-16 mx-auto mb-4 text-slate-600" /><p className="font-medium text-slate-400">Aucun vin ne correspond.</p></div>}
 
-        {(viewMode === 'list' || cellarTab === 'WISHLIST') ? (
+        {viewMode === 'list' ? (
           <div className="space-y-4">
             {filteredItems.map(item => (
               <div key={item.id} onClick={() => ctx.openExistingWine(item, 'home')} className="bg-[#1A1A1A] rounded-3xl shadow-md border border-[#333] overflow-hidden flex items-stretch cursor-pointer">
@@ -536,7 +535,7 @@ const HomeView = ({ ctx }) => {
                     <div key={bottle.id} draggable={!reorgMode} onDragStart={(e) => handleDragStart(e, bottle)} onClick={() => { if (reorgMode) setSelectedBottle(bottle); else ctx.openExistingWine(bottle, 'home'); }} className={`relative flex flex-col bg-[#1A1A1A] rounded-2xl p-3 shadow-md border border-[#333] cursor-pointer ${reorgMode ? 'ring-2 ring-[#D4AF37] animate-pulse' : ''}`}>
                       <div className="relative h-28 w-full mb-3 flex items-center justify-center bg-[#0a0a0a] rounded-xl border border-[#222]">
                         <img src={bottle.image || fallbackImg} className="max-h-full object-contain" alt={bottle.data.nom} />
-                        {cellarTab === 'STOCK' && bottle.stock > 1 && <span className="absolute -top-2 -right-2 bg-[#D4AF37] text-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold">x{bottle.stock}</span>}
+                        {bottle.stock > 1 && <span className="absolute -top-2 -right-2 bg-[#D4AF37] text-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold">x{bottle.stock}</span>}
                       </div>
                       <div className="flex flex-col items-center text-center mt-1">
                         <h4 className="text-[11px] font-bold text-[#F5F5F5] leading-tight line-clamp-2">{bottle.data.nom}</h4>
@@ -1335,11 +1334,14 @@ const ResultsView = ({ ctx }) => {
   const [protocol, setProtocol] = useState(null); 
   const [isLoadingProtocol, setIsLoadingProtocol] = useState(false);
 
+  // Variables pour TOUT modifier
   const [tempType, setTempType] = useState(d?.type_simplifie || 'ROUGE');
   const [tempAnnee, setTempAnnee] = useState(d?.annee || 'N.M.');
   const [tempPrix, setTempPrix] = useState(d?.prix_unitaire_nombre || 0);
   const [tempLocation, setTempLocation] = useState(currentItem?.location || '');
   const [tempNotes, setTempNotes] = useState(currentItem?.notes || '');
+  const [tempNom, setTempNom] = useState(d?.nom || '');
+  const [tempRegion, setTempRegion] = useState(d?.region || '');
 
   useEffect(() => {
     if (currentItem) {
@@ -1348,6 +1350,8 @@ const ResultsView = ({ ctx }) => {
       setTempPrix(currentItem.data?.prix_unitaire_nombre || 0);
       setTempLocation(currentItem.location || '');
       setTempNotes(currentItem.notes || '');
+      setTempNom(currentItem.data?.nom || '');
+      setTempRegion(currentItem.data?.region || '');
     }
   }, [currentItem?.id]);
 
@@ -1396,7 +1400,6 @@ const ResultsView = ({ ctx }) => {
               {d.description}
             </div>
             
-            {/* NOUVEAU : Boutons de stock sur la page principale */}
             <div className="bg-gradient-to-r from-[#1A1A1A] to-[#222] p-4 rounded-2xl border border-[#D4AF37]/30 flex justify-between items-center shadow-lg">
               <span className="text-sm font-bold text-[#D4AF37]">En cave :</span>
               <div className="flex items-center space-x-3">
@@ -1436,49 +1439,31 @@ const ResultsView = ({ ctx }) => {
 
         {activeTab === 'cave' && (
           <div className="space-y-4 animate-in fade-in">
-            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
-              <span className="text-sm font-bold text-slate-300">Bouteilles en stock :</span>
-              <div className="flex items-center space-x-3">
-                <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-8 h-8 bg-[#0a0a0a] border border-[#333] rounded font-bold">-</button>
-                <span className="text-lg font-black text-[#D4AF37] w-6 text-center">{stock}</span>
-                <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-8 h-8 bg-[#D4AF37] text-black rounded font-bold">+</button>
-              </div>
-            </div>
             
             <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
+              <h4 className="text-xs text-[#D4AF37] font-bold uppercase tracking-wider mb-2 border-b border-[#333] pb-2">Modifier les informations</h4>
+              <input type="text" value={tempNom} onChange={e=>setTempNom(e.target.value)} onBlur={()=> { const updatedData = normalizeData({...currentItem.data, nom: tempNom}); ctx.genericUpdate(currentItem.id, { data: updatedData }); }} placeholder="Nom du vin..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+              <input type="text" value={tempRegion} onChange={e=>setTempRegion(e.target.value)} onBlur={()=> { const updatedData = normalizeData({...currentItem.data, region: tempRegion}); ctx.genericUpdate(currentItem.id, { data: updatedData }); }} placeholder="Région / Appellation..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+              
               <div className="flex space-x-2">
                 <select value={tempType} onChange={e => { 
-                    const newType = e.target.value;
-                    setTempType(newType); 
-                    
-                    let gMin = 2, gMax = 5;
-                    if (newType === 'ROUGE') { gMin = 3; gMax = 10; }
-                    else if (newType === 'BLANC') { gMin = 2; gMax = 6; }
-                    else if (newType === 'PETILLANT') { gMin = 1; gMax = 5; }
-                    else if (newType === 'ROSE') { gMin = 1; gMax = 3; }
-
-                    const updatedData = normalizeData({
-                      ...currentItem.data, 
-                      type_simplifie: newType,
-                      garde_min: gMin,
-                      garde_max: gMax
-                    });
+                    const newType = e.target.value; setTempType(newType); 
+                    let gMin = 2, gMax = 5; if (newType === 'ROUGE') { gMin = 3; gMax = 10; } else if (newType === 'BLANC') { gMin = 2; gMax = 6; } else if (newType === 'PETILLANT') { gMin = 1; gMax = 5; } else if (newType === 'ROSE') { gMin = 1; gMax = 3; }
+                    const updatedData = normalizeData({ ...currentItem.data, type_simplifie: newType, garde_min: gMin, garde_max: gMax });
                     ctx.genericUpdate(currentItem.id, { data: updatedData });
                   }} 
                   className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"
                 >
-                  <option value="ROUGE">Rouge</option>
-                  <option value="BLANC">Blanc</option>
-                  <option value="ROSE">Rosé</option>
-                  <option value="PETILLANT">Pétillant</option>
+                  <option value="ROUGE">Rouge</option><option value="BLANC">Blanc</option><option value="ROSE">Rosé</option><option value="PETILLANT">Pétillant</option>
                 </select>
-                <input type="text" value={tempAnnee} onChange={e => setTempAnnee(e.target.value)} onBlur={() => {
-                    const updatedData = normalizeData({...currentItem.data, annee: tempAnnee});
-                    ctx.genericUpdate(currentItem.id, { data: updatedData });
-                  }} placeholder="Année (ex: 2018)" className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+                <input type="text" value={tempAnnee} onChange={e => setTempAnnee(e.target.value)} onBlur={() => { const updatedData = normalizeData({...currentItem.data, annee: tempAnnee}); ctx.genericUpdate(currentItem.id, { data: updatedData }); }} placeholder="Année" className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
               </div>
-              <input type="text" value={tempLocation} onChange={e=>setTempLocation(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {location: tempLocation})} placeholder="Rangement (ex: Étagère A)..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
-              <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation personnelles..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
+            </div>
+
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
+              <h4 className="text-xs text-[#D4AF37] font-bold uppercase tracking-wider mb-2 border-b border-[#333] pb-2">Rangement & Notes</h4>
+              <input type="text" value={tempLocation} onChange={e=>setTempLocation(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {location: tempLocation})} placeholder="Étagère..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+              <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
             </div>
             
             <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.generateAndShareInstagramImage(ctx.showToast); }} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
