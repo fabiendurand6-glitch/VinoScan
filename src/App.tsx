@@ -806,6 +806,9 @@ const RecommendationView = ({ ctx }) => {
   const [pairingDish, setPairingDish] = useState('');
   const [isPairingLoading, setIsPairingLoading] = useState(false);
 
+  // NOUVEAU : État pour les catégories de la boutique
+  const [shopCat, setShopCat] = useState('DEGUSTATION');
+
   const handleRecommend = () => { ctx.fetchAIRecommendation(filterType, filterApogee, filterFood, filterPrice); };
 
   const handleAskCellarSommelier = async () => {
@@ -817,7 +820,6 @@ const RecommendationView = ({ ctx }) => {
       const inventoryString = inStockWines.map(w => `[ID: ${w.id}] ${w.data.nom} ${w.data.annee} (${w.data.type_simplifie})`).join('\n');
       const prompt = `Tu es le Sommelier privé. L'utilisateur mange : "${pairingDish}". Voici les vins dans sa cave : \n${inventoryString}\nChoisis LE MEILLEUR vin PARMI CETTE LISTE UNIQUEMENT pour ce plat. Réponds en JSON strict : {"chosen_id": "ID_ici", "explication": "Pourquoi ce choix (max 20 mots)"}`;
       
-      // ✅ Correction ici : Utilisation de ctx.callGemini de manière unifiée
       const result = await ctx.callGemini(prompt);
       const parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
       const chosenWine = inStockWines.find(w => w.id === parsed.chosen_id);
@@ -829,6 +831,25 @@ const RecommendationView = ({ ctx }) => {
     } finally { 
       setIsPairingLoading(false); 
     }
+  };
+
+  // NOUVEAU : Catalogue de produits Premium triés par catégorie
+  const boutiqueProducts = {
+    DEGUSTATION: [
+      { name: "Carafe à Décanter en Cristal", desc: "Verre soufflé bouche, idéal pour aérer les grands crus rouges.", query: "carafe a decanter vin cristal riedel", price: "89€", icon: "🏺" },
+      { name: "Verres à Dégustation Universels", desc: "Lot de 6 verres en cristal ultra-fin pour sublimer les arômes.", query: "verres de degustation vin cristallin haute performance", price: "59€", icon: "🍷" },
+      { name: "Thermomètre Infrarouge Sommelier", desc: "Prenez la température exacte du vin à travers la bouteille.", query: "thermometre infrarouge vin professionnel", price: "34€", icon: "🌡️" }
+    ],
+    CONSERVATION: [
+      { name: "Système de Préservation Coravin", desc: "Servez vos bouteilles d'exception sans jamais en tirer le bouchon.", query: "coravin systeme preservation vin timeless", price: "249€", icon: "🔌" },
+      { name: "Capsules de Gaz Argon (x6)", desc: "Consommables officiels pour préserver le vin de l'oxydation.", query: "capsules argon coravin", price: "45€", icon: "💨" },
+      { name: "Billes de Nettoyage en Inox", desc: "Éliminent les dépôts de tanins au fond des carafes sans rayer.", query: "billes nettoyage carafe inox", price: "12€", icon: "🔮" }
+    ],
+    CAVE: [
+      { name: "Collerettes de Goulot en Ardoise", desc: "Lot de 20 étiquettes réutilisables pour identifier vos rangées.", query: "collerettes goulot bouteille ardoise", price: "18€", icon: "🏷️" },
+      { name: "Affiche Grand Cru d'Art", desc: "Carte viticole épurée des régions de France imprimée sur papier d'art.", query: "affiche carte des vins de france premium decoration", price: "29€", icon: "🗺️" },
+      { name: "Feutre Craie Liquide Effaçable", desc: "Pour écrire proprement sur vos collerettes ou étagères sombres.", query: "feutre craie liquide blanc effacable", price: "8€", icon: "✍️" }
+    ]
   };
   
   return (
@@ -854,7 +875,7 @@ const RecommendationView = ({ ctx }) => {
             </button>
             <button onClick={() => setRecMode('boutique')} className="w-full bg-[#1A1A1A] border border-[#333] rounded-3xl p-6 shadow-lg text-left flex items-center space-x-5">
               <div className="w-14 h-14 bg-[#0a0a0a] border border-[#333] rounded-full flex items-center justify-center shrink-0"><Wine className="w-6 h-6 text-[#D4AF37]" /></div>
-              <div><h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-1">La Boutique</h3><p className="text-xs text-slate-400">Carafes, verres, conservation... Équipez-vous comme un pro.</p></div>
+              <div><h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-1">La Boutique Élite</h3><p className="text-xs text-slate-400">Équipements et accessoires professionnels pour votre cave.</p></div>
             </button>
           </div>
         )}
@@ -871,66 +892,80 @@ const RecommendationView = ({ ctx }) => {
         {recMode === 'buy' && (
          <div className="space-y-10">
           <div className="space-y-4">
-          <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Euro className="w-5 h-5 text-[#D4AF37]" /><span>Budget</span></h3>
+            <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Euro className="w-5 h-5 text-[#D4AF37]" /><span>Budget</span></h3>
             <div className="flex flex-wrap gap-2">
-            {[{id: 'ALL', label: 'Peu importe'}, {id: 'BUDGET', label: '- de 15 €'}, {id: 'MEDIUM', label: '15 € à 35 €'}, {id: 'PREMIUM', label: '+ de 35 €'}].map(p => (
-             <button key={p.id} onClick={() => setFilterPrice(p.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterPrice === p.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{p.label}</button>
-            ))}
-         </div>
-         </div>
-           <div className="space-y-4">
+              {[{id: 'ALL', label: 'Peu importe'}, {id: 'BUDGET', label: '- de 15 €'}, {id: 'MEDIUM', label: '15 € à 35 €'}, {id: 'PREMIUM', label: '+ de 35 €'}].map(p => (
+               <button key={p.id} onClick={() => setFilterPrice(p.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterPrice === p.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{p.label}</button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-4">
             <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Utensils className="w-5 h-5 text-[#D4AF37]" /><span>Repas</span></h3>
-             <div className="flex flex-wrap gap-2">
-             {[{id: 'ALL', label: 'Peu importe'}, {id: 'APERITIF', label: 'Apéritif'}, {id: 'VIANDE_ROUGE', label: 'Viande Rouge'}, {id: 'POISSON', label: 'Poisson'}, {id: 'FROMAGE', label: 'Fromage'}].map(f => (
-             <button key={f.id} onClick={() => setFilterFood(f.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterFood === f.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{f.label}</button>
-           ))}
+            <div className="flex flex-wrap gap-2">
+              {[{id: 'ALL', label: 'Peu importe'}, {id: 'APERITIF', label: 'Apéritif'}, {id: 'VIANDE_ROUGE', label: 'Viande Rouge'}, {id: 'POISSON', label: 'Poisson'}, {id: 'FROMAGE', label: 'Fromage'}].map(f => (
+               <button key={f.id} onClick={() => setFilterFood(f.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterFood === f.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{f.label}</button>
+              ))}
+            </div>
           </div>
-       </div>
-           <div className="space-y-4">
+          <div className="space-y-4">
             <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Wine className="w-5 h-5 text-[#D4AF37]" /><span>Type</span></h3>
-             <div className="flex flex-wrap gap-2">
-             {[{id: 'ALL', label: 'Tous'}, {id: 'ROUGE', label: 'Rouge'}, {id: 'BLANC', label: 'Blanc'}, {id: 'PETILLANT', label: 'Pétillant'}, {id: 'ROSE', label: 'Rosé'}].map(t => (
-             <button key={t.id} onClick={() => setFilterType(t.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterType === t.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t.label}</button>
-           ))}
+            <div className="flex flex-wrap gap-2">
+              {[{id: 'ALL', label: 'Tous'}, {id: 'ROUGE', label: 'Rouge'}, {id: 'BLANC', label: 'Blanc'}, {id: 'PETILLANT', label: 'Pétillant'}, {id: 'ROSE', label: 'Rosé'}].map(t => (
+               <button key={t.id} onClick={() => setFilterType(t.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterType === t.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t.label}</button>
+              ))}
+            </div>
           </div>
-         </div>
           <button onClick={handleRecommend} className="w-full py-5 bg-[#D4AF37] text-black font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 mt-8"><Sparkles className="w-6 h-6" /><span>Trouver la perle rare</span></button>
          </div>
         )}
 
+        {/* NOUVEAU : LA BOUTIQUE PAR CATÉGORIES */}
         {recMode === 'boutique' && (
           <div className="space-y-6 pb-10">
-            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden flex flex-col">
-              <img src={imgTirebouchon} className="h-40 w-full object-cover" alt="Tire-bouchon"/>
-              <div className="p-5">
-                <h5 className="font-serif text-xl font-bold text-white mb-3">Tire-Bouchon Pro</h5>
-                <a href={getAmazonAffiliateLink("tire bouchon sommelier professionnel")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a>
+            
+            {/* Menu sélecteur de sous-catégories (Défilable au doigt) */}
+            <div className="overflow-x-auto touch-pan-x pb-2 border-b border-[#333] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex space-x-2 w-max">
+                {['DEGUSTATION', 'CONSERVATION', 'CAVE'].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setShopCat(cat)}
+                    className={`px-4 py-2 rounded-full text-xs font-bold uppercase border tracking-wider transition-colors ${shopCat === cat ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}
+                  >
+                    {cat === 'DEGUSTATION' ? 'Art du Service' : cat === 'CONSERVATION' ? 'Entretien & Gaz' : 'Agencement Cave'}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden flex flex-col">
-              <img src={imgCarafe} className="h-40 w-full object-cover" alt="Carafe"/>
-              <div className="p-5">
-                <h5 className="font-serif text-xl font-bold text-white mb-3">Carafe Cristal</h5>
-                <a href={getAmazonAffiliateLink("carafe a decanter vin cristal")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a>
-              </div>
+            {/* Grille de produits filtrés */}
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {boutiqueProducts[shopCat].map((prod, idx) => (
+                <div key={idx} className="bg-[#1A1A1A] border border-[#333] rounded-2xl p-5 flex items-center justify-between shadow-md">
+                  <div className="flex items-start space-x-4 min-w-0 flex-1 pr-3">
+                    <div className="w-12 h-12 rounded-xl bg-[#0a0a0a] border border-[#333] flex items-center justify-center text-2xl shrink-0">
+                      {prod.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-baseline space-x-2">
+                        <h4 className="font-serif font-bold text-white text-base truncate">{prod.name}</h4>
+                        <span className="text-xs font-black text-[#D4AF37] shrink-0">{prod.price}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">{prod.desc}</p>
+                    </div>
+                  </div>
+                  <a 
+                    href={getAmazonAffiliateLink(prod.query)} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="px-4 py-2.5 bg-[#0a0a0a] border border-[#D4AF37]/40 text-[#D4AF37] text-xs font-bold rounded-xl shrink-0 active:scale-95 transition-all hover:bg-[#D4AF37] hover:text-black hover:border-[#D4AF37]"
+                  >
+                    Voir
+                  </a>
+                </div>
+              ))}
             </div>
 
-            <div className="bg-[#1A1A1A] rounded-3xl shadow-lg border border-[#333] overflow-hidden flex flex-col">
-              <img src={imgVerres} className="h-40 w-full object-cover" alt="Verres"/>
-              <div className="p-5">
-                <h5 className="font-serif text-xl font-bold text-white mb-3">Verres Universels</h5>
-                <a href={getAmazonAffiliateLink("verres de degustation vin cristallin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black py-3 rounded-xl transition-colors">Découvrir</a>
-              </div>
-             </div>
-
-            <div className="bg-[#0a0a0a] rounded-3xl shadow-lg border border-[#D4AF37]/50 overflow-hidden flex flex-col">
-                <img src={imgCoravin} className="h-40 w-full object-cover" alt="Coravin"/>
-              <div className="p-5">
-                <h5 className="font-serif text-xl font-bold text-[#D4AF37] mb-3">Système Coravin</h5>
-                <a href={getAmazonAffiliateLink("coravin systeme preservation vin")} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black hover:bg-[#AA7C11] py-3 rounded-xl transition-colors">Découvrir</a>
-              </div>
-            </div>
           </div>
         )}
       </div>
