@@ -466,9 +466,10 @@ const HomeView = ({ ctx }) => {
           <Layers className="w-6 h-6 mb-1" />
           <span className="font-bold text-[10px] uppercase">Comparer</span>
         </button>
-        <button onClick={() => ctx.setView('manualSearch')} className="flex flex-col items-center justify-center bg-[#1A1A1A] border border-[#333] text-slate-400 p-3 rounded-2xl shadow-sm active:scale-95 transition-all hover:text-[#D4AF37]">
-          <Search className="w-6 h-6 mb-1" />
-          <span className="font-bold text-[10px] uppercase">Chercher</span>
+        {/* BOUTON MODIFIÉ ICI */}
+        <button onClick={() => ctx.setView('manualEntry')} className="flex flex-col items-center justify-center bg-[#1A1A1A] border border-[#333] text-slate-400 p-3 rounded-2xl shadow-sm active:scale-95 transition-all hover:text-[#D4AF37]">
+          <Plus className="w-6 h-6 mb-1" />
+          <span className="font-bold text-[10px] uppercase">Ajouter</span>
         </button>
         <button onClick={() => ctx.setView('quiz')} className="flex flex-col items-center justify-center bg-[#1A1A1A] border border-[#333] text-[#D4AF37] p-3 rounded-2xl shadow-sm active:scale-95 transition-all">
           <Gamepad2 className="w-6 h-6 mb-1" />
@@ -502,10 +503,10 @@ const HomeView = ({ ctx }) => {
 
       {/* 3. LISTE DES BOUTEILLES */}
       <div className="flex-1 p-4 space-y-4">
-        {viewMode === 'shelves' && cellarTab === 'STOCK' && (
+      {viewMode === 'shelves' && cellarTab === 'STOCK' && (
           <div className="flex justify-between items-center bg-[#1A1A1A] border border-[#333] rounded-xl p-3 mb-2">
-            <p className="text-[10px] text-slate-400 font-bold uppercase"><b className="text-[#D4AF37]">Astuce :</b> Glissez une bouteille.</p>
-            <button onClick={() => { setReorgMode(!reorgMode); setSelectedBottle(null); }} className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold border ${reorgMode ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#0a0a0a] border-[#333] text-slate-400'}`}><GripHorizontal className="w-3 h-3" /><span>Sur Mobile ?</span></button>
+            <p className="text-[10px] text-slate-400 font-bold uppercase"><b className="text-[#D4AF37]">Rangement :</b> Sur smartphone, utilisez :</p>
+            <button onClick={() => { setReorgMode(!reorgMode); setSelectedBottle(null); }} className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold border ${reorgMode ? 'bg-[#D4AF37] text-black border-[#D4AF37] animate-pulse' : 'bg-[#0a0a0a] border-[#333] text-slate-400'}`}><GripHorizontal className="w-3 h-3" /><span>Tactile</span></button>
           </div>
         )}
         
@@ -577,15 +578,16 @@ const HomeView = ({ ctx }) => {
   );
 };
 
-const ManualSearchView = ({ ctx }) => {
+// 1. LA NOUVELLE RECHERCHE IA (Anciennement ManualSearchView)
+const AiSearchView = ({ ctx }) => {
   const [searchTerms, setSearchTerms] = useState('');
   const handleSearch = (e) => { e.preventDefault(); if(searchTerms.trim()) ctx.searchWineText(searchTerms); };
   
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 select-none">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center border-b border-[#333]">
-        <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37] transition-colors"><ChevronLeft className="w-5 h-5" /></button>
-        <div><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Recherche Manuelle</h1><p className="text-slate-500 text-xs mt-1">Trouver un grand cru par son nom</p></div>
+        <button onClick={() => ctx.setView('scanSelector')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button>
+        <div><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Recherche IA</h1><p className="text-slate-500 text-xs mt-1">Interroger la base de données</p></div>
       </div>
       <div className="p-6">
         <form onSubmit={handleSearch} className="space-y-4 mb-10">
@@ -593,8 +595,84 @@ const ManualSearchView = ({ ctx }) => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
             <input autoFocus type="text" value={searchTerms} onChange={e => setSearchTerms(e.target.value)} placeholder="Ex: Château Margaux 2015" className="w-full pl-12 pr-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-2xl outline-none focus:border-[#D4AF37] text-lg transition-colors"/>
           </div>
-          {/* CORRECTION ICI : Remplacement de query par searchTerms */}
-          <button type="submit" disabled={!searchTerms.trim()} className="w-full py-4 bg-[#D4AF37] text-black rounded-full font-black text-lg shadow-[0_0_15px_rgba(212,175,55,0.3)] disabled:opacity-50 hover:bg-[#AA7C11] transition-all">Rechercher</button>
+          <button type="submit" disabled={!searchTerms.trim()} className="w-full py-4 bg-[#D4AF37] text-black rounded-full font-black text-lg shadow-[0_0_15px_rgba(212,175,55,0.3)] disabled:opacity-50 hover:bg-[#AA7C11] transition-all">Analyser avec l'IA</button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// 2. LE NOUVEAU FORMULAIRE MANUEL COMPLET (SANS IA)
+const ManualEntryView = ({ ctx }) => {
+  const [formData, setFormData] = useState({ nom: '', annee: '', region: '', type_simplifie: 'ROUGE', prix_unitaire_nombre: '' });
+  const [localImg, setLocalImg] = useState(null);
+
+  const handleImg = async (e) => {
+    const f = e.target.files[0];
+    if(f) {
+      const r = new FileReader();
+      r.onloadend = async () => {
+        // On compresse l'image pour ne pas surcharger Firebase
+        const canvas = document.createElement('canvas'); const img = new window.Image(); img.src = r.result;
+        img.onload = () => { let w = img.width, h = img.height; if (w > 800) { h = Math.round((h * 800) / w); w = 800; } canvas.width = w; canvas.height = h; canvas.getContext('2d').drawImage(img, 0, 0, w, h); setLocalImg(canvas.toDataURL('image/jpeg', 0.6)); };
+      };
+      r.readAsDataURL(f);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if(!formData.nom.trim()) { ctx.showToast("Le nom est obligatoire"); return; }
+    ctx.processManualEntry(formData, localImg);
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 select-none overflow-y-auto">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center border-b border-[#333]">
+        <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button>
+        <div><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Ajout Manuel</h1><p className="text-slate-500 text-xs mt-1">Saisir une bouteille sans IA</p></div>
+      </div>
+      <div className="p-6">
+        <form onSubmit={handleSubmit} className="space-y-4 mb-10">
+          
+          <div className="flex justify-center mb-6">
+            <label className="relative w-32 h-32 bg-[#1A1A1A] border-2 border-dashed border-[#333] rounded-2xl flex flex-col items-center justify-center overflow-hidden cursor-pointer hover:border-[#D4AF37]/50 transition-colors">
+              {localImg ? ( <img src={localImg} className="w-full h-full object-cover" alt="Vin" /> ) : (
+                <><Camera className="w-8 h-8 text-slate-500 mb-2" /><span className="text-[10px] font-bold text-slate-500 uppercase text-center px-2">Ajouter photo</span></>
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={handleImg} />
+            </label>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Nom du vin *</label>
+            <input required type="text" value={formData.nom} onChange={e => setFormData({...formData, nom: e.target.value})} placeholder="Ex: Château Margaux" className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-xl outline-none focus:border-[#D4AF37] transition-colors"/>
+          </div>
+
+          <div className="flex space-x-3">
+            <div className="space-y-1 flex-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Millésime</label>
+              <input type="number" value={formData.annee} onChange={e => setFormData({...formData, annee: e.target.value})} placeholder="Ex: 2018" className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-xl outline-none focus:border-[#D4AF37] transition-colors"/>
+            </div>
+            <div className="space-y-1 flex-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Prix indicatif (€)</label>
+              <input type="number" step="0.1" value={formData.prix_unitaire_nombre} onChange={e => setFormData({...formData, prix_unitaire_nombre: e.target.value})} placeholder="Ex: 25" className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-xl outline-none focus:border-[#D4AF37] transition-colors"/>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Région / Appellation</label>
+            <input type="text" value={formData.region} onChange={e => setFormData({...formData, region: e.target.value})} placeholder="Ex: Bordeaux" className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-xl outline-none focus:border-[#D4AF37] transition-colors"/>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Type de vin</label>
+            <select value={formData.type_simplifie} onChange={e => setFormData({...formData, type_simplifie: e.target.value})} className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-xl outline-none focus:border-[#D4AF37] transition-colors appearance-none">
+              <option value="ROUGE">Rouge</option><option value="BLANC">Blanc</option><option value="ROSE">Rosé</option><option value="PETILLANT">Pétillant</option>
+            </select>
+          </div>
+
+          <button type="submit" className="w-full py-5 mt-6 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black rounded-full font-black text-lg shadow-lg active:scale-95 transition-all">Ajouter (1 en stock)</button>
         </form>
       </div>
     </div>
@@ -1588,17 +1666,29 @@ const CompareView = ({ ctx }) => (
 
 const ScanSelectorView = ({ ctx }) => (
   <div className="flex flex-col items-center justify-center h-full p-6 bg-[#0a0a0a] text-[#F5F5F5] space-y-4 select-none">
-    <h2 className="text-xl font-bold text-[#D4AF37] mb-6">Que voulez-vous numériser ?</h2>
-    <button onClick={() => ctx.startCamera('bottle')} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center justify-center space-x-3">
-      <span className="text-2xl">🍾</span><span className="font-bold">Bouteille ou Étiquette</span>
+    <h2 className="text-xl font-bold text-[#D4AF37] mb-6">Ajouter à la cave</h2>
+
+    <button onClick={() => ctx.startCamera('bottle')} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#333] shrink-0">🍾</div>
+      <div className="text-left"><p className="font-bold">Scanner une Bouteille</p><p className="text-[10px] text-slate-400">Reconnaissance IA de l'étiquette</p></div>
     </button>
-    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('menu'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center justify-center space-x-3">
-      <span className="text-2xl">📖</span><span className="font-bold">Carte des Vins (Menu)</span>
+
+    <button onClick={() => ctx.setView('aiSearch')} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#333] shrink-0">⌨️</div>
+      <div className="text-left"><p className="font-bold">Recherche IA par texte</p><p className="text-[10px] text-slate-400">Trouvez un vin avec son nom</p></div>
     </button>
-    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('receipt'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center justify-center space-x-3">
-      <span className="text-2xl">🧾</span><span className="font-bold">Facture ou Ticket</span>
+
+    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('menu'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#D4AF37]/50 shrink-0">📖</div>
+      <div className="text-left"><p className="font-bold">Scanner un Menu</p><p className="text-[10px] text-[#D4AF37]">Conseil accord mets-vins</p></div>
     </button>
-    <button onClick={() => ctx.setView('home')} className="mt-8 text-gray-500 font-semibold p-4 active:scale-95">✕ Annuler</button>
+
+    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('receipt'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#D4AF37]/50 shrink-0">🧾</div>
+      <div className="text-left"><p className="font-bold">Scanner une Facture</p><p className="text-[10px] text-[#D4AF37]">Import multiple rapide</p></div>
+    </button>
+
+    <button onClick={() => ctx.setView('home')} className="mt-6 text-gray-500 font-bold p-4 active:scale-95 uppercase tracking-wider text-xs">✕ Annuler</button>
   </div>
 );
 
@@ -1981,6 +2071,41 @@ export default function App() {
         ctx.showToast("Erreur lors de la sauvegarde.");
       }
     },
+    
+    processManualEntry: async (manualData, customImage) => {
+      if (!user) { ctx.showToast("Connectez-vous pour ajouter."); return; }
+      const scanId = Date.now().toString();
+
+      const typeSimp = manualData.type_simplifie || 'ROUGE';
+      let gMin = 2, gMax = 5;
+      if (typeSimp === 'ROUGE') { gMin = 3; gMax = 10; }
+      else if (typeSimp === 'BLANC') { gMin = 2; gMax = 6; }
+      else if (typeSimp === 'PETILLANT') { gMin = 1; gMax = 5; }
+      else if (typeSimp === 'ROSE') { gMin = 1; gMax = 3; }
+
+      const updatedData = normalizeData({ ...manualData, garde_min: gMin, garde_max: gMax });
+
+      const newItem = {
+        id: scanId,
+        image: customImage || getGenericImageForType(typeSimp),
+        data: updatedData,
+        stock: 1, // Ajoute directement 1 bouteille en stock !
+        in_history: true,
+        wishlist: false,
+        location: '', notes: '', rating: 0, sensory_dna: null,
+        timestamp: Date.now(),
+        dateStr: new Date().toLocaleDateString('fr-FR')
+      };
+
+      setScanHistory(p => [newItem, ...p]);
+      try {
+        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', scanId), newItem);
+        ctx.showToast("Bouteille ajoutée à la cave !");
+        setView('home');
+      } catch (e) {
+        ctx.showToast("Erreur lors de la sauvegarde.");
+      }
+    },
 
     // 2. Mise à jour fluide du stock (+ / -)
     updateStock: async (id, currentStock, change) => {
@@ -2071,7 +2196,8 @@ export default function App() {
           {view === 'camera' && <CameraView ctx={ctx} />}
           {view === 'analyzing' && <AnalyzingView />}
           {view === 'menuConfig' && <MenuConfigView ctx={ctx} />}
-          {view === 'manualSearch' && <ManualSearchView ctx={ctx} />}
+          {view === 'manualEntry' && <ManualEntryView ctx={ctx} />}
+          {view === 'aiSearch' && <AiSearchView ctx={ctx} />}
           {view === 'quiz' && <QuizView ctx={ctx} />}
           {view === 'alerts' && <AlertsView ctx={ctx} />}
           {view === 'scanSelector' && <ScanSelectorView ctx={ctx} />}
