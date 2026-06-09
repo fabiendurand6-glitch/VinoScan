@@ -399,16 +399,19 @@ const AuthView = ({ auth }) => {
 
 const BottomNavigation = ({ ctx }) => (
   <nav className="absolute bottom-0 w-full bg-[#1A1A1A]/95 backdrop-blur-md border-t border-[#333] flex justify-around items-center h-20 z-50">
-    <button onClick={() => ctx.setView('home')} className={`flex flex-col items-center ${ctx.view === 'home' ? 'text-[#D4AF37]' : 'text-gray-500'}`}>
-      <span className="text-2xl">🍷</span>
-      <span className="text-[10px] mt-1 font-bold">Ma Cave</span>
+    <button onClick={() => ctx.setView('home')} className={`flex flex-col items-center transition-colors ${ctx.view === 'home' ? 'text-[#D4AF37]' : 'text-slate-500 hover:text-slate-400'}`}>
+      <Wine className="w-6 h-6 mb-1" />
+      <span className="text-[10px] font-bold uppercase tracking-wider">Ma Cave</span>
     </button>
-    <button onClick={() => ctx.setView('scanSelector')} className="w-16 h-16 bg-gradient-to-tr from-[#D4AF37] to-[#F3E5AB] rounded-full flex justify-center items-center text-3xl shadow-[0_0_15px_rgba(212,175,55,0.4)] -mt-8 active:scale-90 transition-transform">
-      📷
+    
+    {/* Le bouton central a maintenant un design luxe Noir/Or au lieu du dégradé jaune */}
+    <button onClick={() => ctx.setView('scanSelector')} className="w-16 h-16 bg-[#0a0a0a] border-2 border-[#D4AF37] rounded-full flex justify-center items-center shadow-[0_0_15px_rgba(212,175,55,0.2)] -mt-8 active:scale-90 transition-transform">
+      <Camera className="w-7 h-7 text-[#D4AF37]" />
     </button>
-    <button onClick={() => ctx.setView('account')} className={`flex flex-col items-center ${ctx.view === 'account' ? 'text-[#D4AF37]' : 'text-gray-500'}`}>
-      <span className="text-2xl">👤</span>
-      <span className="text-[10px] mt-1 font-bold">Profil</span>
+    
+    <button onClick={() => ctx.setView('account')} className={`flex flex-col items-center transition-colors ${ctx.view === 'account' ? 'text-[#D4AF37]' : 'text-slate-500 hover:text-slate-400'}`}>
+      <User className="w-6 h-6 mb-1" />
+      <span className="text-[10px] font-bold uppercase tracking-wider">Profil</span>
     </button>
   </nav>
 );
@@ -482,13 +485,17 @@ const HomeView = ({ ctx }) => {
 
       {/* 2. FILTRES DE CAVE CORRIGÉS (Scroll protégé) */}
       <div className="px-4 pb-2 sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-md pt-2 border-b border-[#333]">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center w-full">
           
-          {/* Zone de filtres (Rosé ne sera plus coupé) */}
-          <div className="flex-1 flex items-center space-x-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pr-4">
-            {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => (
-              <button key={t} onClick={() => setFilterType(t)} className={`shrink-0 px-4 py-1.5 rounded-full text-[10px] font-bold border whitespace-nowrap transition-colors ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t === 'ALL' ? 'Tous' : t}</button>
-            ))}
+          {/* Zone de filtres rendue "Slidable" avec touch-pan-x et w-max */}
+          <div className="flex-1 overflow-x-auto touch-pan-x pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] mr-3">
+            <div className="flex items-center space-x-2 w-max">
+              {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => (
+                <button key={t} onClick={() => setFilterType(t)} className={`shrink-0 px-4 py-1.5 rounded-full text-[10px] font-bold border transition-colors ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>
+                  {t === 'ALL' ? 'Tous' : t}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Boutons de vue fixés à droite */}
@@ -1144,26 +1151,45 @@ const HistoryView = ({ ctx }) => {
 
 const AlertsView = ({ ctx }) => {
   const { alerts, user } = ctx;
+  
   const markAllAsRead = () => { if (!user) return; alerts.forEach(a => { if (!a.read) updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', a.id), { read: true }); }); };
   const handleAlertClick = (alert) => { updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', alert.id), { read: true }); if (alert.scanId) { const wine = ctx.scanHistory.find(s => s.id === alert.scanId); if (wine) ctx.openExistingWine(wine, 'alerts'); } };
   
+  // NOUVELLE FONCTION : Supprimer une alerte
+  const deleteAlert = async (e, alertId) => {
+    e.stopPropagation(); // Empêche d'ouvrir le vin quand on clique sur la corbeille
+    if (!user) return;
+    try { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', alertId)); } catch(err) {}
+  };
+
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0a] select-none">
-      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 border-b border-[#333] flex items-center justify-between shadow-sm">
+    <div className="flex flex-col h-full bg-[#0a0a0a] select-none overflow-y-auto pb-20">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 border-b border-[#333] flex items-center justify-between shadow-sm sticky top-0 z-10">
         <div className="flex items-center">
-          {/* CORRECTION DU BOUTON RETOUR ICI */}
           <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Notifications</h1>
         </div>
-        {alerts.some(a => !a.read) && <button onClick={markAllAsRead} className="text-xs text-slate-400 hover:text-[#D4AF37]">Tout lire</button>}
+        {alerts.some(a => !a.read) && <button onClick={markAllAsRead} className="text-xs text-slate-400 hover:text-[#D4AF37] font-bold">Tout lire</button>}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      
+      <div className="p-4 space-y-3">
+        {alerts.length === 0 && <div className="text-center text-slate-500 mt-10 font-medium">Aucune notification à afficher.</div>}
+        
         {alerts.map(a => (
-          <div key={a.id} onClick={() => handleAlertClick(a)} className={`bg-[#1A1A1A] rounded-2xl border ${a.read ? 'border-[#333]' : 'border-[#D4AF37]/50 shadow-md'} p-4 flex items-center justify-between cursor-pointer`}>
-            <div className="flex-1 pr-3"><h4 className="font-bold text-white text-sm">{a.title}</h4><p className="text-xs text-slate-400 mt-1">{a.message}</p></div>
-            {!a.read && <div className="w-2 h-2 bg-[#D4AF37] rounded-full shrink-0"></div>}
+          <div key={a.id} onClick={() => handleAlertClick(a)} className={`bg-[#1A1A1A] rounded-2xl border ${a.read ? 'border-[#333]' : 'border-[#D4AF37]/50 shadow-md'} p-4 flex items-center justify-between cursor-pointer transition-colors hover:bg-[#222]`}>
+            <div className="flex-1 pr-3">
+              <h4 className="font-bold text-white text-sm">{a.title}</h4>
+              <p className="text-xs text-slate-400 mt-1">{a.message}</p>
+            </div>
+            <div className="flex items-center space-x-4 shrink-0">
+              {!a.read && <div className="w-2 h-2 bg-[#D4AF37] rounded-full"></div>}
+              {/* LE BOUTON CORBEILLE */}
+              <button onClick={(e) => deleteAlert(e, a.id)} className="p-2 bg-[#0a0a0a] border border-[#333] rounded-xl text-slate-500 hover:text-red-500 hover:border-red-500/50 transition-all active:scale-90">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         ))}
       </div>
