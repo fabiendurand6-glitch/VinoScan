@@ -836,9 +836,10 @@ const RecommendationView = ({ ctx }) => {
   // NOUVEAU : Catalogue de produits Premium triés par catégorie
   const boutiqueProducts = {
     DEGUSTATION: [
+      { name: "Tire-Bouchon Sommelier Pro", desc: "L'outil indispensable à double levier en acier inoxydable.", query: "tire bouchon sommelier professionnel", price: "24€", icon: "🔧" },
       { name: "Carafe à Décanter en Cristal", desc: "Verre soufflé bouche, idéal pour aérer les grands crus rouges.", query: "carafe a decanter vin cristal riedel", price: "89€", icon: "🏺" },
-      { name: "Verres à Dégustation Universels", desc: "Lot de 6 verres en cristal ultra-fin pour sublimer les arômes.", query: "verres de degustation vin cristallin haute performance", price: "59€", icon: "🍷" },
-      { name: "Thermomètre Infrarouge Sommelier", desc: "Prenez la température exacte du vin à travers la bouteille.", query: "thermometre infrarouge vin professionnel", price: "34€", icon: "🌡️" }
+      { name: "Verres à Dégustation Universels", desc: "Lot de 6 verres en cristal ultra-fin pour sublimer les arômes.", query: "verres de degustation vin cristallin haute performance", price: "59€", icon: "🥂" },
+      { name: "Thermomètre Infrarouge", desc: "Prenez la température exacte du vin à travers la bouteille.", query: "thermometre infrarouge vin professionnel", price: "34€", icon: "🌡️" }
     ],
     CONSERVATION: [
       { name: "Système de Préservation Coravin", desc: "Servez vos bouteilles d'exception sans jamais en tirer le bouchon.", query: "coravin systeme preservation vin timeless", price: "249€", icon: "🔌" },
