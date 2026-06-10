@@ -1,0 +1,40 @@
+export const allQuestions = [
+    { q: "Quel cépage donne souvent des arômes de litchi et de rose ?", options: ["Chardonnay", "Gewürztraminer", "Sauvignon Blanc"], ans: "Gewürztraminer" },
+    { q: "Quelle région est célèbre pour son 'Vin Jaune' ?", options: ["Bourgogne", "Alsace", "Jura"], ans: "Jura" },
+    { q: "Qu'appelle-t-on la 'Part des Anges' ?", options: ["Le vin évaporé en fût", "Le vin offert au clergé", "Le fond de la bouteille"], ans: "Le vin évaporé en fût" },
+    { q: "Quel est le cépage rouge emblématique de la Bourgogne ?", options: ["Merlot", "Pinot Noir", "Syrah"], ans: "Pinot Noir" },
+    { q: "Comment s'appelle l'art d'assembler différents vins ?", options: ["Le soutirage", "Le coupage", "L'assemblage"], ans: "L'assemblage" },
+    { q: "Lequel de ces cépages est blanc ?", options: ["Cabernet Franc", "Viognier", "Gamay"], ans: "Viognier" },
+    { q: "Quel vin est traditionnellement muté à l'alcool ?", options: ["Le Porto", "Le Champagne", "Le Beaujolais"], ans: "Le Porto" },
+    { q: "Que signifie 'Blanc de Blancs' pour un Champagne ?", options: ["Fait avec du raisin blanc", "Sans ajout de sucre", "Vieilli en cuve inox"], ans: "Fait avec du raisin blanc" },
+    { q: "Quel est le grand cépage rouge de la rive droite à Bordeaux ?", options: ["Cabernet Sauvignon", "Merlot", "Malbec"], ans: "Merlot" },
+    { q: "À quelle température idéale doit-on servir un grand vin rouge liquoreux ?", options: ["6-8°C", "10-12°C", "16-18°C"], ans: "10-12°C" },
+    { q: "De quel pays le Chianti est-il originaire ?", options: ["Espagne", "Italie", "Portugal"], ans: "Italie" },
+    { q: "Quel cépage est roi dans l'appellation Chablis ?", options: ["Chardonnay", "Sauvignon Blanc", "Chenin Blanc"], ans: "Chardonnay" },
+    { q: "Quelle maladie de la vigne a presque détruit le vignoble français au 19e siècle ?", options: ["Le Mildiou", "Le Phylloxéra", "L'Oïdium"], ans: "Le Phylloxéra" },
+    { q: "Qu'est-ce qu'un vin 'Bouchonné' ?", options: ["Un vin scellé à la cire", "Un vin altéré par le TCA", "Un vin non filtré"], ans: "Un vin altéré par le TCA" },
+    { q: "Dans quelle région trouve-t-on l'appellation Châteauneuf-du-Pape ?", options: ["Vallée du Rhône", "Languedoc", "Provence"], ans: "Vallée du Rhône" },
+    { q: "Combien de bouteilles contient un Mathusalem ?", options: ["4", "8", "12"], ans: "8" },
+    { q: "Lequel de ces vins est un grand cru de Saint-Émilion ?", options: ["Château Cheval Blanc", "Château Margaux", "Château d'Yquem"], ans: "Château Cheval Blanc" },
+    { q: "Que mesure le degré Brix ?", options: ["Le taux d'alcool", "La teneur en sucre du raisin", "L'acidité du vin"], ans: "La teneur en sucre du raisin" },
+    { q: "Quel est le cépage principal des vins rouges de la Rioja en Espagne ?", options: ["Tempranillo", "Grenache", "Syrah"], ans: "Tempranillo" },
+    { q: "Qu'est-ce que le 'Pigeage' ?", options: ["Tailler la vigne en hiver", "Enfoncer le chapeau de marc dans le moût", "Filtrer le vin avant mise en bouteille"], ans: "Enfoncer le chapeau de marc dans le moût" }
+  ];
+  
+  export const BADGES = [
+    { id: 'b1', name: 'Premier Bouchon', desc: '1er vin scanné', icon: '🍷', check: (h) => h.length >= 1 },
+    { id: 'b2', name: 'Amateur', desc: '10 vins scannés', icon: '🥉', check: (h) => h.length >= 10 },
+    { id: 'b3', name: 'Passionné', desc: '50 vins scannés', icon: '🥈', check: (h) => h.length >= 50 },
+    { id: 'b4', name: 'Sommelier', desc: '100 vins scannés', icon: '🥇', check: (h) => h.length >= 100 },
+    { id: 'b5', name: 'Sang de la Terre', desc: '5 vins rouges', icon: '🩸', check: (h) => h.filter(v => v.data?.type_simplifie === 'ROUGE').length >= 5 },
+    { id: 'b6', name: 'Larmes d\'Or', desc: '5 vins blancs', icon: '🥂', check: (h) => h.filter(v => v.data?.type_simplifie === 'BLANC').length >= 5 },
+    { id: 'b7', name: 'Fête', desc: '3 pétillants', icon: '🍾', check: (h) => h.filter(v => v.data?.type_simplifie === 'PETILLANT').length >= 3 },
+    { id: 'b8', name: 'Trésorier', desc: 'Cave > 100€', icon: '💰', check: (h) => h.reduce((acc, c) => acc + ((c.data?.prix_unitaire_nombre || 0) * (parseInt(c.stock) || 0)), 0) >= 100 },
+    { id: 'b9', name: 'Investisseur', desc: 'Cave > 500€', icon: '💎', check: (h) => h.reduce((acc, c) => acc + ((c.data?.prix_unitaire_nombre || 0) * (parseInt(c.stock) || 0)), 0) >= 500 },
+    { id: 'b10', name: 'Patrimoine', desc: 'Cave > 1000€', icon: '👑', check: (h) => h.reduce((acc, c) => acc + ((c.data?.prix_unitaire_nombre || 0) * (parseInt(c.stock) || 0)), 0) >= 1000 },
+    { id: 'b11', name: 'Explorateur', desc: '3 régions', icon: '🌍', check: (h) => new Set(h.map(v => v.data?.region).filter(Boolean)).size >= 3 },
+    { id: 'b12', name: 'Globe-Trotter', desc: '5 régions', icon: '🗺️', check: (h) => new Set(h.map(v => v.data?.region).filter(Boolean)).size >= 5 },
+    { id: 'b13', name: 'Plume', desc: '10 notes ajoutées', icon: '✍️', check: (h) => h.filter(v => v.notes && v.notes.length > 5).length >= 10 },
+    { id: 'b14', name: 'Archiviste', desc: 'Vin < 2015', icon: '⏳', check: (h) => h.some(v => parseInt(v.data?.annee) < 2015) },
+    { id: 'b15', name: 'Gardien', desc: '10 bouteilles en stock', icon: '🛡️', check: (h) => h.reduce((acc, c) => acc + (parseInt(c.stock) || 0), 0) >= 10 }
+  ];
