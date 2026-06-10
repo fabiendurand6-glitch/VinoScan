@@ -1,9 +1,16 @@
 // src/views/CameraView.jsx
-import React from 'react';
-import { ChevronLeft, RefreshCw } from 'lucide-react';
+import React, { useRef } from 'react';
+import { ChevronLeft, RefreshCw, Image as ImageIcon } from 'lucide-react';
 
-// --- VUE COMPOSANTE : L'INTERFACE CAMÉRA ---
 export default function CameraView({ ctx }) {
+  const fileInputRef = useRef(null);
+
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <div className="relative h-full w-full bg-black flex flex-col overflow-hidden select-none">
       {/* BOUTON RETOUR */}
@@ -14,7 +21,7 @@ export default function CameraView({ ctx }) {
         <ChevronLeft className="w-6 h-6" />
       </button>
       
-      {/* BOUTON BASCULE CAMÉRA (AVANT / ARRIÈRE) */}
+      {/* BOUTON BASCULE CAMÉRA */}
       <button 
         onClick={ctx.toggleCamera} 
         className="absolute top-12 right-6 z-20 p-3 bg-black/50 text-white rounded-full border border-white/10 hover:bg-[#D4AF37] hover:text-black active:scale-90 transition-all"
@@ -26,15 +33,37 @@ export default function CameraView({ ctx }) {
       <video ref={ctx.videoRef} autoPlay playsInline className="min-w-full min-h-full object-cover flex-1" />
       
       {/* ZONE DÉCLENCHEUR */}
-      <div className="absolute bottom-0 w-full h-32 bg-black/90 flex items-center justify-center pb-8 z-20">
+      <div className="absolute bottom-0 w-full h-32 bg-black/90 flex items-center justify-center pb-8 z-20 space-x-8">
+        
+        {/* NOUVEAU : BOUTON GALERIE */}
+        <button 
+          onClick={triggerFileInput} 
+          className="w-12 h-12 bg-white/10 border border-white/20 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+        >
+          <ImageIcon className="w-5 h-5 text-white" />
+        </button>
+
+        {/* BOUTON CAPTURE CENTRAL */}
         <button 
           onClick={ctx.capturePhoto} 
-          className="w-20 h-20 bg-white/10 border border-white/20 rounded-full flex items-center justify-center active:scale-95 transition-transform"
+          className="w-20 h-20 bg-white/10 border border-white/20 rounded-full flex items-center justify-center active:scale-95 transition-transform shrink-0"
         >
           <div className="w-14 h-14 bg-[#D4AF37] rounded-full shadow-lg"></div>
         </button>
+
+        {/* ESPACEUR POUR CENTRER (garde l'équilibre visuel) */}
+        <div className="w-12 h-12"></div>
       </div>
       
+      {/* INPUT FILE CACHÉ */}
+      <input 
+        type="file" 
+        accept="image/*" 
+        className="hidden" 
+        ref={fileInputRef} 
+        onChange={ctx.handleFileUpload} 
+      />
+
       {/* CANVAS CACHÉ POUR CAPTURER LA FRAME */}
       <canvas ref={ctx.canvasRef} className="hidden" />
     </div>

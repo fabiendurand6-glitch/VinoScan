@@ -546,7 +546,30 @@ export default function App() {
 
   const handleFileUpload = async (e) => { 
     const f = e.target.files[0]; 
-    if(f) { const r = new FileReader(); r.onloadend = async () => { const img = await compressImage(r.result); setImageSrc(img); analyzeImage(img); }; r.readAsDataURL(f); } 
+    if (f) { 
+      const r = new FileReader(); 
+      r.onloadend = async () => { 
+        // 1. On coupe la caméra si elle tournait
+        stopCamera(); 
+  
+        // 2. On compresse l'image de la galerie
+        const img = await compressImage(r.result); 
+        setImageSrc(img); 
+  
+        // 3. On route vers le bon module d'analyse
+        if (cameraMode === 'receipt') {
+          analyzeReceipt(img); 
+        } else if (cameraMode === 'menu') {
+          analyzeMenu(img); 
+        } else if (cameraMode === 'compare') {
+          setCompareBasket(prev => [...prev, img]);
+          setView('compare');
+        } else {
+          analyzeImage(img);
+        }
+      }; 
+      r.readAsDataURL(f); 
+    } 
   };
 
   const processAIResult = async (aiText, sourceImage) => {
