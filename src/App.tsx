@@ -520,10 +520,27 @@ export default function App() {
   
   const capturePhoto = async () => {
     if(videoRef.current && canvasRef.current) {
-      const c = canvasRef.current; c.width = videoRef.current.videoWidth; c.height = videoRef.current.videoHeight;
-      c.getContext('2d').drawImage(videoRef.current,0,0); const d = c.toDataURL('image/jpeg',0.8); stopCamera();
-      const img = await compressImage(d); setImageSrc(img); 
-      if (cameraMode === 'receipt') analyzeReceipt(img); else if (cameraMode === 'menu') analyzeMenu(img); else analyzeImage(img);
+      const c = canvasRef.current; 
+      c.width = videoRef.current.videoWidth; 
+      c.height = videoRef.current.videoHeight;
+      c.getContext('2d').drawImage(videoRef.current,0,0); 
+      const d = c.toDataURL('image/jpeg',0.8); 
+      
+      stopCamera();
+      const img = await compressImage(d); 
+      setImageSrc(img); 
+      
+      // Le nouveau routage de l'image selon le mode
+      if (cameraMode === 'receipt') {
+        analyzeReceipt(img); 
+      } else if (cameraMode === 'menu') {
+        analyzeMenu(img); 
+      } else if (cameraMode === 'compare') {
+        setCompareBasket(prev => [...prev, img]);
+        setView('compare'); // On retourne direct sur le comparateur
+      } else {
+        analyzeImage(img);
+      }
     }
   };
 

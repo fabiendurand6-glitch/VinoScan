@@ -3,6 +3,20 @@ import React from 'react';
 import { ChevronLeft, Camera, Sparkles, Award, X } from 'lucide-react';
 
 export default function CompareView({ ctx }) {
+
+  const handleAddClick = () => {
+    if (ctx.userTier === 'FREE' && ctx.compareBasket.length >= 2) { 
+      ctx.showToast("Gratuit : 2 bouteilles max."); 
+      return; 
+    }
+    if (ctx.userTier === 'AMATEUR' && ctx.compareBasket.length >= 4) { 
+      ctx.showToast("Amateur : 4 bouteilles max."); 
+      return; 
+    }
+    // On lance la caméra interne avec le mode "compare"
+    ctx.startCamera('compare');
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none p-5">
       <div className="flex items-center mb-6 pt-6 border-b border-[#333] pb-4 sticky top-0 bg-[#0a0a0a] z-10">
@@ -88,11 +102,13 @@ export default function CompareView({ ctx }) {
               </div>
             ))}
             
-            <label className="h-40 flex flex-col items-center justify-center bg-[#1A1A1A] border-2 border-dashed border-[#333] rounded-2xl cursor-pointer hover:border-[#D4AF37]/50 transition-colors text-slate-400 hover:text-[#D4AF37] shadow-inner">
+            <button 
+             onClick={handleAddClick}
+             className="h-40 flex flex-col items-center justify-center bg-[#1A1A1A] border-2 border-dashed border-[#333] rounded-2xl cursor-pointer hover:border-[#D4AF37]/50 transition-colors text-slate-400 hover:text-[#D4AF37] shadow-inner"
+             >
               <Camera className="w-8 h-8 mb-2" />
               <span className="text-xs font-bold uppercase tracking-wider text-center px-2">Ajouter<br/>une étiquette</span>
-              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={ctx.handleAddCompareImage} />
-            </label>
+            </button>
           </div>
 
           <button 
