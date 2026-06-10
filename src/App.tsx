@@ -17,6 +17,7 @@ import imgTirebouchon from './assets/tirebouchon.jpg';
 import imgCarafe from './assets/carafe.jpg';
 import imgVerres from './assets/verres.jpg';
 import imgCoravin from './assets/coravin.jpg';
+import ManualEntryView from './views/ManualEntryView';
 
 // ========================================================================
 // CONFIGURATION SÉCURISÉEe
