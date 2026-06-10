@@ -31,10 +31,10 @@ export default function ScanSelectorView({ ctx }) {
       </button>
 
       {/* SCAN DE MENU */}
-      <button 
-        onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.startCamera('menu'); }} 
-        className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4"
-      >
+       <button 
+         onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.setView('menuConfig'); }} 
+         className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4"
+       >
         <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#D4AF37]/50 shrink-0">📖</div>
         <div className="text-left">
           <p className="font-bold">Scanner un Menu</p>

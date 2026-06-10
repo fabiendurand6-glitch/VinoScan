@@ -638,14 +638,28 @@ export default function App() {
     } catch (err) { setErrorMsg("Erreur de recherche."); setView('error'); }
   };
 
-  const analyzeMenu = async (b64) => {
-    setView('analyzing');
-    try {
-      const prompt = `Sommelier. Choisis le MEILLEUR vin sur cette carte pour accompagner un repas. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE","annee":"","region":"","description":"","prix_unitaire_nombre":30,"potentiel_garde":"","accord_parfait":""}`;
-      const result = await callGemini(prompt, b64.split(',')[1]);
-      await processAIResult(result.candidates[0].content.parts[0].text, null);
-    } catch(err) { setErrorMsg("Lecture du menu impossible."); setView('error'); }
-  };
+const analyzeMenu = async (b64) => {
+  setView('analyzing');
+  try {
+    let contraintes = "";
+    if (menuPrefs.plat) {
+      contraintes += ` Le plat choisi par le client est : "${menuPrefs.plat}". L'accord mets-vins doit être PARFAIT pour ce plat spécifique.`;
+    }
+    if (menuPrefs.budget) {
+      contraintes += ` Le budget maximum absolu de la bouteille est de ${menuPrefs.budget}€.`;
+    }
+
+    const prompt = `Agis comme un Sommelier expert. L'utilisateur te fournit la photo d'une carte des vins de restaurant.${contraintes} Trouve LE MEILLEUR vin sur cette carte qui respecte strictement ces critères. Réponds UNIQUEMENT en JSON strict: {"nom":"NOM EXACT SUR LA CARTE","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"Pourquoi ce choix (max 20 mots)","prix_unitaire_nombre":30,"potentiel_garde":"","accord_parfait":""}`;
+    
+    const cleanB64 = b64.includes(',') ? b64.split(',')[1] : b64;
+    const result = await callGemini(prompt, cleanB64);
+    
+    await processAIResult(result.candidates[0].content.parts[0].text, null);
+  } catch(err) { 
+    setErrorMsg("Lecture du menu impossible ou aucun vin de la carte ne correspond à ce budget."); 
+    setView('error'); 
+  }
+};
 
   const analyzeReceipt = async (b64) => {
     setView('analyzing');

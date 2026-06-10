@@ -3,16 +3,18 @@ import React, { useState } from 'react';
 import { ChevronLeft, UtensilsCrossed, Euro, Sparkles } from 'lucide-react';
 
 export default function MenuConfigView({ ctx }) {
-  const [platChoisi, setPlatChoisi] = useState('');
-  const [budgetMax, setBudgetMax] = useState('');
+  // On récupère les valeurs précédentes si elles existent
+  const [platChoisi, setPlatChoisi] = useState(ctx.menuPrefs?.plat || '');
+  const [budgetMax, setBudgetMax] = useState(ctx.menuPrefs?.budget || '');
 
   const lancerAnalyseMenu = () => {
-    ctx.setMenuConfig({
+    // 1. On sauvegarde le plat et le budget dans l'état global (App.jsx)
+    ctx.setMenuPrefs({
       plat: platChoisi.trim(),
       budget: budgetMax ? parseFloat(budgetMax) : null
     });
-    // Déclenche l'analyse du menu via l'image capturée
-    ctx.processMenuAnalysis(platChoisi.trim(), budgetMax);
+    // 2. On lance enfin la caméra
+    ctx.startCamera('menu');
   };
 
   return (
