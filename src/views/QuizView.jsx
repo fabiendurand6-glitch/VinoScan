@@ -1,7 +1,7 @@
 // src/views/QuizView.jsx
 import React, { useState } from 'react';
 import { ChevronLeft, Gamepad2, Trophy } from 'lucide-react';
-import { allQuestions } from '../constants/questions';
+import { allQuestions } from '../constants/gameData';
 
 export default function QuizView({ ctx }) {
   const [gameState, setGameState] = useState('idle'); // 'idle' | 'playing' | 'end'
