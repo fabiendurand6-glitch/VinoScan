@@ -336,7 +336,7 @@ export default function App() {
   const [alerts, setAlerts] = useState([]);
   const [facingMode, setFacingMode] = useState('environment');
   const [isPremium, setIsPremium] = useState(false);
-  // --- COMPARATEUR DE RAYON ---
+  const [menuAnalysisResult, setMenuAnalysisResult] = useState(null);
   const [compareBasket, setCompareBasket] = useState([]);
   const [compareContext, setCompareContext] = useState('');
   const [compareResult, setCompareResult] = useState(null);
@@ -638,28 +638,53 @@ export default function App() {
     } catch (err) { setErrorMsg("Erreur de recherche."); setView('error'); }
   };
 
-const analyzeMenu = async (b64) => {
-  setView('analyzing');
-  try {
-    let contraintes = "";
-    if (menuPrefs.plat) {
-      contraintes += ` Le plat choisi par le client est : "${menuPrefs.plat}". L'accord mets-vins doit être PARFAIT pour ce plat spécifique.`;
+  const analyzeMenu = async (b64) => {
+    setView('analyzing');
+    try {
+      let contraintes = "";
+      if (menuPrefs.plat) contraintes += ` Plat choisi: "${menuPrefs.plat}".`;
+      if (menuPrefs.budget) contraintes += ` Budget max: ${menuPrefs.budget}€.`;
+  
+      const prompt = `Agis comme un Sommelier expert. Lis cette carte des vins.${contraintes}
+      Choisis LE MEILLEUR vin (Accord Excellent) et 2 alternatives pertinentes.
+      Réponds UNIQUEMENT en JSON strict avec ce format exact :
+      {
+        "recommandations": [
+          {
+            "nom": "Nom du vin 1",
+            "type": "ROUGE",
+            "annee": "2020",
+            "region": "Bourgogne",
+            "prix": 35,
+            "accord": "Excellent",
+            "commentaire": "Pourquoi c'est le meilleur choix..."
+          },
+          {
+            "nom": "Nom du vin 2",
+            "type": "BLANC",
+            "annee": "2021",
+            "region": "Loire",
+            "prix": 25,
+            "accord": "Très bon",
+            "commentaire": "Alternative intéressante car..."
+          }
+        ]
+      }`;
+  
+      const cleanB64 = b64.includes(',') ? b64.split(',')[1] : b64;
+      const result = await callGemini(prompt, cleanB64);
+      
+      let cleanText = result.candidates[0].content.parts[0].text;
+      cleanText = cleanText.replace(/```json/g, '').replace(/```/g, '');
+      
+      setMenuAnalysisResult(JSON.parse(cleanText));
+      setPreviousView('scanSelector');
+      setView('recommendationList');
+    } catch(err) { 
+      setErrorMsg("Lecture du menu impossible ou aucun vin ne correspond."); 
+      setView('error'); 
     }
-    if (menuPrefs.budget) {
-      contraintes += ` Le budget maximum absolu de la bouteille est de ${menuPrefs.budget}€.`;
-    }
-
-    const prompt = `Agis comme un Sommelier expert. L'utilisateur te fournit la photo d'une carte des vins de restaurant.${contraintes} Trouve LE MEILLEUR vin sur cette carte qui respecte strictement ces critères. Réponds UNIQUEMENT en JSON strict: {"nom":"NOM EXACT SUR LA CARTE","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"Pourquoi ce choix (max 20 mots)","prix_unitaire_nombre":30,"potentiel_garde":"","accord_parfait":""}`;
-    
-    const cleanB64 = b64.includes(',') ? b64.split(',')[1] : b64;
-    const result = await callGemini(prompt, cleanB64);
-    
-    await processAIResult(result.candidates[0].content.parts[0].text, null);
-  } catch(err) { 
-    setErrorMsg("Lecture du menu impossible ou aucun vin de la carte ne correspond à ce budget."); 
-    setView('error'); 
-  }
-};
+  };
 
   const analyzeReceipt = async (b64) => {
     setView('analyzing');
@@ -683,7 +708,7 @@ const analyzeMenu = async (b64) => {
 
       const prompt = `Trouve 3 suggestions de grands vins réels. Format JSON avec clé racine "vins": {"vins": [{"nom":"Vin","type_simplifie":"ROUGE","annee":"2019","region":"","description":"","prix_unitaire_nombre":25,"potentiel_garde":"","accord_parfait":""}]}. Contraintes obligatoires -> Type: ${type}, Repas: ${food}, Budget: ${budgetStr}.`;
       
-      const result = await ctx.callGemini(prompt);
+      const result = await callGemini(prompt);
       let parsed = extractJSON(result.candidates[0].content.parts[0].text);
       setRecommendationList((parsed.vins || parsed).map(v => normalizeData(v))); 
       setView('recommendationList');
@@ -727,7 +752,7 @@ const analyzeMenu = async (b64) => {
     user, view, setView, previousView, setPreviousView, imageSrc, analysisResult, errorMsg, setErrorMsg, 
     scanHistory, setScanHistory, scanAction, setScanAction, recommendationList, currentScanId, setCurrentScanId, 
     toastMsg, showToast, startCamera, stopCamera, capturePhoto, handleFileUpload, analyzeImage, searchWineText, 
-    analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField, requireTier, userTier,
+    analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField, requireTier, userTier, menuAnalysisResult, setMenuAnalysisResult,
 
     // 1. Création d'une nouvelle bouteille avec stock à 0
     processRecommendationSelection: async (w) => {

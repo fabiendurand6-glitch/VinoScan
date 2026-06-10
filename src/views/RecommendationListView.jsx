@@ -59,14 +59,13 @@ export default function RecommendationListView({ ctx }) {
         {processedRecommendations.length > 0 ? (
           processedRecommendations.map((item, index) => (
             <div 
-              key={index}
-              className={`bg-[#1A1A1A] rounded-2xl border p-4 relative overflow-hidden transition-all ${
-                item.isOverBudget 
-                  ? 'border-red-900/30 opacity-60' 
-                  : item.accord === 'Excellent' 
-                    ? 'border-[#D4AF37]/40 shadow-[0_0_15px_rgba(212,175,55,0.05)]' 
-                    : 'border-[#333]'
-              }`}
+             key={index}
+               onClick={() => ctx.processRecommendationSelection({ 
+               nom: item.nom, 
+              description: item.commentaire, 
+              type_simplifie: item.type === 'VIN' ? 'ROUGE' : item.type, 
+                stock: 1 
+             })}
             >
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0 pr-2">
