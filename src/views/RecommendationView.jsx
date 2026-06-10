@@ -70,6 +70,15 @@ export default function RecommendationView({ ctx }) {
               <div className="w-14 h-14 bg-[#0a0a0a] border border-[#333] rounded-full flex items-center justify-center shrink-0"><ShoppingCart className="w-6 h-6 text-[#D4AF37]" /></div>
               <div><h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-1">Acheter un vin</h3><p className="text-xs text-slate-400">Le meilleur vin à acheter selon votre repas.</p></div>
             </button>
+            <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.setView('compare'); }} className="w-full bg-[#1A1A1A] border border-[#333] rounded-3xl p-6 shadow-lg text-left flex items-center space-x-5">
+              <div className="w-14 h-14 bg-[#0a0a0a] border border-[#333] rounded-full flex items-center justify-center shrink-0">
+               <Camera className="w-6 h-6 text-[#D4AF37]" />
+              </div>
+             <div>
+               <h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-1">Hésitation en rayon</h3>
+               <p className="text-xs text-slate-400">Scannez plusieurs étiquettes pour trouver le meilleur accord.</p>
+             </div>
+            </button>
             <button onClick={() => setRecMode('cellar')} className="w-full bg-[#1A1A1A] border border-[#D4AF37]/50 rounded-3xl p-6 shadow-lg text-left flex items-center space-x-5">
               <div className="w-14 h-14 bg-[#0a0a0a] border border-[#D4AF37]/30 rounded-full flex items-center justify-center shrink-0"><Archive className="w-6 h-6 text-[#D4AF37]" /></div>
               <div><h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-1">Que boire ce soir ?</h3><p className="text-xs text-slate-400">Trouvez la bouteille parfaite dans votre cave.</p></div>
