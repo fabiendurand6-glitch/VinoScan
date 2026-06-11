@@ -44,7 +44,7 @@ const InstagramShareCanvas = ({ wine, rating, notes }) => (
         <h1 className="text-6xl font-serif font-bold text-[#D4AF37]">VinoScan</h1>
       </div>
       <div className="flex-1 flex items-center justify-center w-full my-12 bg-white/5 rounded-[40px] p-8 border border-[#333]">
-        <img crossOrigin="anonymous" src={wine.image || getGenericImageForType(wine.data?.type_simplifie)} className="max-h-[800px] object-contain drop-shadow-2xl" alt="Bouteille" />
+        <img crossOrigin="anonymous" src={wine.image || getGenericImageForType(wine.data?.type_simplifie)} className="max-h-[800px] object-contain drop-shadow-2xl" alt="Bouteille" loading="lazy" />
       </div>
       <div className="w-full text-center space-y-6 bg-[#0a0a0a] p-12 rounded-[40px] border-2 border-[#D4AF37]/50 mb-12 shadow-2xl">
         <h2 className="text-6xl font-serif font-black text-white leading-tight">{wine.data?.nom}</h2>
@@ -134,7 +134,7 @@ export default function ResultsView({ ctx }) {
             <p className="text-xs text-slate-400 mt-1">{tempAnnee} • {d.region}</p>
             <p className="text-xs text-emerald-400 font-bold mt-3">Apogée : {d.apogee}</p>
           </div>
-          <div className="w-24 h-36 bg-black rounded-2xl p-2 flex items-center justify-center shrink-0"><img src={currentItem.image || fallbackImg} className="max-h-full object-contain" alt="wine"/></div>
+          <div className="w-24 h-36 bg-black rounded-2xl p-2 flex items-center justify-center shrink-0"><img src={currentItem.image || fallbackImg} className="max-h-full object-contain" alt="wine" loading="lazy"/></div>
         </div>
 
         <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333]">

@@ -53,6 +53,19 @@ export default function ScanSelectorView({ ctx }) {
           <p className="text-[10px] text-[#D4AF37]">Import multiple rapide</p>
         </div>
       </button>
+      
+      <button 
+        onClick={() => ctx.setView('barcode')}
+        className="w-full flex items-center p-4 bg-[#1a1a1a] border border-[#333] rounded-2xl hover:border-[#D4AF37] transition-all"
+      >
+        <div className="p-3 bg-[#D4AF37]/10 rounded-xl mr-4 text-[#D4AF37]">
+          <ScanLine className="w-6 h-6" />
+        </div>
+        <div className="text-left">
+          <h3 className="font-bold text-white">Scanner un Code-Barres</h3>
+          <p className="text-xs text-slate-400">Recherche instantanée et gratuite</p>
+        </div>
+      </button>
 
       {/* BOUTON ANNULER */}
       <button 

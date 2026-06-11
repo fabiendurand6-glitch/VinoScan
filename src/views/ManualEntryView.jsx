@@ -69,7 +69,7 @@ export default function ManualEntryView({ ctx }) {
           <div className="flex justify-center mb-6">
             <label className="relative w-32 h-32 bg-[#1A1A1A] border-2 border-dashed border-[#333] rounded-2xl flex flex-col items-center justify-center overflow-hidden cursor-pointer hover:border-[#D4AF37]/50 transition-colors">
               {localImg ? ( 
-                <img src={localImg} className="w-full h-full object-cover" alt="Vin" /> 
+                <img src={localImg} className="w-full h-full object-cover" alt="Vin" loading="lazy" /> 
               ) : (
                 <>
                   <Camera className="w-8 h-8 text-slate-500 mb-2" />

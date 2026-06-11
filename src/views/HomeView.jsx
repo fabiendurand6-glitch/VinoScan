@@ -142,7 +142,7 @@ export default function HomeView({ ctx }) {
                   {bottles.map(bottle => (
                     <div key={bottle.id} draggable={!reorgMode} onDragStart={(e) => handleDragStart(e, bottle)} onClick={() => { if (reorgMode) setSelectedBottle(bottle); else ctx.openExistingWine(bottle, 'home'); }} className={`relative flex flex-col bg-[#1A1A1A] rounded-2xl p-3 shadow-md border border-[#333] cursor-pointer ${reorgMode ? 'ring-2 ring-[#D4AF37] animate-pulse' : ''}`}>
                       <div className="relative h-28 w-full mb-3 flex items-center justify-center bg-[#0a0a0a] rounded-xl border border-[#222]">
-                        <img src={bottle.image || fallbackImg} className="max-h-full object-contain" alt="" />
+                        <img src={bottle.image || fallbackImg} className="max-h-full object-contain" alt="" loading="lazy" />
                         {bottle.stock > 1 && <span className="absolute -top-2 -right-2 bg-[#D4AF37] text-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold">x{bottle.stock}</span>}
                       </div>
                       <div className="flex flex-col items-center text-center mt-1">

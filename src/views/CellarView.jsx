@@ -169,6 +169,7 @@ export default function CellarView({ ctx }) {
                       src={item.img || getGenericImageForType(item.data?.type_simplifie)} 
                       className="h-full object-contain max-w-full" 
                       alt="Bouteille" 
+                      loading="lazy"
                     />
                     <span className="absolute top-2 right-2 px-2 py-0.5 bg-black/70 border border-[#333] text-[10px] font-black text-[#D4AF37] rounded-md">
                       x{item.stock}
@@ -216,7 +217,7 @@ export default function CellarView({ ctx }) {
                       >
                         <div className="flex items-center space-x-3 min-w-0">
                           <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] flex items-center justify-center p-1 border border-[#333]">
-                            <img src={item.img || getGenericImageForType(item.data?.type_simplifie)} className="h-full object-contain" alt="" />
+                            <img src={item.img || getGenericImageForType(item.data?.type_simplifie)} className="h-full object-contain" alt="" loading="lazy" />
                           </div>
                           <div className="min-w-0">
                             <h4 className="text-xs font-bold text-white truncate">{item.data?.nom}</h4>

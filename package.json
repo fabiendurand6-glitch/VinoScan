@@ -15,6 +15,7 @@
     "@capacitor/core": "^8.3.4",
     "firebase": "^12.13.0",
     "html2canvas": "^1.4.1",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "latest",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -12,7 +12,7 @@ import html2canvas from 'html2canvas';
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
-import { getFirestore, initializeFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, collection, addDoc, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { storage } from './config/firebase';
 import ManualEntryView from './views/ManualEntryView';
@@ -32,6 +32,7 @@ import MenuConfigView from './views/MenuConfigView';
 import RecommendationListView from './views/RecommendationListView';
 import CameraView, { AnalyzingView } from './views/CameraView';
 import AuthView from './views/AuthView';
+import { Html5Qrcode } from 'html5-qrcode';
 
 // ========================================================================
 // CONFIGURATION SÉCURISÉEe
@@ -140,17 +141,6 @@ const extractJSON = (text) => {
     throw new Error("Erreur de lecture de l'intelligence artificielle.");
   }
 };
-
-const compressImage = (base64Str, maxWidth = 800) => new Promise((resolve) => {
-  const img = new window.Image(); img.src = base64Str;
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    let width = img.width, height = img.height;
-    if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-    canvas.width = width; canvas.height = height;
-    canvas.getContext('2d').drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', 0.6));
-  };
-});
 
 const callGemini = async (prompt, b64Data = null) => {
   const model = 'gemini-3.1-flash-lite'; 
@@ -372,6 +362,44 @@ const BottomNavigation = ({ ctx }) => (
   </nav>
 );
 
+const BarcodeScannerView = ({ ctx }) => {
+  useEffect(() => {
+    const scanner = new Html5Qrcode("reader");
+    
+    // Lance la caméra arrière avec une zone de lecture ciblée
+    scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 150 } },
+      (decodedText) => {
+        // Dès qu'un code est lu, on coupe la caméra et on lance la recherche
+        scanner.stop();
+        ctx.handleBarcodeScanned(decodedText);
+      },
+      (err) => { /* Les erreurs de lecture en continu sont ignorées ici */ }
+    ).catch(() => {
+      ctx.setErrorMsg("Impossible d'accéder à la caméra pour le code-barres."); 
+      ctx.setView('error');
+    });
+
+    // Nettoyage si l'utilisateur quitte la page
+    return () => { if (scanner.isScanning) scanner.stop(); };
+  }, []);
+
+  return (
+    <div className="h-[100dvh] bg-[#0a0a0a] flex flex-col items-center justify-center relative z-50">
+      <h2 className="text-xl font-bold text-[#D4AF37] mb-6 font-serif">Scannez le code-barres</h2>
+      <p className="text-slate-400 text-sm mb-8 text-center px-6">Placez le code-barres du vin dans le rectangle ci-dessous.</p>
+      
+      {/* C'est ici que html5-qrcode va injecter la vidéo */}
+      <div id="reader" className="w-full max-w-sm rounded-2xl overflow-hidden border-2 border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.2)]"></div>
+      
+      <button onClick={() => ctx.setView('scanSelector')} className="mt-12 px-8 py-3 bg-[#1a1a1a] border border-[#333] rounded-full font-bold text-white shadow-lg active:scale-95 transition-transform">
+        Annuler
+      </button>
+    </div>
+  );
+};
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -398,6 +426,7 @@ export default function App() {
   const [compareBasket, setCompareBasket] = useState([]);
   const [compareContext, setCompareContext] = useState('');
   const [compareResult, setCompareResult] = useState(null);
+  const [currentBarcode, setCurrentBarcode] = useState(null);
 
   const handleAddCompareImage = (e) => {
     const file = e.target.files[0];
@@ -510,10 +539,12 @@ export default function App() {
         // Écoute le champ "tier" dans le document de l'utilisateur
         const userDocRef = doc(db, 'artifacts', appId, 'users', u.uid);
         onSnapshot(userDocRef, (docSnap) => {
-          // ... (ton code actuel pour gérer le tier) ...
+          if (docSnap.exists() && docSnap.data().tier) {
+            setUserTier(docSnap.data().tier);
+          }
         });
       } else {
-        // 👇 NETTOYAGE DU CACHE À LA DÉCONNEXION
+        // NETTOYAGE DU CACHE À LA DÉCONNEXION
         localStorage.removeItem('vinoscan_history');
         setScanHistory([]);
       }
@@ -523,27 +554,53 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!user) { setScanHistory([]); setValueHistory([]); setAlerts([]); return; }
+    if (!user) { 
+      setScanHistory([]); 
+      setValueHistory([]); 
+      setAlerts([]); 
+      return; 
+    }
     
-    const unsubScans = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'scans'), (s) => {
-      let sc = []; let totalV = 0;
-      s.forEach(d => { 
-        if(d.data().data) {
-          const norm = normalizeData(d.data().data);
-          sc.push({id: String(d.id), ...d.data(), data: norm}); 
-          if (d.data().stock > 0) totalV += (norm.prix_unitaire_nombre * d.data().stock);
-        }
-      });
-      sc.sort((a, b) => b.timestamp - a.timestamp); setScanHistory(sc);
-      if (totalV > 0) saveCellarValueSnapshot(user, totalV);
-    }, (error) => {
-      alert("🚨 Lecture Firebase bloquée : " + error.message);
-    });
-
-    const unsubValue = onSnapshot(firestoreQuery(collection(db, 'artifacts', appId, 'users', user.uid, 'value_history'), orderBy('timestamp', 'asc')), (s) => { let vh = []; s.forEach(d => vh.push(d.data())); setValueHistory(vh); });
-    const unsubAlerts = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'alerts'), (s) => { let al = []; s.forEach(d => al.push(d.data())); al.sort((a, b) => b.timestamp - a.timestamp); setAlerts(al); });
-    
-    return () => { unsubScans(); unsubValue(); unsubAlerts(); };
+    const fetchInitialData = async () => {
+      try {
+        // 1. Chargement de la cave (Scans) avec requête unique
+        const scansSnap = await getDocs(collection(db, 'artifacts', appId, 'users', user.uid, 'scans'));
+        let sc = []; let totalV = 0;
+        scansSnap.forEach(d => { 
+          if(d.data().data) {
+            const norm = normalizeData(d.data().data);
+            sc.push({id: String(d.id), ...d.data(), data: norm}); 
+            if (d.data().stock > 0) totalV += (norm.prix_unitaire_nombre * d.data().stock);
+          }
+        });
+        sc.sort((a, b) => b.timestamp - a.timestamp); 
+        setScanHistory(sc);
+        
+        // Mise à jour du cache local
+        localStorage.setItem('vinoscan_history', JSON.stringify(sc));
+        
+        if (totalV > 0) saveCellarValueSnapshot(user, totalV);
+  
+        // 2. Chargement de l'historique de valeur
+        const qValue = firestoreQuery(collection(db, 'artifacts', appId, 'users', user.uid, 'value_history'), orderBy('timestamp', 'asc'));
+        const valueSnap = await getDocs(qValue);
+        let vh = []; 
+        valueSnap.forEach(d => vh.push(d.data())); 
+        setValueHistory(vh);
+  
+        // 3. Chargement des alertes
+        const alertsSnap = await getDocs(collection(db, 'artifacts', appId, 'users', user.uid, 'alerts'));
+        let al = []; 
+        alertsSnap.forEach(d => al.push(d.data())); 
+        al.sort((a, b) => b.timestamp - a.timestamp); 
+        setAlerts(al);
+  
+      } catch (error) {
+        console.error("🚨 Lecture Firebase bloquée : ", error.message);
+      }
+    };
+  
+    fetchInitialData();
   }, [user]);
 
   useEffect(() => { if (user && scanHistory.length > 0) checkAndGenerateAlerts(user, scanHistory, alerts); }, [scanHistory, user]);
@@ -676,6 +733,14 @@ export default function App() {
         const docRef = doc(db, 'artifacts', appId, 'users', activeUser.uid, 'scans', scanId);
         await setDoc(docRef, objFirebase); 
         
+        // 👇 ENRICHISSEMENT DU CATALOGUE PUBLIC
+        if (currentBarcode) {
+        await setDoc(doc(db, 'catalogue_public', currentBarcode), {
+        data: data,
+        image: finalImageUrl
+        });
+       setCurrentBarcode(null); // On vide la mémoire du code-barres
+       }
         // 4. (Optionnel) Met à jour le cache local avec l'URL définitive
         setScanHistory(p => p.map(item => item.id === scanId ? objFirebase : item));
   
@@ -864,7 +929,49 @@ export default function App() {
     toastMsg, showToast, startCamera, stopCamera, capturePhoto, handleFileUpload, analyzeImage, searchWineText, 
     analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField, requireTier, userTier, menuAnalysisResult, setMenuAnalysisResult,
 
-    // 1. Création d'une nouvelle bouteille avec stock à 0
+    handleBarcodeScanned: async (barcode) => {
+      setView('analyzing');
+      try {
+        // 1. Cherche dans la base de données gratuite et globale
+        const docRef = doc(db, 'catalogue_public', barcode);
+        const docSnap = await getDoc(docRef);
+    
+        if (docSnap.exists()) {
+          // 🍷 CAS A : Le vin est connu (0€, instantané)
+          const wineData = docSnap.data();
+          const scanId = Date.now().toString();
+    
+          const objLocal = {
+            id: scanId,
+            image: wineData.image || getGenericImageForType(wineData.data?.type_simplifie),
+            data: wineData.data,
+            stock: 0,
+            in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null,
+            timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR')
+          };
+    
+          setScanHistory(p => [objLocal, ...p]);
+          setCurrentScanId(scanId);
+          setPreviousView('home');
+          setView('results');
+    
+          if (user) await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', scanId), objLocal);
+          showToast("Trouvé dans le catalogue !");
+          
+        } else {
+          // 📷 CAS B : Inconnu. On mémorise le code et on lance la caméra pour l'IA
+          setCurrentBarcode(barcode);
+          setCameraMode('bottle');
+          startCamera('bottle', 'environment');
+          showToast("Nouveau vin ! Prenez l'étiquette en photo.");
+        }
+      } catch (e) {
+        console.error(e);
+        setView('scanSelector');
+        showToast("Erreur de recherche.");
+      }
+    },
+
     processRecommendationSelection: async (wine) => {
       if (!user) return;
       setView('analyzing'); // Affiche l'écran de chargement pendant l'upload
@@ -1015,23 +1122,6 @@ export default function App() {
   if (!user) return <AuthView auth={auth} />;
 
   const unreadAlerts = alerts.filter(a => !a.read).length;
- 
-  useEffect(() => {
-    if (!user) return;
-  
-    // Exemple avec une écoute en temps réel Firestore
-    const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'wines'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const wines = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // Mise à jour de l'état ET du cache local
-      setScanHistory(wines);
-      localStorage.setItem('vinoscan_history', JSON.stringify(wines));
-    });
-  
-    return () => unsubscribe();
-  }, [user]);
 
   return (
     <ErrorBoundary onReset={() => setView('home')}>
@@ -1074,6 +1164,7 @@ export default function App() {
           {view === 'quiz' && <QuizView ctx={ctx} />}
           {view === 'alerts' && <AlertsView ctx={ctx} />}
           {view === 'scanSelector' && <ScanSelectorView ctx={ctx} />}
+          {view === 'barcode' && <BarcodeScannerView ctx={ctx} />}
           {view === 'error' && (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#0a0a0a] pt-20"><AlertTriangle className="w-16 h-16 text-red-500 mb-4" /><h2 className="text-xl font-bold text-white mb-2">Erreur technique</h2><p className="text-sm text-slate-400 mb-6">{errorMsg}</p><button onClick={()=>setView('home')} className="px-6 py-3 bg-[#D4AF37] text-black font-bold rounded-xl shadow-lg">Retour</button></div>
           )}

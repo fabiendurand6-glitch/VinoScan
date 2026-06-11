@@ -35,6 +35,7 @@ export default function HistoryView({ ctx }) {
                   src={item.image || getGenericImageForType(item.data?.type_simplifie)} 
                   className="max-h-full object-contain" 
                   alt="wine" 
+                  loading="lazy"
                 />
               </div>
 

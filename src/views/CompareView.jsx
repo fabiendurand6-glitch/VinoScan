@@ -92,7 +92,7 @@ export default function CompareView({ ctx }) {
           <div className="grid grid-cols-2 gap-4 mb-8">
             {ctx.compareBasket.map((imgBase64, index) => (
               <div key={index} className="relative h-40 bg-black rounded-2xl border border-[#333] overflow-hidden shadow-md">
-                <img src={imgBase64} className="w-full h-full object-cover opacity-80" alt={`Vin ${index + 1}`} />
+                <img src={imgBase64} className="w-full h-full object-cover opacity-80" alt={`Vin ${index + 1}`} loading="lazy" />
                 <button 
                   onClick={() => ctx.removeCompareImage(index)} 
                   className="absolute top-2 right-2 bg-red-500/90 text-white p-2 rounded-full shadow-lg active:scale-90"
