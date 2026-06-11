@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { 
   ChevronLeft, Sparkles, ShoppingCart, Archive, Wine, 
-  Euro, Utensils, RefreshCw 
+  Euro, Utensils, RefreshCw, Camera
 } from 'lucide-react';
 import { boutiqueProducts } from '../constants/shopData';
 import { getAmazonAffiliateLink, extractJSON } from '../utils/wineHelpers';
