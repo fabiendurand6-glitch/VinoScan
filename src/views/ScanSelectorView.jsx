@@ -1,5 +1,6 @@
 // src/views/ScanSelectorView.jsx
 import React from 'react';
+import { Camera, FileText, Menu, ScanLine } from 'lucide-react';
 
 export default function ScanSelectorView({ ctx }) {
   return (
