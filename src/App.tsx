@@ -13,6 +13,8 @@ import html2canvas from 'html2canvas';
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
 import { getFirestore, initializeFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { storage } from './config/firebase';
 import ManualEntryView from './views/ManualEntryView';
 import AiSearchView from './views/AiSearchView';
 import QuizView from './views/QuizView';
@@ -51,6 +53,59 @@ const db = initializeFirestore(app, {
   experimentalForceLongPolling: true
 });
 const appId = 'vinoscan-prestige';
+
+const compressImage = (base64Str, maxWidth = 800, maxHeight = 800) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      // Calcul du ratio pour ne pas déformer l'image
+      if (width > height) {
+        if (width > maxWidth) {
+          height *= maxWidth / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width *= maxHeight / height;
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Le secret financier : conversion forcée en JPEG à 60% de qualité
+      resolve(canvas.toDataURL('image/jpeg', 0.6));
+    };
+  });
+};
+
+const uploadWineImage = async (base64Str, userId, wineId) => {
+  // Si c'est déjà une URL (ex: image générique) ou s'il n'y a pas d'image, on ne fait rien
+  if (!base64Str || !base64Str.startsWith('data:image')) return base64Str;
+  
+  try {
+    // On crée un chemin propre : users/{uid}/wines/{wineId}.jpg
+    const imageRef = ref(storage, `users/${userId}/wines/${wineId}.jpg`);
+    
+    // On envoie le fichier compressé
+    await uploadString(imageRef, base64Str, 'data_url');
+    
+    // On récupère le lien public sécurisé
+    const downloadUrl = await getDownloadURL(imageRef);
+    return downloadUrl;
+  } catch (error) {
+    console.error("Erreur de stockage de l'image:", error);
+    return null; // En cas d'échec, on renverra null pour utiliser l'image par défaut
+  }
+};
 
 // =========================================================================
 // UTILITAIRES ET MOTEURS (DONNÉES, IMAGES, IA)
@@ -325,7 +380,10 @@ export default function App() {
   const [imageSrc, setImageSrc] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [scanHistory, setScanHistory] = useState([]);
+  const [scanHistory, setScanHistory] = useState(() => {
+    const localData = localStorage.getItem('vinoscan_history');
+    return localData ? JSON.parse(localData) : [];
+  });
   const [scanAction, setScanAction] = useState(null); 
   const [recommendationList, setRecommendationList] = useState(null); 
   const [toastMsg, setToastMsg] = useState('');
@@ -444,24 +502,23 @@ export default function App() {
   const streamRef = useRef(null);
 
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (u) => { 
-      setUser(u); 
-      setIsAuthLoading(false); 
-      
+    const unsubAuth = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setIsAuthLoading(false);
+  
       if (u) {
         // Écoute le champ "tier" dans le document de l'utilisateur
         const userDocRef = doc(db, 'artifacts', appId, 'users', u.uid);
         onSnapshot(userDocRef, (docSnap) => {
-          if (docSnap.exists() && docSnap.data().tier) {
-            setUserTier(docSnap.data().tier);
-          } else {
-            setUserTier('FREE'); // Niveau par défaut
-          }
+          // ... (ton code actuel pour gérer le tier) ...
         });
       } else {
-        setUserTier('FREE');
+        // 👇 NETTOYAGE DU CACHE À LA DÉCONNEXION
+        localStorage.removeItem('vinoscan_history');
+        setScanHistory([]);
       }
     });
+  
     return () => unsubAuth();
   }, []);
 
@@ -572,19 +629,32 @@ export default function App() {
     } 
   };
 
-  const processAIResult = async (aiText, sourceImage) => {
+  const processAIResult = async (aiText, b64Image) => {
     const data = normalizeData(extractJSON(aiText)); 
     setAnalysisResult(data);
     
-    // 1. Affichage de la vraie photo à l'écran
-    const localImg = sourceImage || getGenericImageForType(data.type_simplifie); 
+    const scanId = Date.now().toString();
+    
+    // 1. Affichage immédiat (optimiste) pour l'utilisateur
+    const localImg = b64Image || getGenericImageForType(data.type_simplifie); 
     setImageSrc(localImg);
     
-    const scanId = Date.now().toString();
-    const objLocal = { id: scanId, image: localImg, data, stock: 0, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
+    const objLocal = { 
+      id: scanId, 
+      image: localImg, // B64 gardé temporairement pour le visuel immédiat
+      data, 
+      stock: 0, 
+      in_history: true, 
+      wishlist: false, 
+      location: '', 
+      notes: '', 
+      rating: 0, 
+      sensory_dna: null, 
+      timestamp: Date.now(), 
+      dateStr: new Date().toLocaleDateString('fr-FR') 
+    };
     
-    // 2. L'interface se met à jour instantanément pour l'utilisateur
-    setScanHistory(p=>[objLocal,...p]); 
+    setScanHistory(p => [objLocal, ...p]); 
     setCurrentScanId(scanId); 
     setPreviousView('home'); 
     setView('results');
@@ -592,13 +662,25 @@ export default function App() {
     const activeUser = auth.currentUser;
     if (activeUser) { 
       try { 
-        // 3. ENVOI SÉCURISÉ : On force l'image générique (légère) pour éviter le crash réseau
-        const objFirebase = { ...objLocal, image: getGenericImageForType(data.type_simplifie) };
+        // 2. ENVOI CLOUD : On upload le Base64 sur le Storage Firebase
+        let finalImageUrl = getGenericImageForType(data.type_simplifie);
+        
+        if (b64Image && b64Image.startsWith('data:image')) {
+          const cloudUrl = await uploadWineImage(b64Image, activeUser.uid, scanId);
+          if (cloudUrl) finalImageUrl = cloudUrl; // On récupère l'URL propre
+        }
+        
+        // 3. SAUVEGARDE LÉGÈRE : On remplace le B64 par l'URL cloud
+        const objFirebase = { ...objLocal, image: finalImageUrl };
         
         const docRef = doc(db, 'artifacts', appId, 'users', activeUser.uid, 'scans', scanId);
         await setDoc(docRef, objFirebase); 
+        
+        // 4. (Optionnel) Met à jour le cache local avec l'URL définitive
+        setScanHistory(p => p.map(item => item.id === scanId ? objFirebase : item));
+  
       } catch(e) {
-        alert(`🚨 Erreur Firebase : ${e.message}`);
+        console.error(`🚨 Erreur Firebase : ${e.message}`);
       } 
     }
   };
@@ -689,11 +771,39 @@ export default function App() {
   const analyzeReceipt = async (b64) => {
     setView('analyzing');
     try {
-      const prompt = `Extrait les vins de ce ticket. JSON: [{"nom":"Nom","annee":"2020","prix_unitaire_nombre":15,"type_simplifie":"ROUGE","region":""}]`;
-      const result = await callGemini(prompt, b64.split(',')[1]);
-      let parsed = extractJSON(result.candidates[0].content.parts[0].text);
-      if(parsed && parsed[0]) { await processAIResult(JSON.stringify(parsed[0]), null); setView('cellar'); } else throw new Error();
-    } catch(err) { setErrorMsg("Lecture de la facture impossible."); setView('error'); }
+      const prompt = `Analyse cette facture ou ticket de caisse d'achat de vin. Repère tous les vins achetés. Renvoie un JSON strict: {"vins": [{"nom":"","annee":"","prix":15,"quantite":1}]}`;
+      
+      const cleanB64 = b64.includes(',') ? b64.split(',')[1] : b64;
+      const result = await callGemini(prompt, cleanB64);
+      const parsed = JSON.parse(result.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, ''));
+  
+      // Pour chaque vin trouvé sur la facture, on crée une fiche légère (sans image unique, ou avec image du ticket)
+      for (const v of parsed.vins) {
+        const id = Math.random().toString(36).substring(2, 9);
+        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'wines', id), {
+          id: id,
+          image: "", // Pas d'image d'étiquette pour l'import sur facture
+          stock: parseInt(v.quantite) || 1,
+          rating: 0,
+          notes: "Importé via facture",
+          location: "",
+          data: {
+            nom: v.nom,
+            annee: v.annee || "N.M.",
+            type_simplifie: "ROUGE", // Par défaut
+            prix_unitaire_nombre: parseFloat(v.prix) || 0,
+            region: "Inconnue",
+            apogee: "Prêt à boire"
+          }
+        });
+      }
+  
+      showToast(`${parsed.vins.length} vins ajoutés depuis la facture !`);
+      setView('home');
+    } catch (err) {
+      showToast("Erreur de lecture de la facture.");
+      setView('home');
+    }
   };
 
   const fetchAIRecommendation = async (type='ALL', apogee='ALL', food='ALL', price='ALL') => {
@@ -755,59 +865,101 @@ export default function App() {
     analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField, requireTier, userTier, menuAnalysisResult, setMenuAnalysisResult,
 
     // 1. Création d'une nouvelle bouteille avec stock à 0
-    processRecommendationSelection: async (w) => {
-      if (!user) { ctx.showToast("Connectez-vous pour ajouter à la cave."); return; }
+    processRecommendationSelection: async (wine) => {
+      if (!user) return;
+      setView('analyzing'); // Affiche l'écran de chargement pendant l'upload
       
-      const scanId = Date.now().toString();
-      const newItem = {
-        data: w,
-        stock: 0,
-        timestamp: Date.now()
-      };
-
       try {
-        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', scanId), newItem);
-        setCurrentScanId(scanId);
-        setPreviousView(view);
-        setView('results');
-      } catch (e) {
-        console.error("Erreur Firebase :", e);
-        ctx.showToast("Erreur lors de la sauvegarde.");
+        // 1. Génération d'un identifiant unique pour le vin
+        const newWineId = wine.id || Date.now().toString();
+        
+        // 2. Envoi de l'image vers Firebase Storage et récupération de l'URL absolue
+        const imageUrl = await uploadWineImage(imageSrc, user.uid, newWineId);
+        
+        // 3. Préparation des données propres sans texte Base64 lourd
+        const wineData = {
+          id: newWineId,
+          image: imageUrl || "", // Utilise l'URL stockée ou vide si échec
+          stock: parseInt(wine.stock) || 1,
+          rating: 0,
+          notes: wine.description || "",
+          location: "",
+          data: {
+            nom: wine.nom || "Vin inconnu",
+            annee: wine.annee || "N.M.",
+            region: wine.region || "Inconnue",
+            type_simplifie: wine.type_simplifie || "ROUGE",
+            prix_unitaire_nombre: parseFloat(wine.prix_unitaire_nombre) || parseFloat(wine.prix) || 0,
+            apogee: wine.apogee || "Prêt à boire",
+            description: wine.description || ""
+          }
+        };
+    
+        // 4. Sauvegarde finale légère dans Firestore
+        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'wines', newWineId), wineData);
+        
+        // 5. Réinitialisation des états de scan et retour à l'accueil
+        setImageSrc(null);
+        setAnalysisResult(null);
+        showToast("Vin ajouté à la cave !");
+        setView('home');
+        
+      } catch (error) {
+        console.error("Erreur lors de l'ajout du vin :", error);
+        showToast("Erreur lors de l'enregistrement.");
+        setView('home');
       }
     },
     
     processManualEntry: async (manualData, customImage) => {
       if (!user) { ctx.showToast("Connectez-vous pour ajouter."); return; }
+      
+      // Optionnel : afficher l'écran de chargement si une grosse image est en cours d'upload
+      if (customImage) setView('analyzing'); 
+      
       const scanId = Date.now().toString();
-
-      const typeSimp = manualData.type_simplifie || 'ROUGE';
-      let gMin = 2, gMax = 5;
-      if (typeSimp === 'ROUGE') { gMin = 3; gMax = 10; }
-      else if (typeSimp === 'BLANC') { gMin = 2; gMax = 6; }
-      else if (typeSimp === 'PETILLANT') { gMin = 1; gMax = 5; }
-      else if (typeSimp === 'ROSE') { gMin = 1; gMax = 3; }
-
-      const updatedData = normalizeData({ ...manualData, garde_min: gMin, garde_max: gMax });
-
-      const newItem = {
-        id: scanId,
-        image: customImage || getGenericImageForType(typeSimp),
-        data: updatedData,
-        stock: 1, // Ajoute directement 1 bouteille en stock !
-        in_history: true,
-        wishlist: false,
-        location: '', notes: '', rating: 0, sensory_dna: null,
-        timestamp: Date.now(),
-        dateStr: new Date().toLocaleDateString('fr-FR')
-      };
-
-      setScanHistory(p => [newItem, ...p]);
+    
       try {
+        const typeSimp = manualData.type_simplifie || 'ROUGE';
+        
+        // 1. GESTION DE L'IMAGE CLOUD (Storage)
+        let finalImageUrl = getGenericImageForType(typeSimp);
+        // Si une image a été uploadée et que c'est un Base64, on l'envoie sur le Storage
+        if (customImage && customImage.startsWith('data:image')) {
+          const cloudUrl = await uploadWineImage(customImage, user.uid, scanId);
+          if (cloudUrl) finalImageUrl = cloudUrl; 
+        }
+    
+        let gMin = 2, gMax = 5;
+        if (typeSimp === 'ROUGE') { gMin = 3; gMax = 10; }
+        else if (typeSimp === 'BLANC') { gMin = 2; gMax = 6; }
+        else if (typeSimp === 'PETILLANT') { gMin = 1; gMax = 5; }
+        else if (typeSimp === 'ROSE') { gMin = 1; gMax = 3; }
+    
+        const updatedData = normalizeData({ ...manualData, garde_min: gMin, garde_max: gMax });
+    
+        const newItem = {
+          id: scanId,
+          image: finalImageUrl, // <-- Contient maintenant une URL légère ou l'image par défaut
+          data: updatedData,
+          stock: 1, 
+          in_history: true,
+          wishlist: false,
+          location: '', notes: '', rating: 0, sensory_dna: null,
+          timestamp: Date.now(),
+          dateStr: new Date().toLocaleDateString('fr-FR')
+        };
+    
+        setScanHistory(p => [newItem, ...p]);
+        
+        // Sauvegarde Firestore
         await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', scanId), newItem);
         ctx.showToast("Bouteille ajoutée à la cave !");
         setView('home');
       } catch (e) {
+        console.error(e);
         ctx.showToast("Erreur lors de la sauvegarde.");
+        setView('home');
       }
     },
 
@@ -863,6 +1015,23 @@ export default function App() {
   if (!user) return <AuthView auth={auth} />;
 
   const unreadAlerts = alerts.filter(a => !a.read).length;
+ 
+  useEffect(() => {
+    if (!user) return;
+  
+    // Exemple avec une écoute en temps réel Firestore
+    const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'wines'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const wines = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Mise à jour de l'état ET du cache local
+      setScanHistory(wines);
+      localStorage.setItem('vinoscan_history', JSON.stringify(wines));
+    });
+  
+    return () => unsubscribe();
+  }, [user]);
 
   return (
     <ErrorBoundary onReset={() => setView('home')}>
