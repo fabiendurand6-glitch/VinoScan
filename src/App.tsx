@@ -8,7 +8,7 @@ import {
   Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, 
   ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, 
   SlidersHorizontal, Globe, X, Trophy, TrendingUp, BarChart3, Target, Focus, 
-  Settings, Trash2, Bell, DollarSign, Medal, Check, Layers
+  Settings, Trash2, Bell, DollarSign, Medal, Check, Layers, ScanBarcode
 } from 'lucide-react';
 
 import { 
@@ -20,7 +20,11 @@ import html2canvas from 'html2canvas';
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
-import { getFirestore, initializeFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { 
+  getFirestore, initializeFirestore, collection, addDoc, onSnapshot, 
+  deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, 
+  where, orderBy, limit, getDocs, persistentLocalCache, persistentMultipleTabManager 
+} from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 // =========================================================================
@@ -66,7 +70,7 @@ const getRecommendedAccessory = (type) => {
     case 'ROUGE': return { name: "Carafe à décanter Cristal", search: "carafe a decanter vin rouge cristal" };
     case 'BLANC': return { name: "Seau à glace Design", search: "seau a glace vin inox" };
     case 'PETILLANT': return { name: "Coffret flûtes Prestige", search: "verres flutes champagne cristal" };
-    default: return { name: "Tire-bouchon Sommelier", search: "tire bouchon sommelier professionnel" };
+    default: return { name: "Tire-bouchon Sommelier Pro", search: "tire bouchon sommelier professionnel" };
   }
 };
 
@@ -298,40 +302,31 @@ const SommelierButton = ({ text }) => {
 const InstagramShareCanvas = ({ wine, rating, notes }) => (
   <div id="vs-share-canvas" className="fixed -left-[9999px] top-0 w-[1080px] h-[1920px] bg-gradient-to-br from-[#1a1a1a] to-[#050505] text-white flex flex-col font-sans overflow-hidden">
     <div className="w-full h-full border-[12px] border-[#D4AF37] p-16 flex flex-col items-center justify-between">
-      
       <div className="flex flex-col items-center mt-12">
-        <div className="w-28 h-28 bg-[#0a0a0a] rounded-full flex items-center justify-center border-4 border-[#D4AF37] mb-6">
-          <Wine className="w-14 h-14 text-[#D4AF37]" />
-        </div>
+        <div className="w-28 h-28 bg-[#0a0a0a] rounded-full flex items-center justify-center border-4 border-[#D4AF37] mb-6"><Wine className="w-14 h-14 text-[#D4AF37]" /></div>
         <h1 className="text-6xl font-serif font-bold text-[#D4AF37]">VinoScan</h1>
       </div>
-
       <div className="flex-1 flex items-center justify-center w-full my-12 bg-white/5 rounded-[40px] p-8 border border-[#333]">
         <img crossOrigin="anonymous" src={wine.image || getGenericImageForType(wine.data.type_simplifie)} className="max-h-[800px] object-contain drop-shadow-2xl" alt="Bouteille" />
       </div>
-
       <div className="w-full text-center space-y-6 bg-[#0a0a0a] p-12 rounded-[40px] border-2 border-[#D4AF37]/50 mb-12 shadow-2xl">
         <h2 className="text-6xl font-serif font-black text-white leading-tight">{wine.data.nom}</h2>
         <p className="text-4xl text-[#D4AF37] uppercase font-bold tracking-widest">{wine.data.type_simplifie} • {wine.data.annee} • {wine.data.region}</p>
-        
         {rating > 0 && (
           <div className="flex items-center justify-center space-x-4 pt-6 border-t border-[#333]">
             {Array.from({length: 5}).map((_, i) => <Star key={i} className={`w-12 h-12 ${i < rating ? 'text-[#D4AF37] fill-current' : 'text-slate-600'}`} />)}
           </div>
         )}
-        
         {notes && (
           <div className="pt-6 border-t border-[#333] mt-6">
             <p className="text-4xl text-slate-300 italic leading-snug">"{notes.length > 130 ? notes.substring(0, 127) + '...' : notes}"</p>
           </div>
         )}
       </div>
-
       <div className="w-full pt-8 text-center border-t-2 border-[#D4AF37]/30">
         <p className="text-3xl text-slate-400 mb-4">Scanné avec l'IA</p>
         <p className="text-5xl text-[#D4AF37] font-black tracking-widest">VINOSCAN.COM</p>
       </div>
-
     </div>
   </div>
 );
@@ -384,6 +379,101 @@ const AuthView = ({ auth }) => {
 // VUES PRINCIPALES DE L'APPLICATION
 // =========================================================================
 
+const BarcodeScannerView = ({ ctx }) => {
+  const [manualCode, setManualCode] = useState('');
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    let stream = null;
+    let interval = null;
+
+    const startScanner = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        
+        // Scan Code Barre natif si dispo
+        if ('BarcodeDetector' in window) {
+          const barcodeDetector = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code'] });
+          interval = setInterval(async () => {
+            if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+              try {
+                const barcodes = await barcodeDetector.detect(videoRef.current);
+                if (barcodes.length > 0) {
+                  clearInterval(interval);
+                  ctx.handleBarcodeScanned(barcodes[0].rawValue);
+                }
+              } catch (e) { /* ignore frame errors */ }
+            }
+          }, 500);
+        }
+      } catch (err) {
+        ctx.showToast("Caméra indisponible pour le scan.");
+      }
+    };
+
+    startScanner();
+
+    return () => {
+      if (interval) clearInterval(interval);
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    };
+  }, []);
+
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] select-none relative">
+      <div className="bg-[#1a1a1a] p-4 flex justify-between items-center border-b border-[#333] sticky top-0 z-20">
+        <h1 className="text-xl font-serif font-bold text-[#D4AF37]">Scan Code-Barre</h1>
+        <button onClick={() => ctx.setView('scanSelector')} className="p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><X className="w-5 h-5"/></button>
+      </div>
+      <div className="flex-1 relative flex flex-col items-center justify-center">
+        <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover opacity-60" />
+        <div className="relative z-10 w-64 h-32 border-2 border-[#D4AF37] rounded-xl flex items-center justify-center bg-black/20 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]">
+          <div className="w-full h-0.5 bg-red-500/50 animate-pulse shadow-[0_0_10px_red]"></div>
+        </div>
+        <p className="relative z-10 text-white mt-8 font-bold text-sm bg-black/50 px-4 py-2 rounded-full">Centrez le code-barre (EAN)</p>
+      </div>
+      <div className="p-6 bg-[#1a1a1a] border-t border-[#333] z-20 relative">
+        <p className="text-xs text-slate-400 mb-3 text-center uppercase tracking-wider font-bold">Ou saisie manuelle</p>
+        <div className="flex space-x-2">
+          <input type="text" value={manualCode} onChange={e => setManualCode(e.target.value)} placeholder="Ex: 3185370427329" className="flex-1 bg-black border border-[#333] text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-[#D4AF37]"/>
+          <button onClick={() => ctx.handleBarcodeScanned(manualCode)} disabled={!manualCode.trim()} className="bg-[#D4AF37] text-black px-6 font-bold rounded-xl disabled:opacity-50">Valider</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ScanSelectorView = ({ ctx }) => (
+  <div className="flex flex-col items-center justify-center h-full p-6 bg-[#0a0a0a] text-[#F5F5F5] space-y-4 select-none">
+    <h2 className="text-xl font-bold text-[#D4AF37] mb-6">Ajouter à la cave</h2>
+
+    <button onClick={() => ctx.startBarcodeScanner()} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors shadow-lg">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#333] shrink-0"><ScanBarcode className="w-6 h-6 text-[#D4AF37]"/></div>
+      <div className="text-left"><p className="font-bold">Scanner une Bouteille</p><p className="text-[10px] text-slate-400">Reconnaissance Code-Barre / Étiquette</p></div>
+    </button>
+
+    <button onClick={() => ctx.setView('aiSearch')} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#333] shrink-0">⌨️</div>
+      <div className="text-left"><p className="font-bold">Recherche IA par texte</p><p className="text-[10px] text-slate-400">Trouvez un vin avec son nom</p></div>
+    </button>
+
+    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('menu'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#D4AF37]/50 shrink-0">📖</div>
+      <div className="text-left"><p className="font-bold">Scanner un Menu</p><p className="text-[10px] text-[#D4AF37]">Conseil accord mets-vins</p></div>
+    </button>
+
+    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('receipt'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#D4AF37]/50 shrink-0">🧾</div>
+      <div className="text-left"><p className="font-bold">Scanner une Facture</p><p className="text-[10px] text-[#D4AF37]">Import multiple rapide</p></div>
+    </button>
+
+    <button onClick={() => ctx.setView('home')} className="mt-6 text-gray-500 font-bold p-4 active:scale-95 uppercase tracking-wider text-xs hover:text-white transition-colors">✕ Annuler</button>
+  </div>
+);
+
 const HomeView = ({ ctx }) => {
   const [filterType, setFilterType] = useState('ALL');
   const [filterApogee, setFilterApogee] = useState('ALL');
@@ -434,7 +524,7 @@ const HomeView = ({ ctx }) => {
       <div className="p-4 grid grid-cols-2 gap-3">
         <button onClick={() => ctx.setView('manualEntry')} className="flex flex-col items-center justify-center p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl active:scale-95 transition-all shadow-sm hover:border-[#D4AF37]/50">
           <Plus className="w-6 h-6 text-[#D4AF37] mb-2" />
-          <span className="font-bold text-[11px] uppercase text-slate-300 tracking-wider">Ajouter</span>
+          <span className="font-bold text-[11px] uppercase text-slate-300 tracking-wider">Ajouter Manuel</span>
         </button>
         <button onClick={() => ctx.setView('recommendation')} className="flex flex-col items-center justify-center p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl active:scale-95 transition-all shadow-sm hover:border-[#D4AF37]/50">
           <Sparkles className="w-6 h-6 text-[#D4AF37] mb-2" />
@@ -450,7 +540,7 @@ const HomeView = ({ ctx }) => {
         </button>
       </div>
 
-      {/* 2. FILTRES DE CAVE CORRIGÉS */}
+      {/* 2. FILTRES DE CAVE */}
       <div className="px-4 pb-2 sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-md pt-2 border-b border-[#333]">
         <div className="flex justify-between items-center w-full">
           <div className="flex-1 overflow-x-auto touch-pan-x pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] mr-3">
@@ -545,34 +635,6 @@ const HomeView = ({ ctx }) => {
     </div>
   );
 };
-
-const ScanSelectorView = ({ ctx }) => (
-  <div className="flex flex-col items-center justify-center h-full p-6 bg-[#0a0a0a] text-[#F5F5F5] space-y-4 select-none">
-    <h2 className="text-xl font-bold text-[#D4AF37] mb-6">Ajouter à la cave</h2>
-
-    <button onClick={() => ctx.startCamera('bottle')} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors">
-      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#333] shrink-0">🍾</div>
-      <div className="text-left"><p className="font-bold">Scanner une Bouteille</p><p className="text-[10px] text-slate-400">Reconnaissance IA de l'étiquette</p></div>
-    </button>
-
-    <button onClick={() => ctx.setView('aiSearch')} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors">
-      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#333] shrink-0">⌨️</div>
-      <div className="text-left"><p className="font-bold">Recherche IA par texte</p><p className="text-[10px] text-slate-400">Trouvez un vin avec son nom</p></div>
-    </button>
-
-    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('menu'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors">
-      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#D4AF37]/50 shrink-0">📖</div>
-      <div className="text-left"><p className="font-bold">Scanner un Menu</p><p className="text-[10px] text-[#D4AF37]">Conseil accord mets-vins</p></div>
-    </button>
-
-    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('receipt'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors">
-      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#D4AF37]/50 shrink-0">🧾</div>
-      <div className="text-left"><p className="font-bold">Scanner une Facture</p><p className="text-[10px] text-[#D4AF37]">Import multiple rapide</p></div>
-    </button>
-
-    <button onClick={() => ctx.setView('home')} className="mt-6 text-gray-500 font-bold p-4 active:scale-95 uppercase tracking-wider text-xs">✕ Annuler</button>
-  </div>
-);
 
 const ManualEntryView = ({ ctx }) => {
   const [formData, setFormData] = useState({ nom: '', annee: '', region: '', type_simplifie: 'ROUGE', prix_unitaire_nombre: '' });
@@ -753,9 +815,9 @@ const ResultsView = ({ ctx }) => {
             <div className="bg-gradient-to-r from-[#1A1A1A] to-[#222] p-4 rounded-2xl border border-[#D4AF37]/30 flex justify-between items-center shadow-lg">
               <span className="text-sm font-bold text-[#D4AF37]">En cave :</span>
               <div className="flex items-center space-x-3">
-                <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-10 h-10 bg-[#0a0a0a] border border-[#333] text-white rounded-xl font-bold active:scale-95 hover:border-[#D4AF37]">-</button>
+                <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-10 h-10 bg-[#0a0a0a] border border-[#333] text-white rounded-xl font-bold active:scale-95 hover:border-[#D4AF37] transition-colors">-</button>
                 <span className="text-xl font-black text-white w-6 text-center">{stock}</span>
-                <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-10 h-10 bg-[#D4AF37] text-black rounded-xl font-black active:scale-95">+</button>
+                <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-10 h-10 bg-[#D4AF37] text-black rounded-xl font-black active:scale-95 transition-transform">+</button>
               </div>
             </div>
 
@@ -816,8 +878,8 @@ const ResultsView = ({ ctx }) => {
               <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
             </div>
             
-            <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.generateAndShareInstagramImage(ctx.showToast); }} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
-            <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-3 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-bold">Supprimer de l'application</button>
+            <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.generateAndShareInstagramImage(ctx.showToast); }} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-lg"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
+            <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-3 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-bold hover:bg-red-900/40 transition-colors">Supprimer de l'application</button>
             <InstagramShareCanvas wine={currentItem} rating={rating} notes={tempNotes} />
           </div>
         )}
@@ -988,7 +1050,7 @@ const RecommendationView = ({ ctx }) => {
               ))}
             </div>
           </div>
-          <button onClick={handleRecommend} className="w-full py-5 bg-[#D4AF37] text-black font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 mt-8"><Sparkles className="w-6 h-6" /><span>Trouver la perle rare</span></button>
+          <button onClick={handleRecommend} className="w-full py-5 bg-[#D4AF37] text-black font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 mt-8 hover:scale-[1.02] transition-transform"><Sparkles className="w-6 h-6" /><span>Trouver la perle rare</span></button>
          </div>
         )}
 
@@ -1006,7 +1068,7 @@ const RecommendationView = ({ ctx }) => {
 
             <div className="space-y-4 animate-in fade-in duration-200">
               {boutiqueProducts[shopCat].map((prod, idx) => (
-                <div key={idx} className="bg-[#1A1A1A] border border-[#333] rounded-2xl p-5 flex items-center justify-between shadow-md">
+                <div key={idx} className="bg-[#1A1A1A] border border-[#333] rounded-2xl p-5 flex items-center justify-between shadow-md hover:border-[#D4AF37]/30 transition-colors">
                   <div className="flex items-start space-x-4 min-w-0 flex-1 pr-3">
                     <div className="w-12 h-12 rounded-xl bg-[#0a0a0a] border border-[#333] flex items-center justify-center text-2xl shrink-0">{prod.icon}</div>
                     <div className="min-w-0">
@@ -1028,7 +1090,6 @@ const RecommendationView = ({ ctx }) => {
   );
 };
 
-// Vues secondaires intégrées directement...
 const RecommendationListView = ({ ctx }) => {
   const [sortOrder, setSortOrder] = useState('asc');
   const sortedList = useMemo(() => {
@@ -1040,7 +1101,7 @@ const RecommendationListView = ({ ctx }) => {
     <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 select-none">
       <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center justify-between border-b border-[#333]">
         <div className="flex items-center"><button onClick={() => ctx.setView('recommendation')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">La Sélection</h1></div>
-        <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} className="flex items-center space-x-2 bg-[#0a0a0a] border border-[#333] text-slate-400 px-3 py-2 rounded-xl text-xs font-bold"><ArrowDownUp className="w-4 h-4" /><span>{sortOrder === 'asc' ? 'Prix croissant' : 'Prix décroissant'}</span></button>
+        <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} className="flex items-center space-x-2 bg-[#0a0a0a] border border-[#333] text-slate-400 px-3 py-2 rounded-xl text-xs font-bold hover:text-white transition-colors"><ArrowDownUp className="w-4 h-4" /><span>{sortOrder === 'asc' ? 'Prix croissant' : 'Prix décroissant'}</span></button>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {sortedList.map((wine, index) => (
@@ -1144,7 +1205,7 @@ const QuizView = ({ ctx }) => {
               <div className="w-20 h-20 bg-emerald-900/30 border border-emerald-500/50 rounded-full flex items-center justify-center mx-auto"><Trophy className="w-10 h-10 text-emerald-400"/></div>
               <h3 className="font-serif text-3xl font-bold text-[#F5F5F5]">Terminé !</h3>
               <p className="text-2xl font-black text-emerald-400">{score} / {currentQuiz.length}</p>
-              <div className="flex space-x-3"><button onClick={startGame} className="flex-1 py-4 bg-[#D4AF37] text-black font-bold rounded-2xl hover:bg-[#AA7C11]">Rejouer</button><button onClick={() => ctx.setView('home')} className="flex-1 py-4 bg-[#0a0a0a] border border-[#333] text-slate-300 font-bold rounded-2xl">Quitter</button></div>
+              <div className="flex space-x-3"><button onClick={startGame} className="flex-1 py-4 bg-[#D4AF37] text-black font-bold rounded-2xl hover:bg-[#AA7C11]">Rejouer</button><button onClick={() => ctx.setView('home')} className="flex-1 py-4 bg-[#0a0a0a] border border-[#333] text-slate-300 font-bold rounded-2xl hover:bg-[#333]">Quitter</button></div>
             </div>
           )}
         </div>
@@ -1223,7 +1284,7 @@ const AccountView = ({ ctx }) => {
             ) : (
               <div className="flex items-center justify-between mt-1">
                 <h3 className="font-serif text-2xl font-bold text-[#F5F5F5] truncate pr-4">{user?.displayName || "Anonyme"}</h3>
-                <button onClick={() => setIsEditingProfile(true)} className="p-2 bg-[#0a0a0a] border border-[#333] rounded-full text-slate-400 hover:text-[#D4AF37] shrink-0"><Edit3 className="w-4 h-4" /></button>
+                <button onClick={() => setIsEditingProfile(true)} className="p-2 bg-[#0a0a0a] border border-[#333] rounded-full text-slate-400 hover:text-[#D4AF37] shrink-0 transition-colors"><Edit3 className="w-4 h-4" /></button>
               </div>
             )}
             <p className="text-xs text-slate-400 mt-2">{user?.email}</p>
@@ -1251,14 +1312,14 @@ const AccountView = ({ ctx }) => {
               </ResponsiveContainer>
             </div>
           ) : (
-            <button onClick={() => { if (!ctx.requireTier('AMATEUR')) generateADN(); }} disabled={isSensoryLoading} className="w-full mt-4 py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center justify-center space-x-2">
+            <button onClick={() => { if (!ctx.requireTier('AMATEUR')) generateADN(); }} disabled={isSensoryLoading} className="w-full mt-4 py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center justify-center space-x-2 shadow-lg">
               {isSensoryLoading ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4"/>}
               <span>Générer mon ADN sensoriel</span>
             </button>
           )}
         </div>
 
-        <button onClick={() => signOut(auth)} className="w-full py-4 bg-red-950/20 text-red-400 font-bold rounded-2xl border border-red-900/40 flex items-center justify-center"><LogOut className="w-4 h-4 mr-3" /> Se déconnecter</button>
+        <button onClick={() => signOut(auth)} className="w-full py-4 bg-red-950/20 text-red-400 font-bold rounded-2xl border border-red-900/40 flex items-center justify-center hover:bg-red-900/40 transition-colors"><LogOut className="w-4 h-4 mr-3" /> Se déconnecter</button>
       </div>
     </div>
   );
@@ -1268,7 +1329,7 @@ const CompareView = ({ ctx }) => (
   <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none p-5">
     <div className="flex items-center justify-between mb-6 pt-6">
       <h2 className="text-2xl font-serif font-bold text-[#D4AF37]">Comparateur</h2>
-      <button onClick={() => ctx.setView('home')} className="p-2 bg-[#1A1A1A] border border-[#333] rounded-full text-slate-400"><X className="w-5 h-5"/></button>
+      <button onClick={() => ctx.setView('home')} className="p-2 bg-[#1A1A1A] border border-[#333] rounded-full text-slate-400 hover:text-[#D4AF37] transition-colors"><X className="w-5 h-5"/></button>
     </div>
 
     {ctx.compareResult ? (
@@ -1286,14 +1347,14 @@ const CompareView = ({ ctx }) => (
         <div className="mt-4 space-y-2">
           <p className="text-xs text-black/80 font-bold uppercase tracking-wider mb-2">Autres options détectées :</p>
           {ctx.compareResult.alternatives?.map((alt, index) => (
-            <div key={index} onClick={(e) => { e.stopPropagation(); ctx.processRecommendationSelection({ nom: alt.nom, description: alt.avis, type_simplifie: "ROUGE", stock: 0 }); }} className="bg-black/5 border border-black/10 p-3 rounded-xl active:scale-95 transition-transform">
+            <div key={index} onClick={(e) => { e.stopPropagation(); ctx.processRecommendationSelection({ nom: alt.nom, description: alt.avis, type_simplifie: "ROUGE", stock: 0 }); }} className="bg-black/5 border border-black/10 p-3 rounded-xl active:scale-95 transition-transform hover:bg-black/10">
               <p className="text-sm font-bold text-black">{alt.nom}</p><p className="text-xs text-black/80 font-medium">{alt.avis}</p>
             </div>
           ))}
         </div>
       </button>
 
-      <button onClick={() => {ctx.setCompareResult(null); ctx.setCompareBasket([]); ctx.setCompareContext('');}} className="w-full bg-[#1A1A1A] text-white py-4 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#333]">Nouvelle comparaison</button>
+      <button onClick={() => {ctx.setCompareResult(null); ctx.setCompareBasket([]); ctx.setCompareContext('');}} className="w-full bg-[#1A1A1A] text-white py-4 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#333] hover:bg-[#333] transition-colors">Nouvelle comparaison</button>
     </div>
     ) : (
       <>
@@ -1381,7 +1442,7 @@ const PaywallView = ({ ctx }) => (
         </div>
       </div>
 
-      <button onClick={() => ctx.setView(ctx.previousView !== 'paywall' ? ctx.previousView : 'home')} className="text-xs text-slate-500 font-bold uppercase tracking-wider hover:text-white pt-4">Plus tard, rester en gratuit</button>
+      <button onClick={() => ctx.setView(ctx.previousView !== 'paywall' ? ctx.previousView : 'home')} className="text-xs text-slate-500 font-bold uppercase tracking-wider hover:text-white pt-4 transition-colors">Plus tard, rester en gratuit</button>
     </div>
   </div>
 );
@@ -1412,6 +1473,9 @@ export default function App() {
   const [compareBasket, setCompareBasket] = useState([]);
   const [compareContext, setCompareContext] = useState('');
   const [compareResult, setCompareResult] = useState(null);
+  
+  // Nouveau State Global pour le workflow Code-Barre
+  const [currentBarcode, setCurrentBarcode] = useState(null);
 
   const handleAddCompareImage = (e) => {
     const file = e.target.files[0];
@@ -1510,7 +1574,7 @@ export default function App() {
   const showToast = (m) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3000); };
   
   const startCamera = async (mode = cameraMode, face = facingMode) => {
-    if (mode === 'bottle' && !checkUsageLimit('photo', 5)) return;
+    if (mode === 'bottle' && !checkUsageLimit('photo')) return;
     if (mode === 'receipt' && !checkUsageLimit('facture')) return;
     if (!navigator.mediaDevices?.getUserMedia) { setErrorMsg("Caméra indisponible."); setView('error'); return; }
     try { 
@@ -1548,6 +1612,59 @@ export default function App() {
     } catch (e) { console.error("Upload error:", e); return null; }
   };
 
+  // NOUVEAU WORKFLOW CODE-BARRE
+  const startBarcodeScanner = () => {
+    if (!checkUsageLimit('photo')) return;
+    setCurrentBarcode(null);
+    setView('barcodeScanner');
+  };
+
+  const handleBarcodeScanned = async (code) => {
+    setCurrentBarcode(code);
+    setView('analyzing');
+    try {
+      const globalRef = doc(db, 'global_wines', code);
+      const globalSnap = await getDoc(globalRef);
+
+      if (globalSnap.exists()) {
+        showToast("Vin reconnu via la communauté !");
+        const wineData = globalSnap.data();
+        
+        const scanId = Date.now().toString();
+        const objLocal = { 
+          id: scanId, 
+          image: wineData.image || getGenericImageForType(wineData.data.type_simplifie), 
+          data: wineData.data, 
+          stock: 0, 
+          in_history: true, 
+          wishlist: false, 
+          location: '', 
+          notes: '', 
+          rating: 0, 
+          sensory_dna: null, 
+          timestamp: Date.now(), 
+          dateStr: new Date().toLocaleDateString('fr-FR'),
+          barcode: code
+        };
+        
+        setScanHistory(p => [objLocal, ...p]);
+        setCurrentScanId(scanId);
+        setPreviousView('home');
+        setView('results');
+
+        if (user) {
+          await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', scanId), objLocal);
+        }
+      } else {
+        showToast("Nouveau vin ! Prenez l'étiquette en photo.");
+        startCamera('bottle');
+      }
+    } catch (err) {
+      showToast("Erreur réseau. Bascule vers l'étiquette.");
+      startCamera('bottle');
+    }
+  };
+
   const processAIResult = async (aiText, sourceImage) => {
     const data = normalizeData(extractJSON(aiText)); 
     setAnalysisResult(data);
@@ -1565,12 +1682,31 @@ export default function App() {
 
     setImageSrc(secureImageUrl);
     
-    const objLocal = { id: scanId, image: secureImageUrl, data, stock: 0, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
+    const objLocal = { 
+      id: scanId, image: secureImageUrl, data, stock: 0, in_history: true, wishlist: false, location: '', 
+      notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') 
+    };
+
+    if (currentBarcode) objLocal.barcode = currentBarcode;
     
     setScanHistory(p=>[objLocal,...p]); setCurrentScanId(scanId); setPreviousView('home'); setView('results');
     
     if (activeUser) { 
-      try { await setDoc(doc(db, 'artifacts', appId, 'users', activeUser.uid, 'scans', scanId), objLocal); } 
+      try { 
+        await setDoc(doc(db, 'artifacts', appId, 'users', activeUser.uid, 'scans', scanId), objLocal); 
+
+        // Enregistrement communautaire dans global_wines
+        if (currentBarcode) {
+          await setDoc(doc(db, 'global_wines', currentBarcode), {
+            barcode: currentBarcode,
+            data: data,
+            image: secureImageUrl,
+            timestamp: Date.now(),
+            addedBy: activeUser.uid
+          });
+          setCurrentBarcode(null); // Reset after save
+        }
+      } 
       catch(e) { alert(`🚨 Erreur Firebase : ${e.message}`); } 
     }
   };
@@ -1588,7 +1724,7 @@ export default function App() {
   };
 
   const searchWineText = async (textQuery) => {
-    if (!checkUsageLimit('manual', 10)) return;
+    if (!checkUsageLimit('manual')) return;
     setView('analyzing'); setPreviousView('home');
     try {
       const prompt = `Recherche le vin : "${textQuery}". JSON strict: {"nom":"${textQuery}","type_simplifie":"ROUGE","annee":"2020","region":"","description":"","prix_unitaire_nombre":15,"garde_min":2,"garde_max":10,"accord_parfait":""}`;
@@ -1644,6 +1780,7 @@ export default function App() {
     toastMsg, showToast, startCamera, stopCamera, capturePhoto, handleFileUpload, analyzeImage, searchWineText, 
     analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, requireTier, userTier, alerts,
     compareBasket, setCompareBasket, compareContext, setCompareContext, handleAddCompareImage, removeCompareImage, launchComparison, compareResult, setCompareResult, callGemini, analyzeSensoryDNA, valueHistory, videoRef, canvasRef, toggleCamera, goBack: () => setView(previousView),
+    startBarcodeScanner, handleBarcodeScanned,
 
     processManualEntry: async (manualData, customImage) => {
       if (!user) { ctx.showToast("Connectez-vous pour ajouter."); return; }
@@ -1720,7 +1857,7 @@ export default function App() {
                 <Bell className="w-5 h-5" />
                 {unreadAlerts > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-[#1a1a1a]">{unreadAlerts}</span>}
               </button>
-              <button onClick={() => setView('paywall')} className="px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg bg-[#D4AF37] text-black active:scale-95">
+              <button onClick={() => setView('paywall')} className="px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg bg-[#D4AF37] text-black active:scale-95 hover:bg-[#AA7C11]">
                 {userTier === 'FREE' ? '⭐ PREMIUM' : userTier}
               </button>
             </div>
@@ -1744,19 +1881,20 @@ export default function App() {
           {view === 'quiz' && <QuizView ctx={ctx} />}
           {view === 'alerts' && <AlertsView ctx={ctx} />}
           {view === 'scanSelector' && <ScanSelectorView ctx={ctx} />}
+          {view === 'barcodeScanner' && <BarcodeScannerView ctx={ctx} />}
           {view === 'error' && (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#0a0a0a] pt-20"><AlertTriangle className="w-16 h-16 text-red-500 mb-4" /><h2 className="text-xl font-bold text-white mb-2">Erreur technique</h2><p className="text-sm text-slate-400 mb-6">{errorMsg}</p><button onClick={()=>setView('home')} className="px-6 py-3 bg-[#D4AF37] text-black font-bold rounded-xl shadow-lg">Retour</button></div>
           )}
         </div>
         
         {scanAction && (
-          <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"><div className="bg-[#1a1a1a] border border-[#333] rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl"><h3 className="text-xl font-bold text-white mb-2">Supprimer ?</h3><div className="flex space-x-3 mt-6"><button onClick={()=>setScanAction(null)} className="flex-1 py-3 bg-[#333] rounded-xl font-bold">Annuler</button><button onClick={()=>{ ctx.genericUpdate(scanAction.id, { in_history: false, stock: 0 }); setScanAction(null); setView('home'); ctx.showToast("Supprimé."); }} className="flex-1 py-3 bg-red-600/20 text-red-400 border border-red-600/40 rounded-xl font-bold">Supprimer</button></div></div></div>
+          <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"><div className="bg-[#1a1a1a] border border-[#333] rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl"><h3 className="text-xl font-bold text-white mb-2">Supprimer ?</h3><div className="flex space-x-3 mt-6"><button onClick={()=>setScanAction(null)} className="flex-1 py-3 bg-[#333] rounded-xl font-bold hover:bg-[#444] transition-colors">Annuler</button><button onClick={()=>{ ctx.genericUpdate(scanAction.id, { in_history: false, stock: 0 }); setScanAction(null); setView('home'); ctx.showToast("Supprimé."); }} className="flex-1 py-3 bg-red-600/20 text-red-400 border border-red-600/40 rounded-xl font-bold hover:bg-red-900/40 transition-colors">Supprimer</button></div></div></div>
         )}
         {toastMsg && (
           <div className="absolute top-20 left-0 w-full flex justify-center z-[200] animate-in slide-in-from-top-4"><div className="bg-[#D4AF37] text-black font-bold px-5 py-3 rounded-full shadow-lg border border-[#AA7C11] flex items-center space-x-2"><CheckCircle className="w-4 h-4" /><span>{toastMsg}</span></div></div>
         )}
 
-        {view !== 'camera' && view !== 'analyzing' && <BottomNavigation ctx={ctx} />}
+        {view !== 'camera' && view !== 'barcodeScanner' && view !== 'analyzing' && <BottomNavigation ctx={ctx} />}
       </div>
     </ErrorBoundary>
   );
