@@ -1,7 +1,14 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  Camera, Image as ImageIcon, Wine, Utensils, Tag, ChevronLeft, ScanLine, ShoppingCart, Info, AlertCircle, History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, SlidersHorizontal, Globe, X, Trophy, TrendingUp, BarChart3, Target, Focus, Settings, Trash2, Bell, DollarSign, Medal, Check, Layers
+  Camera, Wine, Utensils, Tag, ChevronLeft, ShoppingCart, Info, AlertCircle, 
+  History, Home, ChevronRight, User, Lock, Mail, LogOut, UserPlus, MailCheck, 
+  ShieldCheck, RefreshCw, Archive, Plus, Minus, Clock, TrendingDown, Star, Euro, 
+  Filter, CheckCircle, AlertTriangle, EyeOff, Search, Sparkles, ArrowDownUp, 
+  Heart, MapPin, Share2, Edit3, PieChart, BellRing, LayoutGrid, List, GripHorizontal, 
+  ChevronDown, Download, Award, BookOpen, Receipt, ChefHat, WifiOff, Gamepad2, 
+  SlidersHorizontal, Globe, X, Trophy, TrendingUp, BarChart3, Target, Focus, 
+  Settings, Trash2, Bell, DollarSign, Medal, Check, Layers
 } from 'lucide-react';
 
 import { 
@@ -10,32 +17,14 @@ import {
 } from 'recharts';
 import html2canvas from 'html2canvas';
 
+// --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
-import { getFirestore, initializeFirestore, collection, addDoc, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { storage } from './config/firebase';
-import ManualEntryView from './views/ManualEntryView';
-import AiSearchView from './views/AiSearchView';
-import QuizView from './views/QuizView';
-import RecommendationView from './views/RecommendationView';
-import CellarView from './views/CellarView';
-import HistoryView from './views/HistoryView';
-import AccountView from './views/AccountView';
-import HomeView from './views/HomeView';
-import ResultsView from './views/ResultsView';
-import CompareView from './views/CompareView';
-import PaywallView from './views/PaywallView';
-import AlertsView from './views/AlertsView';
-import ScanSelectorView from './views/ScanSelectorView';
-import MenuConfigView from './views/MenuConfigView';
-import RecommendationListView from './views/RecommendationListView';
-import CameraView, { AnalyzingView } from './views/CameraView';
-import AuthView from './views/AuthView';
-import { Html5Qrcode } from 'html5-qrcode';
+import { getFirestore, initializeFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, getDoc, setDoc, query as firestoreQuery, where, orderBy, limit, getDocs, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 
-// ========================================================================
-// CONFIGURATION SÉCURISÉEe
+// =========================================================================
+// CONFIGURATION SÉCURISÉE & FIREBASE
 // =========================================================================
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
@@ -50,63 +39,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const storage = getStorage(app);
+
+// ACTIVATION DU MODE HORS-LIGNE POUR LES CAVES
 const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 const appId = 'vinoscan-prestige';
-
-const compressImage = (base64Str, maxWidth = 800, maxHeight = 800) => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-
-      // Calcul du ratio pour ne pas déformer l'image
-      if (width > height) {
-        if (width > maxWidth) {
-          height *= maxWidth / width;
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width *= maxHeight / height;
-          height = maxHeight;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      // Le secret financier : conversion forcée en JPEG à 60% de qualité
-      resolve(canvas.toDataURL('image/jpeg', 0.6));
-    };
-  });
-};
-
-const uploadWineImage = async (base64Str, userId, wineId) => {
-  // Si c'est déjà une URL (ex: image générique) ou s'il n'y a pas d'image, on ne fait rien
-  if (!base64Str || !base64Str.startsWith('data:image')) return base64Str;
-  
-  try {
-    // On crée un chemin propre : users/{uid}/wines/{wineId}.jpg
-    const imageRef = ref(storage, `users/${userId}/wines/${wineId}.jpg`);
-    
-    // On envoie le fichier compressé
-    await uploadString(imageRef, base64Str, 'data_url');
-    
-    // On récupère le lien public sécurisé
-    const downloadUrl = await getDownloadURL(imageRef);
-    return downloadUrl;
-  } catch (error) {
-    console.error("Erreur de stockage de l'image:", error);
-    return null; // En cas d'échec, on renverra null pour utiliser l'image par défaut
-  }
-};
 
 // =========================================================================
 // UTILITAIRES ET MOTEURS (DONNÉES, IMAGES, IA)
@@ -142,12 +81,22 @@ const extractJSON = (text) => {
   }
 };
 
+const compressImage = (base64Str, maxWidth = 800) => new Promise((resolve) => {
+  const img = new window.Image(); img.src = base64Str;
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    let width = img.width, height = img.height;
+    if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+    canvas.width = width; canvas.height = height;
+    canvas.getContext('2d').drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', 0.6));
+  };
+});
+
 const callGemini = async (prompt, b64Data = null) => {
   const model = 'gemini-3.1-flash-lite'; 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const parts = [{ text: prompt }];
   
-  // Gère automatiquement 1 image ou un tableau de plusieurs images
   if (b64Data) {
     if (Array.isArray(b64Data)) {
       b64Data.forEach(img => parts.push({ inlineData: { mimeType: "image/jpeg", data: img } }));
@@ -306,43 +255,6 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-const NavigationBar = ({ ctx }) => (
-  <div className="absolute bottom-0 w-full bg-[#1a1a1a] border-t border-[#333] flex justify-around items-center pb-safe pt-2 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] z-[100] h-16 select-none">
-    {[{id:'home', i:Home, text:'Scanner'},{id:'cellar', i:Archive, text:'Cave'},{id:'recommendation', i:Sparkles, text:'Conseil'},{id:'history', i:History, text:'Histo'},{id:'account', i:User, text:'Profil'}].map(item => {
-      const active = ctx.view.includes(item.id) || (item.id === 'home' && ['manualSearch', 'menuConfig', 'quiz'].includes(ctx.view)) || (item.id === 'recommendation' && ctx.view === 'recommendationList');
-      return (
-        <button 
-          key={item.id} 
-          onClick={() => ctx.setView(item.id)} 
-          /* CORRECTIONS CSS ICI : flex-1, bg-transparent, outline-none */
-          className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 bg-transparent border-none outline-none focus:outline-none transition-colors ${active ? 'text-[#D4AF37]' : 'text-slate-500 hover:text-slate-300'}`}
-        >
-          <item.i className="w-5 h-5" />
-          <span className="text-[9px] font-bold uppercase tracking-wider">{item.text}</span>
-        </button>
-      );
-    })}
-  </div>
-);
-
-const generateAndShareInstagramImage = async (showToastFunc) => {
-  const element = document.getElementById('vs-share-canvas');
-  if (!element) return;
-  showToastFunc("Génération de l'image...");
-  try {
-    const canvas = await html2canvas(element, { useCORS: true, scale: 1, backgroundColor: '#0a0a0a' });
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    const blob = await (await fetch(dataUrl)).blob();
-    const file = new File([blob], 'vinoscan.jpg', { type: 'image/jpeg' });
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Ma dégustation 🍷', text: 'Scanné avec VinoScan !' });
-    } else {
-      const link = document.createElement('a'); link.download = 'vinoscan.jpg'; link.href = dataUrl; link.click();
-      showToastFunc("Image prête !");
-    }
-  } catch (e) { showToastFunc("Erreur de génération."); }
-};
-
 const BottomNavigation = ({ ctx }) => (
   <nav className="absolute bottom-0 w-full bg-[#1A1A1A]/95 backdrop-blur-md border-t border-[#333] flex justify-around items-center h-20 z-50">
     <button onClick={() => ctx.setView('home')} className={`flex flex-col items-center transition-colors ${ctx.view === 'home' ? 'text-[#D4AF37]' : 'text-slate-500 hover:text-slate-400'}`}>
@@ -350,7 +262,6 @@ const BottomNavigation = ({ ctx }) => (
       <span className="text-[10px] font-bold uppercase tracking-wider">Ma Cave</span>
     </button>
     
-    {/* Le bouton central a maintenant un design luxe Noir/Or au lieu du dégradé jaune */}
     <button onClick={() => ctx.setView('scanSelector')} className="w-16 h-16 bg-[#0a0a0a] border-2 border-[#D4AF37] rounded-full flex justify-center items-center shadow-[0_0_15px_rgba(212,175,55,0.2)] -mt-8 active:scale-90 transition-transform">
       <Camera className="w-7 h-7 text-[#D4AF37]" />
     </button>
@@ -362,43 +273,1122 @@ const BottomNavigation = ({ ctx }) => (
   </nav>
 );
 
-const BarcodeScannerView = ({ ctx }) => {
-  useEffect(() => {
-    const scanner = new Html5Qrcode("reader");
+const SommelierButton = ({ text }) => {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const lireTexte = (e) => {
+    e.stopPropagation(); 
+    if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); return; }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'fr-FR'; utterance.rate = 0.95; 
     
-    // Lance la caméra arrière avec une zone de lecture ciblée
-    scanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 150 } },
-      (decodedText) => {
-        // Dès qu'un code est lu, on coupe la caméra et on lance la recherche
-        scanner.stop();
-        ctx.handleBarcodeScanned(decodedText);
-      },
-      (err) => { /* Les erreurs de lecture en continu sont ignorées ici */ }
-    ).catch(() => {
-      ctx.setErrorMsg("Impossible d'accéder à la caméra pour le code-barres."); 
-      ctx.setView('error');
-    });
+    const voices = window.speechSynthesis.getVoices();
+    const frVoice = voices.find(v => v.lang === 'fr-FR' && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Thomas'))) || voices.find(v => v.lang.startsWith('fr'));
+    if (frVoice) utterance.voice = frVoice;
 
-    // Nettoyage si l'utilisateur quitte la page
-    return () => { if (scanner.isScanning) scanner.stop(); };
-  }, []);
-
+    utterance.onend = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance); setIsSpeaking(true);
+  };
   return (
-    <div className="h-[100dvh] bg-[#0a0a0a] flex flex-col items-center justify-center relative z-50">
-      <h2 className="text-xl font-bold text-[#D4AF37] mb-6 font-serif">Scannez le code-barres</h2>
-      <p className="text-slate-400 text-sm mb-8 text-center px-6">Placez le code-barres du vin dans le rectangle ci-dessous.</p>
+    <button onClick={lireTexte} className={`p-2 rounded-full border transition-all shadow-md ${isSpeaking ? 'bg-[#D4AF37] border-[#D4AF37] text-black shadow-[0_0_15px_rgba(212,175,55,0.5)] scale-105' : 'bg-[#1A1A1A] border-[#333] text-[#D4AF37] hover:border-[#D4AF37]/50'}`}>
+      {isSpeaking ? <EyeOff className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+    </button>
+  );
+};
+
+const InstagramShareCanvas = ({ wine, rating, notes }) => (
+  <div id="vs-share-canvas" className="fixed -left-[9999px] top-0 w-[1080px] h-[1920px] bg-gradient-to-br from-[#1a1a1a] to-[#050505] text-white flex flex-col font-sans overflow-hidden">
+    <div className="w-full h-full border-[12px] border-[#D4AF37] p-16 flex flex-col items-center justify-between">
       
-      {/* C'est ici que html5-qrcode va injecter la vidéo */}
-      <div id="reader" className="w-full max-w-sm rounded-2xl overflow-hidden border-2 border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.2)]"></div>
-      
-      <button onClick={() => ctx.setView('scanSelector')} className="mt-12 px-8 py-3 bg-[#1a1a1a] border border-[#333] rounded-full font-bold text-white shadow-lg active:scale-95 transition-transform">
-        Annuler
-      </button>
+      <div className="flex flex-col items-center mt-12">
+        <div className="w-28 h-28 bg-[#0a0a0a] rounded-full flex items-center justify-center border-4 border-[#D4AF37] mb-6">
+          <Wine className="w-14 h-14 text-[#D4AF37]" />
+        </div>
+        <h1 className="text-6xl font-serif font-bold text-[#D4AF37]">VinoScan</h1>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center w-full my-12 bg-white/5 rounded-[40px] p-8 border border-[#333]">
+        <img crossOrigin="anonymous" src={wine.image || getGenericImageForType(wine.data.type_simplifie)} className="max-h-[800px] object-contain drop-shadow-2xl" alt="Bouteille" />
+      </div>
+
+      <div className="w-full text-center space-y-6 bg-[#0a0a0a] p-12 rounded-[40px] border-2 border-[#D4AF37]/50 mb-12 shadow-2xl">
+        <h2 className="text-6xl font-serif font-black text-white leading-tight">{wine.data.nom}</h2>
+        <p className="text-4xl text-[#D4AF37] uppercase font-bold tracking-widest">{wine.data.type_simplifie} • {wine.data.annee} • {wine.data.region}</p>
+        
+        {rating > 0 && (
+          <div className="flex items-center justify-center space-x-4 pt-6 border-t border-[#333]">
+            {Array.from({length: 5}).map((_, i) => <Star key={i} className={`w-12 h-12 ${i < rating ? 'text-[#D4AF37] fill-current' : 'text-slate-600'}`} />)}
+          </div>
+        )}
+        
+        {notes && (
+          <div className="pt-6 border-t border-[#333] mt-6">
+            <p className="text-4xl text-slate-300 italic leading-snug">"{notes.length > 130 ? notes.substring(0, 127) + '...' : notes}"</p>
+          </div>
+        )}
+      </div>
+
+      <div className="w-full pt-8 text-center border-t-2 border-[#D4AF37]/30">
+        <p className="text-3xl text-slate-400 mb-4">Scanné avec l'IA</p>
+        <p className="text-5xl text-[#D4AF37] font-black tracking-widest">VINOSCAN.COM</p>
+      </div>
+
+    </div>
+  </div>
+);
+
+const AuthView = ({ auth }) => {
+  const [mode, setMode] = useState('signup'); 
+  const [email, setEmail] = useState(''); 
+  const [password, setPassword] = useState(''); 
+  const [error, setError] = useState(''); 
+  const [loading, setLoading] = useState(false);
+  
+  const handleAuth = async (e) => {
+    e.preventDefault(); setError(''); setLoading(true);
+    try { 
+      if (mode === 'login') await signInWithEmailAndPassword(auth, email, password); 
+      else await createUserWithEmailAndPassword(auth, email, password); 
+    } catch (x) { setError("Erreur de connexion."); } finally { setLoading(false); }
+  };
+  
+  return (
+    <div className="w-full max-w-md mx-auto h-[100dvh] bg-[#0a0a0a] flex flex-col relative overflow-hidden select-none">
+      <div className="absolute -top-32 -left-32 w-64 h-64 bg-[#D4AF37]/10 rounded-full blur-3xl animate-pulse"></div>
+      <div className="flex-1 flex flex-col items-center justify-center p-8 z-10">
+        <div className="w-28 h-28 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] rounded-full flex items-center justify-center mb-8 border border-[#D4AF37]/30 shadow-lg"><Wine className="w-12 h-12 text-[#D4AF37]" /></div>
+        <h2 className="text-4xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] mb-2 drop-shadow-sm">VinoScan</h2>
+        <p className="text-[#D4AF37]/60 text-xs font-bold uppercase tracking-widest text-center mb-12">Accès Privé Réservé</p>
+        <form onSubmit={handleAuth} className="w-full space-y-5">
+          <div className="bg-[#1A1A1A] p-4 rounded-3xl border border-[#333] shadow-inner">
+            <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Email</label>
+            <input type="email" value={email} onChange={x=>setEmail(x.target.value)} className="w-full bg-transparent text-white outline-none font-medium" required />
+          </div>
+          <div className="bg-[#1A1A1A] p-4 rounded-3xl border border-[#333] shadow-inner">
+            <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Mot de passe</label>
+            <input type="password" value={password} onChange={x=>setPassword(x.target.value)} className="w-full bg-transparent text-white outline-none font-medium" required />
+          </div>
+          {error && <p className="text-red-500 text-xs text-center font-bold bg-red-950/20 py-2 rounded-lg border border-red-900/50">{error}</p>}
+          <button type="submit" disabled={loading} className="w-full py-5 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black rounded-full font-black text-lg shadow-lg active:scale-95 transition-all flex justify-center disabled:opacity-50">
+            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : (mode === 'login' ? 'Ouvrir la cave' : 'Créer ma cave privée')}
+          </button>
+        </form>
+        <button onClick={() => setMode(mode === 'login' ? 'signup' : 'login')} className="mt-12 text-slate-400 text-sm font-medium hover:text-[#D4AF37] transition-colors">
+          {mode === 'login' ? "Nouveau membre ? S'inscrire" : "Déjà inscrit ? Se connecter"}
+        </button>
+      </div>
     </div>
   );
 };
+
+// =========================================================================
+// VUES PRINCIPALES DE L'APPLICATION
+// =========================================================================
+
+const HomeView = ({ ctx }) => {
+  const [filterType, setFilterType] = useState('ALL');
+  const [filterApogee, setFilterApogee] = useState('ALL');
+  const [viewMode, setViewMode] = useState('list'); 
+  const [reorgMode, setReorgMode] = useState(false);
+  const [selectedBottle, setSelectedBottle] = useState(null);
+  const [newShelfName, setNewShelfName] = useState('');
+
+  const cellarItems = ctx.scanHistory.filter(item => item.stock > 0);
+
+  const filteredItems = useMemo(() => {
+    return cellarItems.filter(item => {
+      const matchType = filterType === 'ALL' || item.data.type_simplifie === filterType;
+      const matchApogee = filterApogee === 'ALL' || item.data.statut_apogee === filterApogee;
+      return matchType && matchApogee;
+    });
+  }, [cellarItems, filterType, filterApogee]);
+
+  const existingLocations = Array.from(new Set(ctx.scanHistory.map(s => s.location).filter(Boolean))).sort();
+  const groupedByLocation = useMemo(() => {
+    const groups = {};
+    filteredItems.forEach(item => {
+      const loc = item.location && item.location.trim() !== '' ? item.location.trim() : 'Vins non rangés';
+      if (!groups[loc]) groups[loc] = [];
+      groups[loc].push(item);
+    });
+    return groups;
+  }, [filteredItems]);
+
+  const handleDragStart = (e, bottle) => { e.dataTransfer.setData('text/plain', bottle.id); };
+  const handleDrop = (e, targetShelf, targetBottleId = null) => {
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if (!draggedId || draggedId === targetBottleId) return;
+    ctx.genericUpdate(draggedId, { location: targetShelf });
+  };
+
+  const handleMoveBottleClick = (locName) => {
+    if (selectedBottle) { ctx.genericUpdate(selectedBottle.id, { location: locName }); setSelectedBottle(null); setNewShelfName(''); ctx.showToast("Bouteille déplacée !"); }
+  };
+
+  const fallbackImg = "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=800&q=80";
+
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-32 relative select-none overflow-y-auto">
+
+      {/* 1. OUTILS RAPIDES EN HAUT */}
+      <div className="p-4 grid grid-cols-2 gap-3">
+        <button onClick={() => ctx.setView('manualEntry')} className="flex flex-col items-center justify-center p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl active:scale-95 transition-all shadow-sm hover:border-[#D4AF37]/50">
+          <Plus className="w-6 h-6 text-[#D4AF37] mb-2" />
+          <span className="font-bold text-[11px] uppercase text-slate-300 tracking-wider">Ajouter</span>
+        </button>
+        <button onClick={() => ctx.setView('recommendation')} className="flex flex-col items-center justify-center p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl active:scale-95 transition-all shadow-sm hover:border-[#D4AF37]/50">
+          <Sparkles className="w-6 h-6 text-[#D4AF37] mb-2" />
+          <span className="font-bold text-[11px] uppercase text-slate-300 tracking-wider">Sommelier</span>
+        </button>
+        <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.setView('compare'); }} className="flex flex-col items-center justify-center p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl active:scale-95 transition-all shadow-sm hover:border-[#D4AF37]/50">
+          <Layers className="w-6 h-6 text-[#D4AF37] mb-2" />
+          <span className="font-bold text-[11px] uppercase text-slate-300 tracking-wider">Comparer</span>
+        </button>
+        <button onClick={() => ctx.setView('quiz')} className="flex flex-col items-center justify-center p-4 bg-[#1A1A1A] border border-[#333] rounded-2xl active:scale-95 transition-all shadow-sm hover:border-[#D4AF37]/50">
+          <Gamepad2 className="w-6 h-6 text-[#D4AF37] mb-2" />
+          <span className="font-bold text-[11px] uppercase text-slate-300 tracking-wider">Mini-Jeu</span>
+        </button>
+      </div>
+
+      {/* 2. FILTRES DE CAVE CORRIGÉS */}
+      <div className="px-4 pb-2 sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-md pt-2 border-b border-[#333]">
+        <div className="flex justify-between items-center w-full">
+          <div className="flex-1 overflow-x-auto touch-pan-x pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] mr-3">
+            <div className="flex items-center space-x-2 w-max">
+              {['ALL', 'ROUGE', 'BLANC', 'PETILLANT', 'ROSE'].map(t => (
+                <button key={t} onClick={() => setFilterType(t)} className={`shrink-0 px-4 py-1.5 rounded-full text-[10px] font-bold border transition-colors ${filterType === t ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>
+                  {t === 'ALL' ? 'Tous' : t}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex bg-[#1a1a1a] rounded-lg p-0.5 border border-[#333] shrink-0 shadow-[-10px_0_15px_#0a0a0a]">
+            <button onClick={() => { setViewMode('list'); setReorgMode(false); }} className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-600'}`}><List className="w-4 h-4" /></button>
+            <button onClick={() => setViewMode('shelves')} className={`p-1.5 rounded-md ${viewMode === 'shelves' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-600'}`}><LayoutGrid className="w-4 h-4" /></button>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. LISTE DES BOUTEILLES */}
+      <div className="flex-1 p-4 space-y-4">
+        {viewMode === 'shelves' && (
+          <div className="flex justify-between items-center bg-[#1A1A1A] border border-[#333] rounded-xl p-3 mb-2">
+            <p className="text-[10px] text-slate-400 font-bold uppercase"><b className="text-[#D4AF37]">Rangement :</b> Sur smartphone, utilisez :</p>
+            <button onClick={() => { setReorgMode(!reorgMode); setSelectedBottle(null); }} className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold border ${reorgMode ? 'bg-[#D4AF37] text-black border-[#D4AF37] animate-pulse' : 'bg-[#0a0a0a] border-[#333] text-slate-400'}`}><GripHorizontal className="w-3 h-3" /><span>Tactile</span></button>
+          </div>
+        )}
+        
+        {filteredItems.length === 0 && <div className="text-center p-6 opacity-50 mt-10"><Archive className="w-16 h-16 mx-auto mb-4 text-slate-600" /><p className="font-medium text-slate-400">Aucun vin ne correspond.</p></div>}
+
+        {viewMode === 'list' ? (
+          <div className="space-y-4">
+            {filteredItems.map(item => (
+              <div key={item.id} onClick={() => ctx.openExistingWine(item, 'home')} className="bg-[#1A1A1A] rounded-3xl shadow-md border border-[#333] overflow-hidden flex items-stretch cursor-pointer hover:border-[#D4AF37]/30 transition-colors">
+                <div className="flex-1 p-5">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-serif text-[#F5F5F5] text-lg font-bold line-clamp-1">{item.data.nom}</h3>
+                    <span className="text-emerald-400 font-bold bg-emerald-900/30 px-2 py-0.5 rounded-lg text-xs shrink-0 ml-2">{item.data.prix_unitaire_nombre}€</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">{item.data.annee} • {item.data.region}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-10 mt-6">
+            {Object.entries(groupedByLocation).map(([shelfName, bottles]) => (
+              <div key={shelfName} className="mb-8">
+                <div className="flex items-center justify-between mb-4 px-2"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center"><MapPin className="w-5 h-5 mr-2 text-[#D4AF37]" /> {shelfName}</h3><span className="bg-[#1A1A1A] border border-[#333] text-slate-400 text-xs font-bold px-3 py-1 rounded-full">{bottles.length} bouteilles</span></div>
+                <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDrop(e, shelfName === 'Vins non rangés' ? '' : shelfName)} className="grid grid-cols-3 gap-4 bg-[#1A1A1A]/50 p-4 rounded-3xl border border-[#333] shadow-inner min-h-[200px]">
+                  {bottles.map(bottle => (
+                    <div key={bottle.id} draggable={!reorgMode} onDragStart={(e) => handleDragStart(e, bottle)} onClick={() => { if (reorgMode) setSelectedBottle(bottle); else ctx.openExistingWine(bottle, 'home'); }} className={`relative flex flex-col bg-[#1A1A1A] rounded-2xl p-3 shadow-md border border-[#333] cursor-pointer ${reorgMode ? 'ring-2 ring-[#D4AF37] animate-pulse' : 'hover:border-[#D4AF37]/50'}`}>
+                      <div className="relative h-28 w-full mb-3 flex items-center justify-center bg-[#0a0a0a] rounded-xl border border-[#222]">
+                        <img src={bottle.image || fallbackImg} className="max-h-full object-contain" alt={bottle.data.nom} />
+                        {bottle.stock > 1 && <span className="absolute -top-2 -right-2 bg-[#D4AF37] text-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold">x{bottle.stock}</span>}
+                      </div>
+                      <div className="flex flex-col items-center text-center mt-1">
+                        <h4 className="text-[11px] font-bold text-[#F5F5F5] leading-tight line-clamp-2">{bottle.data.nom}</h4>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <span className="text-[10px] text-slate-400">{bottle.data.annee}</span>
+                          <span className="text-[10px] font-bold text-emerald-400">{bottle.data.prix_unitaire_nombre}€</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div onDragOver={(e)=>e.preventDefault()} onDrop={(e) => { e.preventDefault(); const newName = window.prompt("Nom de la nouvelle étagère ?"); if (newName && newName.trim() !== '') handleDrop(e, newName); }} className="mt-8 border-2 border-dashed border-[#333] rounded-2xl p-8 flex flex-col items-center justify-center text-slate-500 cursor-pointer hover:border-[#D4AF37]/50 transition-colors">
+              <Plus className="w-8 h-8 mb-2" /><p className="font-bold text-xs uppercase tracking-wider text-center">Glissez un vin ici pour créer une étagère</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 4. MODALE DE RANGEMENT POUR TACTILE */}
+      {selectedBottle && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-end justify-center p-4 backdrop-blur-sm">
+          <div className="bg-[#1A1A1A] w-full max-w-sm rounded-3xl p-6 shadow-2xl mb-safe border border-[#333]">
+            <h3 className="font-serif text-2xl font-bold text-white mb-1">Ranger la bouteille</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto mb-6 mt-4">
+              {existingLocations.map(loc => <button key={loc} onClick={() => handleMoveBottleClick(loc)} className="w-full text-left p-4 rounded-2xl bg-[#0a0a0a] border border-[#333] text-[#F5F5F5] font-bold hover:bg-[#333] transition-colors"><MapPin className="w-4 h-4 inline mr-3 text-[#D4AF37]" /> {loc}</button>)}
+              <button onClick={() => handleMoveBottleClick('')} className="w-full text-left p-4 rounded-2xl bg-[#0a0a0a] border border-[#333] text-slate-500 italic hover:bg-[#333] transition-colors">Retirer de l'étagère</button>
+            </div>
+            <div className="flex space-x-2 border-t border-[#333] pt-6">
+              <input type="text" placeholder="Nouvelle étagère..." value={newShelfName} onChange={(e) => setNewShelfName(e.target.value)} className="flex-1 bg-[#0a0a0a] border border-[#333] text-white rounded-2xl px-4 py-4 outline-none focus:border-[#D4AF37] font-medium" />
+              <button onClick={() => handleMoveBottleClick(newShelfName)} disabled={!newShelfName.trim()} className="px-6 py-4 bg-[#D4AF37] text-black rounded-2xl font-bold disabled:opacity-50">Créer</button>
+            </div>
+            <button onClick={() => { setSelectedBottle(null); setNewShelfName(''); }} className="mt-4 w-full py-4 text-slate-400 font-bold rounded-2xl hover:bg-[#333] transition-colors">Annuler</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ScanSelectorView = ({ ctx }) => (
+  <div className="flex flex-col items-center justify-center h-full p-6 bg-[#0a0a0a] text-[#F5F5F5] space-y-4 select-none">
+    <h2 className="text-xl font-bold text-[#D4AF37] mb-6">Ajouter à la cave</h2>
+
+    <button onClick={() => ctx.startCamera('bottle')} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#333] shrink-0">🍾</div>
+      <div className="text-left"><p className="font-bold">Scanner une Bouteille</p><p className="text-[10px] text-slate-400">Reconnaissance IA de l'étiquette</p></div>
+    </button>
+
+    <button onClick={() => ctx.setView('aiSearch')} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#333] shrink-0">⌨️</div>
+      <div className="text-left"><p className="font-bold">Recherche IA par texte</p><p className="text-[10px] text-slate-400">Trouvez un vin avec son nom</p></div>
+    </button>
+
+    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('menu'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#D4AF37]/50 shrink-0">📖</div>
+      <div className="text-left"><p className="font-bold">Scanner un Menu</p><p className="text-[10px] text-[#D4AF37]">Conseil accord mets-vins</p></div>
+    </button>
+
+    <button onClick={() => { if (ctx.requireTier('AMATEUR')) return; ctx.startCamera('receipt'); }} className="w-full bg-[#1A1A1A] border border-[#333] p-5 rounded-2xl active:scale-95 flex items-center space-x-4 hover:border-[#D4AF37]/50 transition-colors">
+      <div className="w-12 h-12 bg-[#0a0a0a] rounded-full flex items-center justify-center text-2xl border border-[#D4AF37]/50 shrink-0">🧾</div>
+      <div className="text-left"><p className="font-bold">Scanner une Facture</p><p className="text-[10px] text-[#D4AF37]">Import multiple rapide</p></div>
+    </button>
+
+    <button onClick={() => ctx.setView('home')} className="mt-6 text-gray-500 font-bold p-4 active:scale-95 uppercase tracking-wider text-xs">✕ Annuler</button>
+  </div>
+);
+
+const ManualEntryView = ({ ctx }) => {
+  const [formData, setFormData] = useState({ nom: '', annee: '', region: '', type_simplifie: 'ROUGE', prix_unitaire_nombre: '' });
+  const [localImg, setLocalImg] = useState(null);
+
+  const handleImg = async (e) => {
+    const f = e.target.files[0];
+    if(f) {
+      const r = new FileReader();
+      r.onloadend = async () => {
+        const canvas = document.createElement('canvas'); const img = new window.Image(); img.src = r.result;
+        img.onload = () => { let w = img.width, h = img.height; if (w > 800) { h = Math.round((h * 800) / w); w = 800; } canvas.width = w; canvas.height = h; canvas.getContext('2d').drawImage(img, 0, 0, w, h); setLocalImg(canvas.toDataURL('image/jpeg', 0.6)); };
+      };
+      r.readAsDataURL(f);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if(!formData.nom.trim()) { ctx.showToast("Le nom est obligatoire"); return; }
+    ctx.processManualEntry(formData, localImg);
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 select-none overflow-y-auto">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center border-b border-[#333]">
+        <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button>
+        <div><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Ajout Manuel</h1><p className="text-slate-500 text-xs mt-1">Saisir une bouteille sans IA</p></div>
+      </div>
+      <div className="p-6">
+        <form onSubmit={handleSubmit} className="space-y-4 mb-10">
+          
+          <div className="flex justify-center mb-6">
+            <label className="relative w-32 h-32 bg-[#1A1A1A] border-2 border-dashed border-[#333] rounded-2xl flex flex-col items-center justify-center overflow-hidden cursor-pointer hover:border-[#D4AF37]/50 transition-colors">
+              {localImg ? ( <img src={localImg} className="w-full h-full object-cover" alt="Vin" /> ) : (
+                <><Camera className="w-8 h-8 text-slate-500 mb-2" /><span className="text-[10px] font-bold text-slate-500 uppercase text-center px-2">Ajouter photo</span></>
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={handleImg} />
+            </label>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Nom du vin *</label>
+            <input required type="text" value={formData.nom} onChange={e => setFormData({...formData, nom: e.target.value})} placeholder="Ex: Château Margaux" className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-xl outline-none focus:border-[#D4AF37] transition-colors"/>
+          </div>
+
+          <div className="flex space-x-3">
+            <div className="space-y-1 flex-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Millésime</label>
+              <input type="number" value={formData.annee} onChange={e => setFormData({...formData, annee: e.target.value})} placeholder="Ex: 2018" className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-xl outline-none focus:border-[#D4AF37] transition-colors"/>
+            </div>
+            <div className="space-y-1 flex-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Prix indicatif (€)</label>
+              <input type="number" step="0.1" value={formData.prix_unitaire_nombre} onChange={e => setFormData({...formData, prix_unitaire_nombre: e.target.value})} placeholder="Ex: 25" className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-xl outline-none focus:border-[#D4AF37] transition-colors"/>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Région / Appellation</label>
+            <input type="text" value={formData.region} onChange={e => setFormData({...formData, region: e.target.value})} placeholder="Ex: Bordeaux" className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-xl outline-none focus:border-[#D4AF37] transition-colors"/>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Type de vin</label>
+            <select value={formData.type_simplifie} onChange={e => setFormData({...formData, type_simplifie: e.target.value})} className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-xl outline-none focus:border-[#D4AF37] transition-colors appearance-none">
+              <option value="ROUGE">Rouge</option><option value="BLANC">Blanc</option><option value="ROSE">Rosé</option><option value="PETILLANT">Pétillant</option>
+            </select>
+          </div>
+
+          <button type="submit" className="w-full py-5 mt-6 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black rounded-full font-black text-lg shadow-lg active:scale-95 transition-all">Ajouter (1 en stock)</button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const AiSearchView = ({ ctx }) => {
+  const [searchTerms, setSearchTerms] = useState('');
+  const handleSearch = (e) => { e.preventDefault(); if(searchTerms.trim()) ctx.searchWineText(searchTerms); };
+  
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 select-none">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center border-b border-[#333]">
+        <button onClick={() => ctx.setView('scanSelector')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button>
+        <div><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Recherche IA</h1><p className="text-slate-500 text-xs mt-1">Interroger la base de données</p></div>
+      </div>
+      <div className="p-6">
+        <form onSubmit={handleSearch} className="space-y-4 mb-10">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+            <input autoFocus type="text" value={searchTerms} onChange={e => setSearchTerms(e.target.value)} placeholder="Ex: Château Margaux 2015" className="w-full pl-12 pr-4 py-4 bg-[#1a1a1a] border border-[#333] text-white rounded-2xl outline-none focus:border-[#D4AF37] text-lg transition-colors"/>
+          </div>
+          <button type="submit" disabled={!searchTerms.trim()} className="w-full py-4 bg-[#D4AF37] text-black rounded-full font-black text-lg shadow-[0_0_15px_rgba(212,175,55,0.3)] disabled:opacity-50 hover:bg-[#AA7C11] transition-all">Analyser avec l'IA</button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const ResultsView = ({ ctx }) => {
+  let currentItem = ctx.scanHistory.find(s => s.id === ctx.currentScanId);
+  if (!currentItem && ctx.analysisResult) currentItem = ctx.scanHistory.find(s => s.data?.nom === ctx.analysisResult.nom);
+  
+  const d = currentItem?.data;
+  const stock = currentItem?.stock || 0;
+  const rating = currentItem?.rating || 0;
+
+  const [activeTab, setActiveTab] = useState('infos');
+  const [protocol, setProtocol] = useState(null); 
+  const [isLoadingProtocol, setIsLoadingProtocol] = useState(false);
+
+  // Variables pour TOUT modifier
+  const [tempType, setTempType] = useState(d?.type_simplifie || 'ROUGE');
+  const [tempAnnee, setTempAnnee] = useState(d?.annee || 'N.M.');
+  const [tempPrix, setTempPrix] = useState(d?.prix_unitaire_nombre || 0);
+  const [tempLocation, setTempLocation] = useState(currentItem?.location || '');
+  const [tempNotes, setTempNotes] = useState(currentItem?.notes || '');
+  const [tempNom, setTempNom] = useState(d?.nom || '');
+  const [tempRegion, setTempRegion] = useState(d?.region || '');
+
+  useEffect(() => {
+    if (currentItem) {
+      setTempType(currentItem.data?.type_simplifie || 'ROUGE');
+      setTempAnnee(currentItem.data?.annee || 'N.M.');
+      setTempPrix(currentItem.data?.prix_unitaire_nombre || 0);
+      setTempLocation(currentItem.location || '');
+      setTempNotes(currentItem.notes || '');
+      setTempNom(currentItem.data?.nom || '');
+      setTempRegion(currentItem.data?.region || '');
+    }
+  }, [currentItem?.id]);
+
+  if (!currentItem) return null;
+
+  const fetchProtocol = async () => {
+    if (protocol) return;
+    setIsLoadingProtocol(true);
+    try {
+      const prompt = `Protocole de service en JSON strict pour : "${d.nom} ${tempAnnee}". Format: {"temperature": "X°C", "carafage": "Oui/Non", "verre": "Type", "conseil": "Phrase"}`;
+      const res = await ctx.callGemini(prompt);
+      setProtocol(extractJSON(res.candidates[0].content.parts[0].text));
+    } catch(e) { setProtocol({ temperature: "14°C", carafage: "Non requis", verre: "Classique", conseil: "Servir chambré." }); }
+    finally { setIsLoadingProtocol(false); }
+  };
+
+  const fallbackImg = "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&w=800&q=80";
+
+  return (
+    <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none">
+      <div className="bg-[#1a1a1a] p-4 flex justify-between items-center border-b border-[#333] sticky top-0 z-20">
+        <SommelierButton text={`Dégustation du cru ${d.nom}. Fenêtre optimale d'apogée : ${d.apogee}.`} />
+        <button onClick={ctx.goBack} className="p-3 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><X className="w-5 h-5"/></button>
+      </div>
+      
+      <div className="p-5 space-y-6">
+        <div className="bg-[#1A1A1A] rounded-3xl border border-[#333] flex p-5 shadow-xl">
+          <div className="flex-1 min-w-0 pr-4">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] bg-[#0a0a0a] border border-[#333] px-2 py-1 rounded">{tempType}</span>
+            <h2 className="text-2xl font-serif font-bold text-white mt-2 leading-tight truncate">{d.nom}</h2>
+            <p className="text-xs text-slate-400 mt-1">{tempAnnee} • {d.region}</p>
+            <p className="text-xs text-emerald-400 font-bold mt-3">Apogée : {d.apogee}</p>
+          </div>
+          <div className="w-24 h-36 bg-black rounded-2xl p-2 flex items-center justify-center shrink-0"><img src={currentItem.image || fallbackImg} className="max-h-full object-contain" alt="wine"/></div>
+        </div>
+
+        <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333]">
+          <button onClick={() => setActiveTab('infos')} className={`flex-1 py-2.5 text-xs font-bold rounded-lg ${activeTab === 'infos' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-500'}`}>Fiche Cru</button>
+          <button onClick={() => { setActiveTab('service'); fetchProtocol(); }} className={`flex-1 py-2.5 text-xs font-bold rounded-lg ${activeTab === 'service' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-500'}`}>Service IA</button>
+          <button onClick={() => setActiveTab('cave')} className={`flex-1 py-2.5 text-xs font-bold rounded-lg ${activeTab === 'cave' ? 'bg-[#333] text-[#D4AF37]' : 'text-slate-500'}`}>Gestion</button>
+        </div>
+
+        {activeTab === 'infos' && (
+          <div className="space-y-4 animate-in fade-in">
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] text-sm text-slate-300 leading-relaxed">
+              {d.description}
+            </div>
+            
+            <div className="bg-gradient-to-r from-[#1A1A1A] to-[#222] p-4 rounded-2xl border border-[#D4AF37]/30 flex justify-between items-center shadow-lg">
+              <span className="text-sm font-bold text-[#D4AF37]">En cave :</span>
+              <div className="flex items-center space-x-3">
+                <button onClick={() => ctx.updateStock(currentItem.id, stock, -1)} className="w-10 h-10 bg-[#0a0a0a] border border-[#333] text-white rounded-xl font-bold active:scale-95 hover:border-[#D4AF37]">-</button>
+                <span className="text-xl font-black text-white w-6 text-center">{stock}</span>
+                <button onClick={() => ctx.updateStock(currentItem.id, stock, 1)} className="w-10 h-10 bg-[#D4AF37] text-black rounded-xl font-black active:scale-95">+</button>
+              </div>
+            </div>
+
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] flex justify-between items-center">
+              <div><span className="text-xs text-slate-500 block">Prix Indicatif</span><span className="text-2xl font-black text-[#D4AF37]">{tempPrix} €</span></div>
+              <div className="text-right"><span className="text-xs text-slate-500 block">Garde</span><span className="text-sm font-bold text-white">{d.potentiel_garde || 'N.C.'}</span></div>
+            </div>
+            {(() => {
+              const acc = getRecommendedAccessory(tempType);
+              return (
+                <a href={getAmazonAffiliateLink(acc.search)} target="_blank" rel="noopener noreferrer" className="block w-full text-center font-bold bg-[#D4AF37] text-black py-4 rounded-2xl shadow-lg hover:bg-[#AA7C11] transition-colors mt-4">
+                  Accessoire recommandé : {acc.name}
+                </a>
+              );
+            })()}
+          </div>
+        )}
+
+        {activeTab === 'service' && (
+          <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-[#333] space-y-4 animate-in fade-in">
+            {isLoadingProtocol ? <p className="text-center text-xs text-slate-500">Chargement du protocole...</p> : protocol ? (
+              <div className="space-y-3 text-sm">
+                <p className="text-slate-400">🌡️ Température : <b className="text-white">{protocol.temperature}</b></p>
+                <p className="text-slate-400">🏺 Carafage : <b className="text-white">{protocol.carafage}</b></p>
+                <p className="text-slate-400">🍷 Verrerie : <b className="text-white">{protocol.verre}</b></p>
+                <p className="text-xs text-[#D4AF37] italic mt-2">"{protocol.conseil}"</p>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {activeTab === 'cave' && (
+          <div className="space-y-4 animate-in fade-in">
+            
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
+              <h4 className="text-xs text-[#D4AF37] font-bold uppercase tracking-wider mb-2 border-b border-[#333] pb-2">Modifier les informations</h4>
+              <input type="text" value={tempNom} onChange={e=>setTempNom(e.target.value)} onBlur={()=> { const updatedData = normalizeData({...currentItem.data, nom: tempNom}); ctx.genericUpdate(currentItem.id, { data: updatedData }); }} placeholder="Nom du vin..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+              <input type="text" value={tempRegion} onChange={e=>setTempRegion(e.target.value)} onBlur={()=> { const updatedData = normalizeData({...currentItem.data, region: tempRegion}); ctx.genericUpdate(currentItem.id, { data: updatedData }); }} placeholder="Région / Appellation..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+              
+              <div className="flex space-x-2">
+                <select value={tempType} onChange={e => { 
+                    const newType = e.target.value; setTempType(newType); 
+                    let gMin = 2, gMax = 5; if (newType === 'ROUGE') { gMin = 3; gMax = 10; } else if (newType === 'BLANC') { gMin = 2; gMax = 6; } else if (newType === 'PETILLANT') { gMin = 1; gMax = 5; } else if (newType === 'ROSE') { gMin = 1; gMax = 3; }
+                    const updatedData = normalizeData({ ...currentItem.data, type_simplifie: newType, garde_min: gMin, garde_max: gMax });
+                    ctx.genericUpdate(currentItem.id, { data: updatedData });
+                  }} 
+                  className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37] appearance-none"
+                >
+                  <option value="ROUGE">Rouge</option><option value="BLANC">Blanc</option><option value="ROSE">Rosé</option><option value="PETILLANT">Pétillant</option>
+                </select>
+                <input type="text" value={tempAnnee} onChange={e => setTempAnnee(e.target.value)} onBlur={() => { const updatedData = normalizeData({...currentItem.data, annee: tempAnnee}); ctx.genericUpdate(currentItem.id, { data: updatedData }); }} placeholder="Année" className="w-1/2 bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+              </div>
+            </div>
+
+            <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#333] space-y-3">
+              <h4 className="text-xs text-[#D4AF37] font-bold uppercase tracking-wider mb-2 border-b border-[#333] pb-2">Rangement & Notes</h4>
+              <input type="text" value={tempLocation} onChange={e=>setTempLocation(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {location: tempLocation})} placeholder="Étagère..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm outline-none focus:border-[#D4AF37]"/>
+              <textarea value={tempNotes} onChange={e=>setTempNotes(e.target.value)} onBlur={()=>ctx.genericUpdate(currentItem.id, {notes: tempNotes})} placeholder="Notes de dégustation..." className="w-full bg-black border border-[#333] text-white rounded-xl p-3 text-sm h-20 outline-none focus:border-[#D4AF37] resize-none"/>
+            </div>
+            
+            <button onClick={() => { if (!ctx.requireTier('AMATEUR')) ctx.generateAndShareInstagramImage(ctx.showToast); }} className="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center justify-center space-x-2"><Share2 className="w-4 h-4"/><span>Gérer mon image Story Instagram</span></button>
+            <button onClick={() => ctx.setScanAction({id: currentItem.id, type: 'history'})} className="w-full py-3 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-bold">Supprimer de l'application</button>
+            <InstagramShareCanvas wine={currentItem} rating={rating} notes={tempNotes} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const AlertsView = ({ ctx }) => {
+  const { alerts, user } = ctx;
+  
+  const markAllAsRead = () => { if (!user) return; alerts.forEach(a => { if (!a.read) updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', a.id), { read: true }); }); };
+  const handleAlertClick = (alert) => { updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', alert.id), { read: true }); if (alert.scanId) { const wine = ctx.scanHistory.find(s => s.id === alert.scanId); if (wine) ctx.openExistingWine(wine, 'alerts'); } };
+  
+  const deleteAlert = async (e, alertId) => {
+    e.stopPropagation(); 
+    if (!user) return;
+    try { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'alerts', alertId)); } catch(err) {}
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] select-none overflow-y-auto pb-20">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 border-b border-[#333] flex items-center justify-between shadow-sm sticky top-0 z-10">
+        <div className="flex items-center">
+          <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Notifications</h1>
+        </div>
+        {alerts.some(a => !a.read) && <button onClick={markAllAsRead} className="text-xs text-slate-400 hover:text-[#D4AF37] font-bold">Tout lire</button>}
+      </div>
+      
+      <div className="p-4 space-y-3">
+        {alerts.length === 0 && <div className="text-center text-slate-500 mt-10 font-medium">Aucune notification à afficher.</div>}
+        
+        {alerts.map(a => (
+          <div key={a.id} onClick={() => handleAlertClick(a)} className={`bg-[#1A1A1A] rounded-2xl border ${a.read ? 'border-[#333]' : 'border-[#D4AF37]/50 shadow-md'} p-4 flex items-center justify-between cursor-pointer transition-colors hover:bg-[#222]`}>
+            <div className="flex-1 pr-3">
+              <h4 className="font-bold text-white text-sm">{a.title}</h4>
+              <p className="text-xs text-slate-400 mt-1">{a.message}</p>
+            </div>
+            <div className="flex items-center space-x-4 shrink-0">
+              {!a.read && <div className="w-2 h-2 bg-[#D4AF37] rounded-full"></div>}
+              <button onClick={(e) => deleteAlert(e, a.id)} className="p-2 bg-[#0a0a0a] border border-[#333] rounded-xl text-slate-500 hover:text-red-500 hover:border-red-500/50 transition-all active:scale-90">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const RecommendationView = ({ ctx }) => {
+  const [recMode, setRecMode] = useState('menu'); 
+  const [filterType, setFilterType] = useState('ALL');
+  const [filterApogee, setFilterApogee] = useState('ALL');
+  const [filterFood, setFilterFood] = useState('ALL');
+  const [filterPrice, setFilterPrice] = useState('ALL');
+  const [pairingDish, setPairingDish] = useState('');
+  const [isPairingLoading, setIsPairingLoading] = useState(false);
+  const [shopCat, setShopCat] = useState('DEGUSTATION');
+
+  const handleRecommend = () => { ctx.fetchAIRecommendation(filterType, filterApogee, filterFood, filterPrice); };
+
+  const handleAskCellarSommelier = async () => {
+    if (!pairingDish.trim()) return;
+    setIsPairingLoading(true);
+    try {
+      const inStockWines = ctx.scanHistory.filter(w => w.stock > 0);
+      if (inStockWines.length === 0) throw new Error("Cave vide");
+      const inventoryString = inStockWines.map(w => `[ID: ${w.id}] ${w.data.nom} ${w.data.annee} (${w.data.type_simplifie})`).join('\n');
+      const prompt = `Tu es le Sommelier privé. L'utilisateur mange : "${pairingDish}". Voici les vins dans sa cave : \n${inventoryString}\nChoisis LE MEILLEUR vin PARMI CETTE LISTE UNIQUEMENT pour ce plat. Réponds en JSON strict : {"chosen_id": "ID_ici", "explication": "Pourquoi ce choix (max 20 mots)"}`;
+      
+      const result = await ctx.callGemini(prompt);
+      const parsed = extractJSON(result.candidates?.[0]?.content?.parts?.[0]?.text);
+      const chosenWine = inStockWines.find(w => w.id === parsed.chosen_id);
+      if(!chosenWine) throw new Error("Erreur IA");
+      ctx.showToast(`L'IA recommande : ${chosenWine.data.nom}`);
+      ctx.openExistingWine(chosenWine, 'recommendation');
+    } catch (e) {
+      ctx.showToast("Accord introuvable.");
+    } finally { 
+      setIsPairingLoading(false); 
+    }
+  };
+
+  const boutiqueProducts = {
+    DEGUSTATION: [
+      { name: "Tire-Bouchon Sommelier Pro", desc: "L'outil indispensable à double levier en acier inoxydable.", query: "tire bouchon sommelier professionnel", price: "24€", icon: "🔧" },
+      { name: "Carafe à Décanter en Cristal", desc: "Verre soufflé bouche, idéal pour aérer les grands crus rouges.", query: "carafe a decanter vin cristal riedel", price: "89€", icon: "🏺" },
+      { name: "Verres à Dégustation Universels", desc: "Lot de 6 verres en cristal ultra-fin pour sublimer les arômes.", query: "verres de degustation vin cristallin haute performance", price: "59€", icon: "🥂" },
+      { name: "Thermomètre Infrarouge", desc: "Prenez la température exacte du vin à travers la bouteille.", query: "thermometre infrarouge vin professionnel", price: "34€", icon: "🌡️" }
+    ],
+    CONSERVATION: [
+      { name: "Système de Préservation Coravin", desc: "Servez vos bouteilles d'exception sans jamais en tirer le bouchon.", query: "coravin systeme preservation vin timeless", price: "249€", icon: "🔌" },
+      { name: "Capsules de Gaz Argon (x6)", desc: "Consommables officiels pour préserver le vin de l'oxydation.", query: "capsules argon coravin", price: "45€", icon: "💨" },
+      { name: "Billes de Nettoyage en Inox", desc: "Éliminent les dépôts de tanins au fond des carafes sans rayer.", query: "billes nettoyage carafe inox", price: "12€", icon: "🔮" }
+    ],
+    CAVE: [
+      { name: "Collerettes de Goulot en Ardoise", desc: "Lot de 20 étiquettes réutilisables pour identifier vos rangées.", query: "collerettes goulot bouteille ardoise", price: "18€", icon: "🏷️" },
+      { name: "Affiche Grand Cru d'Art", desc: "Carte viticole épurée des régions de France imprimée sur papier d'art.", query: "affiche carte des vins de france premium decoration", price: "29€", icon: "🗺️" },
+      { name: "Feutre Craie Liquide Effaçable", desc: "Pour écrire proprement sur vos collerettes ou étagères sombres.", query: "feutre craie liquide blanc effacable", price: "8€", icon: "✍️" }
+    ]
+  };
+  
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 overflow-y-auto select-none">
+      <div className="bg-[#1A1A1A] pt-12 pb-6 px-6 border-b border-[#333] flex items-center sticky top-0 z-50">
+        {recMode !== 'menu' && <button onClick={() => setRecMode('menu')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button>}
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 bg-[#0a0a0a] border border-[#D4AF37]/50 rounded-2xl flex items-center justify-center shadow-lg transform -rotate-3"><Sparkles className="w-6 h-6 text-[#D4AF37]" /></div>
+          <div><h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Le Sommelier</h1><p className="text-slate-400 text-sm font-medium">Laissez l'IA vous conseiller</p></div>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-10">
+        {recMode === 'menu' && (
+          <div className="space-y-6 mt-4">
+            <button onClick={() => setRecMode('buy')} className="w-full bg-[#1A1A1A] border border-[#333] rounded-3xl p-6 shadow-lg text-left flex items-center space-x-5 hover:border-[#D4AF37]/50 transition-colors">
+              <div className="w-14 h-14 bg-[#0a0a0a] border border-[#333] rounded-full flex items-center justify-center shrink-0"><ShoppingCart className="w-6 h-6 text-[#D4AF37]" /></div>
+              <div><h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-1">Acheter un vin</h3><p className="text-xs text-slate-400">Le meilleur vin à acheter selon votre repas.</p></div>
+            </button>
+            <button onClick={() => setRecMode('cellar')} className="w-full bg-[#1A1A1A] border border-[#D4AF37]/50 rounded-3xl p-6 shadow-lg text-left flex items-center space-x-5 relative overflow-hidden">
+              <div className="w-14 h-14 bg-[#0a0a0a] border border-[#D4AF37]/30 rounded-full flex items-center justify-center shrink-0 relative z-10"><Archive className="w-6 h-6 text-[#D4AF37]" /></div>
+              <div className="relative z-10"><h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center mb-1">Que boire ce soir ?</h3><p className="text-xs text-slate-400">Trouvez la bouteille parfaite parmi celles déjà dans votre cave.</p></div>
+            </button>
+            <button onClick={() => setRecMode('boutique')} className="w-full bg-[#1A1A1A] border border-[#333] rounded-3xl p-6 shadow-lg text-left flex items-center space-x-5 hover:border-[#D4AF37]/50 transition-colors">
+              <div className="w-14 h-14 bg-[#0a0a0a] border border-[#333] rounded-full flex items-center justify-center shrink-0"><Wine className="w-6 h-6 text-[#D4AF37]" /></div>
+              <div><h3 className="font-serif text-xl font-bold text-[#F5F5F5] mb-1">La Boutique Élite</h3><p className="text-xs text-slate-400">Équipements et accessoires professionnels pour votre cave.</p></div>
+            </button>
+          </div>
+        )}
+
+        {recMode === 'cellar' && (
+          <div className="bg-[#1A1A1A] border border-[#D4AF37]/30 rounded-3xl p-8 text-center shadow-lg">
+            <div className="w-20 h-20 bg-[#0a0a0a] rounded-full flex items-center justify-center mx-auto mb-6 border border-[#333]"><Utensils className="w-10 h-10 text-[#D4AF37]" /></div>
+            <h3 className="font-serif text-2xl font-bold text-[#F5F5F5] mb-3">Que mangez-vous ?</h3>
+            <input autoFocus type="text" placeholder="Ex: Magret de canard..." value={pairingDish} onChange={e=>setPairingDish(e.target.value)} className="w-full p-5 bg-[#0a0a0a] border border-[#333] text-white rounded-xl focus:border-[#D4AF37] outline-none mb-6" />
+            <button onClick={handleAskCellarSommelier} disabled={!pairingDish.trim() || isPairingLoading} className="w-full py-5 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black font-black text-lg rounded-full shadow-lg flex justify-center">{isPairingLoading ? <RefreshCw className="w-5 h-5 animate-spin"/> : "Explorer ma cave"}</button>
+          </div>
+        )}
+
+        {recMode === 'buy' && (
+         <div className="space-y-10">
+          <div className="space-y-4">
+            <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Euro className="w-5 h-5 text-[#D4AF37]" /><span>Budget</span></h3>
+            <div className="flex flex-wrap gap-2">
+              {[{id: 'ALL', label: 'Peu importe'}, {id: 'BUDGET', label: '- de 15 €'}, {id: 'MEDIUM', label: '15 € à 35 €'}, {id: 'PREMIUM', label: '+ de 35 €'}].map(p => (
+               <button key={p.id} onClick={() => setFilterPrice(p.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterPrice === p.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{p.label}</button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Utensils className="w-5 h-5 text-[#D4AF37]" /><span>Repas</span></h3>
+            <div className="flex flex-wrap gap-2">
+              {[{id: 'ALL', label: 'Peu importe'}, {id: 'APERITIF', label: 'Apéritif'}, {id: 'VIANDE_ROUGE', label: 'Viande Rouge'}, {id: 'POISSON', label: 'Poisson'}, {id: 'FROMAGE', label: 'Fromage'}].map(f => (
+               <button key={f.id} onClick={() => setFilterFood(f.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterFood === f.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{f.label}</button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h3 className="font-serif text-xl font-bold text-[#F5F5F5] flex items-center space-x-2"><Wine className="w-5 h-5 text-[#D4AF37]" /><span>Type</span></h3>
+            <div className="flex flex-wrap gap-2">
+              {[{id: 'ALL', label: 'Tous'}, {id: 'ROUGE', label: 'Rouge'}, {id: 'BLANC', label: 'Blanc'}, {id: 'PETILLANT', label: 'Pétillant'}, {id: 'ROSE', label: 'Rosé'}].map(t => (
+               <button key={t.id} onClick={() => setFilterType(t.id)} className={`px-5 py-3 rounded-full text-sm font-bold border ${filterType === t.id ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>{t.label}</button>
+              ))}
+            </div>
+          </div>
+          <button onClick={handleRecommend} className="w-full py-5 bg-[#D4AF37] text-black font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 mt-8"><Sparkles className="w-6 h-6" /><span>Trouver la perle rare</span></button>
+         </div>
+        )}
+
+        {recMode === 'boutique' && (
+          <div className="space-y-6 pb-10">
+            <div className="overflow-x-auto touch-pan-x pb-2 border-b border-[#333] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex space-x-2 w-max">
+                {['DEGUSTATION', 'CONSERVATION', 'CAVE'].map(cat => (
+                  <button key={cat} onClick={() => setShopCat(cat)} className={`px-4 py-2 rounded-full text-xs font-bold uppercase border tracking-wider transition-colors ${shopCat === cat ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] border-[#333] text-slate-400'}`}>
+                    {cat === 'DEGUSTATION' ? 'Art du Service' : cat === 'CONSERVATION' ? 'Entretien & Gaz' : 'Agencement Cave'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {boutiqueProducts[shopCat].map((prod, idx) => (
+                <div key={idx} className="bg-[#1A1A1A] border border-[#333] rounded-2xl p-5 flex items-center justify-between shadow-md">
+                  <div className="flex items-start space-x-4 min-w-0 flex-1 pr-3">
+                    <div className="w-12 h-12 rounded-xl bg-[#0a0a0a] border border-[#333] flex items-center justify-center text-2xl shrink-0">{prod.icon}</div>
+                    <div className="min-w-0">
+                      <div className="flex items-baseline space-x-2">
+                        <h4 className="font-serif font-bold text-white text-base truncate">{prod.name}</h4>
+                        <span className="text-xs font-black text-[#D4AF37] shrink-0">{prod.price}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">{prod.desc}</p>
+                    </div>
+                  </div>
+                  <a href={getAmazonAffiliateLink(prod.query)} target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 bg-[#0a0a0a] border border-[#D4AF37]/40 text-[#D4AF37] text-xs font-bold rounded-xl shrink-0 active:scale-95 transition-all hover:bg-[#D4AF37] hover:text-black hover:border-[#D4AF37]">Voir</a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Vues secondaires intégrées directement...
+const RecommendationListView = ({ ctx }) => {
+  const [sortOrder, setSortOrder] = useState('asc');
+  const sortedList = useMemo(() => {
+    if (!ctx.recommendationList) return [];
+    return [...ctx.recommendationList].sort((a, b) => sortOrder === 'asc' ? (a.prix_unitaire_nombre||0) - (b.prix_unitaire_nombre||0) : (b.prix_unitaire_nombre||0) - (a.prix_unitaire_nombre||0));
+  }, [ctx.recommendationList, sortOrder]);
+
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 select-none">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center justify-between border-b border-[#333]">
+        <div className="flex items-center"><button onClick={() => ctx.setView('recommendation')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">La Sélection</h1></div>
+        <button onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} className="flex items-center space-x-2 bg-[#0a0a0a] border border-[#333] text-slate-400 px-3 py-2 rounded-xl text-xs font-bold"><ArrowDownUp className="w-4 h-4" /><span>{sortOrder === 'asc' ? 'Prix croissant' : 'Prix décroissant'}</span></button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {sortedList.map((wine, index) => (
+           <div key={index} className="bg-[#1A1A1A] rounded-3xl shadow-md border border-[#333] overflow-hidden">
+             <div className="flex items-stretch">
+               <div className="flex-1 p-5 flex flex-col justify-between min-w-0">
+                 <div>
+                   <div className="flex justify-between items-start mb-2"><span className="text-[10px] font-bold uppercase text-[#D4AF37] bg-[#D4AF37]/10 px-2 py-0.5 rounded">{wine.type_simplifie}</span><span className="text-emerald-400 font-bold bg-emerald-900/30 px-2 py-0.5 rounded-lg">{wine.prix_unitaire_nombre}€</span></div>
+                   <h3 className="font-serif text-[#F5F5F5] text-lg font-bold line-clamp-2">{wine.nom}</h3>
+                   <p className="text-xs text-slate-500 mb-2">{wine.annee} • {wine.region}</p>
+                   <p className="text-xs text-slate-400 mb-3 line-clamp-2">{wine.description}</p>
+                 </div>
+                 <button onClick={() => ctx.processRecommendationSelection(wine)} className="w-full py-3 bg-[#0a0a0a] text-[#D4AF37] border border-[#D4AF37]/50 rounded-xl text-sm font-bold hover:bg-[#333] transition-colors">Découvrir ce vin</button>
+               </div>
+               <div className="w-28 bg-[#0a0a0a] border-l border-[#333] p-2.5 flex items-center justify-center"><img src={getGenericImageForType(wine.type_simplifie)} alt="Bouteille" className="max-h-full max-w-full object-contain" /></div>
+             </div>
+           </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const HistoryView = ({ ctx }) => {
+  const historyItems = ctx.scanHistory.filter(item => item.in_history !== false);
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 select-none">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 border-b border-[#333] shadow-sm"><h1 className="text-3xl font-serif font-bold text-[#D4AF37]">Historique</h1></div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {historyItems.map((item) => (
+          <div key={item.id} onClick={() => ctx.openExistingWine(item, 'history')} className="bg-[#1A1A1A] rounded-3xl border border-[#333] p-4 flex items-center space-x-4 cursor-pointer hover:border-[#D4AF37]/50 transition-colors">
+            <div className="w-20 h-20 bg-black rounded-xl p-1 flex items-center justify-center shrink-0"><img src={item.image} className="max-h-full object-contain" alt="wine" /></div>
+            <div className="flex-1 min-w-0"><h3 className="text-white font-serif font-bold text-base truncate">{item.data.nom}</h3><p className="text-xs text-slate-400 mt-0.5">{item.data.annee}</p></div>
+            <ChevronRight className="w-5 h-5 text-slate-600"/>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const QuizView = ({ ctx }) => {
+  const allQuestions = [
+    { q: "Quel cépage donne souvent des arômes de litchi et de rose ?", options: ["Chardonnay", "Gewürztraminer", "Sauvignon Blanc"], ans: "Gewürztraminer" },
+    { q: "Quelle région est célèbre pour son 'Vin Jaune' ?", options: ["Bourgogne", "Alsace", "Jura"], ans: "Jura" },
+    { q: "Qu'appelle-t-on la 'Part des Anges' ?", options: ["Le vin évaporé en fût", "Le vin offert au clergé", "Le fond de la bouteille"], ans: "Le vin évaporé en fût" },
+    { q: "Quel est le cépage rouge emblématique de la Bourgogne ?", options: ["Merlot", "Pinot Noir", "Syrah"], ans: "Pinot Noir" }
+  ];
+  
+  const [gameState, setGameState] = useState('idle'); 
+  const [currentQuiz, setCurrentQuiz] = useState([]);
+  const [qIndex, setQIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [feedback, setFeedback] = useState(null); 
+
+  const startGame = () => { 
+    const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+    setCurrentQuiz(shuffled.slice(0, 4)); setScore(0); setQIndex(0); setFeedback(null); setGameState('playing'); 
+  };
+
+  const handleAnswer = (option) => {
+    if (feedback) return;
+    const correct = option === currentQuiz[qIndex].ans;
+    if (correct) setScore(s => s + 1);
+    setFeedback(correct ? 'correct' : 'wrong');
+    setTimeout(() => { setFeedback(null); if (qIndex + 1 < currentQuiz.length) setQIndex(i => i + 1); else setGameState('end'); }, 1200);
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 select-none">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center border-b border-[#333]">
+        <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button>
+        <div><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Le Nez du Sommelier</h1><p className="text-slate-500 text-xs mt-1">Défiez vos connaissances</p></div>
+      </div>
+      <div className="p-6 flex-1 flex flex-col justify-center">
+        <div className="bg-[#1A1A1A] border border-[#333] rounded-3xl p-6 shadow-xl relative overflow-hidden">
+          {gameState === 'idle' && (
+            <div className="text-center space-y-6 relative z-10 py-4">
+              <div className="w-20 h-20 bg-[#0a0a0a] border border-[#333] rounded-full flex items-center justify-center mx-auto"><Gamepad2 className="w-10 h-10 text-[#D4AF37]"/></div>
+              <h3 className="font-serif text-2xl font-bold text-[#F5F5F5]">Prêt à jouer ?</h3>
+              <p className="text-slate-400 font-medium">4 questions aléatoires pour tester votre palais.</p>
+              <button onClick={startGame} className="w-full py-4 bg-[#D4AF37] text-black font-bold rounded-2xl shadow-lg hover:bg-[#AA7C11]">Démarrer le Quiz</button>
+            </div>
+          )}
+          {gameState === 'playing' && currentQuiz.length > 0 && currentQuiz[qIndex] && (
+            <div className="space-y-6 relative z-10">
+              <div className="flex justify-between items-center bg-[#0a0a0a] p-3 rounded-xl border border-[#333]"><span className="text-xs font-bold text-[#D4AF37] uppercase">Question {qIndex + 1}/{currentQuiz.length}</span><span className="text-xs font-bold text-slate-400 uppercase">Score : {score}</span></div>
+              <p className="font-serif text-xl font-bold text-[#F5F5F5] min-h-[80px] leading-snug">{currentQuiz[qIndex].q}</p>
+              <div className="space-y-3">
+                {currentQuiz[qIndex].options.map(opt => {
+                  let btnClass = "bg-[#0a0a0a] border-[#333] text-slate-300 hover:border-[#D4AF37]/50";
+                  if (feedback && opt === currentQuiz[qIndex].ans) btnClass = "bg-emerald-900 border-emerald-500 text-white";
+                  else if (feedback === 'wrong' && opt !== currentQuiz[qIndex].ans) btnClass = "bg-[#0a0a0a] border-[#333] text-slate-600 opacity-50";
+                  return <button key={opt} onClick={() => handleAnswer(opt)} className={`w-full p-5 rounded-2xl border flex items-center font-bold text-left transition-all ${btnClass}`}>{opt}</button>
+                })}
+              </div>
+            </div>
+          )}
+          {gameState === 'end' && (
+            <div className="text-center space-y-6 relative z-10 py-4">
+              <div className="w-20 h-20 bg-emerald-900/30 border border-emerald-500/50 rounded-full flex items-center justify-center mx-auto"><Trophy className="w-10 h-10 text-emerald-400"/></div>
+              <h3 className="font-serif text-3xl font-bold text-[#F5F5F5]">Terminé !</h3>
+              <p className="text-2xl font-black text-emerald-400">{score} / {currentQuiz.length}</p>
+              <div className="flex space-x-3"><button onClick={startGame} className="flex-1 py-4 bg-[#D4AF37] text-black font-bold rounded-2xl hover:bg-[#AA7C11]">Rejouer</button><button onClick={() => ctx.setView('home')} className="flex-1 py-4 bg-[#0a0a0a] border border-[#333] text-slate-300 font-bold rounded-2xl">Quitter</button></div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MenuConfigView = ({ ctx }) => {
+  const getFoodLabel = (f) => ({ 'ALL': 'Peu importe', 'APERITIF': 'Apéritif & Tapas', 'VIANDE_ROUGE': 'Viande Rouge', 'VIANDE_BLANCHE': 'Volaille & Porc', 'POISSON': 'Poisson & Mer', 'FROMAGE': 'Fromage' }[f] || f);
+  return (
+    <div className="flex flex-col h-full bg-[#0a0a0a] pb-20 select-none">
+      <div className="bg-[#1a1a1a] pt-12 pb-4 px-6 shadow-sm z-10 sticky top-0 flex items-center border-b border-[#333]">
+        <button onClick={() => ctx.setView('home')} className="mr-4 p-2 bg-[#0a0a0a] border border-[#333] text-slate-400 rounded-full hover:text-[#D4AF37]"><ChevronLeft className="w-5 h-5" /></button>
+        <div><h1 className="text-2xl font-serif font-bold text-[#D4AF37]">Le bon choix</h1><p className="text-slate-400 text-xs mt-1 font-medium">Scanner un menu de restaurant</p></div>
+      </div>
+      <div className="p-6 space-y-8 overflow-y-auto">
+        <div className="space-y-4">
+          <h3 className="font-serif text-lg font-bold text-[#F5F5F5] flex items-center space-x-2"><Utensils className="w-5 h-5 text-[#D4AF37]" /><span>Que mangez-vous ce soir ?</span></h3>
+          <div className="flex flex-wrap gap-2">
+            {['ALL', 'APERITIF', 'VIANDE_ROUGE', 'VIANDE_BLANCHE', 'POISSON', 'FROMAGE'].map(f => (
+              <button key={f} onClick={() => ctx.setMenuPrefs({...ctx.menuPrefs, food: f})} className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors ${ctx.menuPrefs.food === f ? 'bg-[#D4AF37] text-black border-[#D4AF37]' : 'bg-[#1A1A1A] text-slate-400 border-[#333]'}`}>{getFoodLabel(f)}</button>
+            ))}
+          </div>
+        </div>
+        <div className="pt-6 space-y-3">
+          <button onClick={() => ctx.startCamera('menu')} className="w-full py-5 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black rounded-full font-black text-lg active:scale-95 shadow-lg"><Camera className="inline w-6 h-6 mr-3" />Scanner la carte</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AccountView = ({ ctx }) => {
+  const { user, scanHistory, valueHistory, analyzeSensoryDNA, showToast } = ctx;
+  const items = scanHistory.filter(i => i.stock > 0);
+  const totalB = items.reduce((a, c) => a + (parseInt(c.stock) || 0), 0);
+  const totalV = items.reduce((a, c) => a + ((c.data?.prix_unitaire_nombre || 0) * (parseInt(c.stock) || 0)), 0);
+  
+  const [sensoryData, setSensoryData] = useState(null);
+  const [isSensoryLoading, setIsSensoryLoading] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [tempName, setTempName] = useState(user?.displayName || '');
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  const saveProfile = async () => {
+    if (!tempName.trim()) return;
+    setIsSavingName(true);
+    try { await updateProfile(user, { displayName: tempName }); showToast("Profil mis à jour !"); setIsEditingProfile(false); } 
+    catch (e) { showToast("Erreur de sauvegarde."); } finally { setIsSavingName(false); }
+  };
+
+  const generateADN = async () => {
+    const allNotes = scanHistory.filter(i => i.notes && i.notes.length > 10).map(i => i.notes).join(' | ');
+    if (allNotes.length < 30) { showToast("Notes insuffisantes (min. 3 vins notés)."); return; }
+    setIsSensoryLoading(true);
+    const dna = await analyzeSensoryDNA(ctx.callGemini, allNotes);
+    if (dna) { setSensoryData(dna); showToast("ADN sensoriel généré !"); } else { showToast("Erreur de calcul."); }
+    setIsSensoryLoading(false);
+  };
+
+  const formattedChartData = useMemo(() => { if (!valueHistory || valueHistory.length < 2) return []; return valueHistory.map(h => ({ date: h.dateStr, valeur: h.value })); }, [valueHistory]);
+
+  return (
+    <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none p-5">
+      <div className="p-5 space-y-6 mt-10">
+        
+        <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg flex justify-between items-center">
+          <div className="flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Membre Privé</p>
+            {isEditingProfile ? (
+              <div className="flex items-center space-x-2 mt-2">
+                <input autoFocus type="text" value={tempName} onChange={(e) => setTempName(e.target.value)} placeholder="Votre nom..." className="bg-black border border-[#D4AF37] text-white rounded-lg px-3 py-2 text-sm outline-none w-full" />
+                <button onClick={saveProfile} disabled={isSavingName} className="p-2 bg-[#D4AF37] text-black rounded-lg">{isSavingName ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4" />}</button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between mt-1">
+                <h3 className="font-serif text-2xl font-bold text-[#F5F5F5] truncate pr-4">{user?.displayName || "Anonyme"}</h3>
+                <button onClick={() => setIsEditingProfile(true)} className="p-2 bg-[#0a0a0a] border border-[#333] rounded-full text-slate-400 hover:text-[#D4AF37] shrink-0"><Edit3 className="w-4 h-4" /></button>
+              </div>
+            )}
+            <p className="text-xs text-slate-400 mt-2">{user?.email}</p>
+          </div>
+        </div>
+
+        <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg">
+          <h3 className="font-serif text-lg font-bold text-white mb-4 flex items-center"><TrendingUp className="w-5 h-5 mr-2 text-emerald-400"/> Valorisation de la Cave</h3>
+          <p className="text-2xl font-black text-emerald-400">{totalV.toFixed(0)} € <span className="text-xs text-slate-500 font-medium">({totalB} bouteilles)</span></p>
+          {formattedChartData.length > 1 ? (
+            <div className="h-32 w-full mt-4 -ml-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={formattedChartData}><XAxis dataKey="date" hide /><YAxis hide /><Area type="monotone" dataKey="valeur" stroke="#D4AF37" fill="#D4AF37" fillOpacity={0.1} /></AreaChart>
+              </ResponsiveContainer>
+            </div>
+          ) : <p className="text-xs text-slate-500 italic mt-4">Le graphique se construira au fil des mois.</p>}
+        </div>
+
+        <div className="bg-[#1A1A1A] rounded-3xl p-6 border border-[#333] shadow-lg">
+          <h3 className="font-serif text-lg font-bold text-white mb-2 flex items-center"><Target className="w-5 h-5 mr-2 text-[#D4AF37]"/> Profil Sensoriel ADN</h3>
+          {sensoryData ? (
+            <div className="h-56 w-full mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="75%" data={sensoryData}><PolarGrid stroke="#333"/><PolarAngleAxis dataKey="subject" tick={{fill:'#fff', fontSize:10}}/><Radar dataKey="A" stroke="#D4AF37" fill="#D4AF37" fillOpacity={0.4}/></RadarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <button onClick={() => { if (!ctx.requireTier('AMATEUR')) generateADN(); }} disabled={isSensoryLoading} className="w-full mt-4 py-3 bg-[#D4AF37] text-black font-bold rounded-xl flex items-center justify-center space-x-2">
+              {isSensoryLoading ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4"/>}
+              <span>Générer mon ADN sensoriel</span>
+            </button>
+          )}
+        </div>
+
+        <button onClick={() => signOut(auth)} className="w-full py-4 bg-red-950/20 text-red-400 font-bold rounded-2xl border border-red-900/40 flex items-center justify-center"><LogOut className="w-4 h-4 mr-3" /> Se déconnecter</button>
+      </div>
+    </div>
+  );
+};
+
+const CompareView = ({ ctx }) => (
+  <div className="flex flex-col min-h-screen bg-[#0a0a0a] pb-32 overflow-y-auto select-none p-5">
+    <div className="flex items-center justify-between mb-6 pt-6">
+      <h2 className="text-2xl font-serif font-bold text-[#D4AF37]">Comparateur</h2>
+      <button onClick={() => ctx.setView('home')} className="p-2 bg-[#1A1A1A] border border-[#333] rounded-full text-slate-400"><X className="w-5 h-5"/></button>
+    </div>
+
+    {ctx.compareResult ? (
+      <div className="animate-in slide-in-from-top-4 mb-6">
+      <button 
+        onClick={() => ctx.processRecommendationSelection({
+          nom: ctx.compareResult.gagnant, description: ctx.compareResult.justification, type_simplifie: "ROUGE", stock: 0
+        })}
+        className="w-full text-left bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] p-6 rounded-3xl mb-4 shadow-xl active:scale-95 transition-transform"
+      >
+        <h3 className="font-black text-xl mb-3 flex items-center text-black"><Award className="w-6 h-6 mr-2 text-black"/> {ctx.compareResult.gagnant}</h3>
+        <div className="bg-black/10 p-3 rounded-xl mb-3">
+          <p className="text-sm font-black text-black mb-1">Le verdict :</p><p className="text-sm font-semibold text-black leading-snug">{ctx.compareResult.justification}</p>
+        </div>
+        <div className="mt-4 space-y-2">
+          <p className="text-xs text-black/80 font-bold uppercase tracking-wider mb-2">Autres options détectées :</p>
+          {ctx.compareResult.alternatives?.map((alt, index) => (
+            <div key={index} onClick={(e) => { e.stopPropagation(); ctx.processRecommendationSelection({ nom: alt.nom, description: alt.avis, type_simplifie: "ROUGE", stock: 0 }); }} className="bg-black/5 border border-black/10 p-3 rounded-xl active:scale-95 transition-transform">
+              <p className="text-sm font-bold text-black">{alt.nom}</p><p className="text-xs text-black/80 font-medium">{alt.avis}</p>
+            </div>
+          ))}
+        </div>
+      </button>
+
+      <button onClick={() => {ctx.setCompareResult(null); ctx.setCompareBasket([]); ctx.setCompareContext('');}} className="w-full bg-[#1A1A1A] text-white py-4 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#333]">Nouvelle comparaison</button>
+    </div>
+    ) : (
+      <>
+        <p className="text-sm text-slate-400 mb-6">Prenez en photo les bouteilles qui vous font hésiter. L'IA choisira la pépite.</p>
+        
+        <div className="bg-[#1A1A1A] p-4 rounded-3xl border border-[#333] mb-6 shadow-lg">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pour quel plat / occasion ?</label>
+          <input type="text" value={ctx.compareContext} onChange={(e) => ctx.setCompareContext(e.target.value)} placeholder="Ex: Barbecue, Poisson, Cadeau..." className="w-full bg-black border border-[#333] text-white rounded-xl p-4 text-sm outline-none focus:border-[#D4AF37] transition-colors" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          {ctx.compareBasket.map((imgBase64, index) => (
+            <div key={index} className="relative h-40 bg-black rounded-2xl border border-[#333] overflow-hidden shadow-md">
+              <img src={imgBase64} className="w-full h-full object-cover opacity-80" alt={`Vin ${index + 1}`} />
+              <button onClick={() => ctx.removeCompareImage(index)} className="absolute top-2 right-2 bg-red-500/90 text-white p-2 rounded-full shadow-lg active:scale-90"><X className="w-3 h-3" /></button>
+            </div>
+          ))}
+          
+          <label className="h-40 flex flex-col items-center justify-center bg-[#1A1A1A] border-2 border-dashed border-[#333] rounded-2xl cursor-pointer hover:border-[#D4AF37]/50 transition-colors text-slate-400 hover:text-[#D4AF37] shadow-inner">
+            <Camera className="w-8 h-8 mb-2" />
+            <span className="text-xs font-bold uppercase tracking-wider">Ajouter un vin</span>
+            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={ctx.handleAddCompareImage} />
+          </label>
+        </div>
+
+        <button onClick={ctx.launchComparison} disabled={ctx.compareBasket.length < 2} className={`w-full py-5 font-black text-lg rounded-full shadow-lg flex items-center justify-center space-x-3 transition-all ${ctx.compareBasket.length >= 2 ? 'bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black hover:scale-[1.02]' : 'bg-[#1A1A1A] text-slate-600 border border-[#333]'}`}>
+          <Sparkles className="w-6 h-6" /><span>Analyser la sélection ({ctx.compareBasket.length})</span>
+        </button>
+      </>
+    )}
+  </div>
+);
+
+const CameraView = ({ ctx }) => (
+  <div className="relative h-full w-full bg-black flex flex-col overflow-hidden select-none">
+    <button onClick={() => { ctx.stopCamera(); ctx.setView('home'); }} className="absolute top-12 left-6 z-20 p-3 bg-black/50 text-white rounded-full border border-white/10"><ChevronLeft className="w-6 h-6" /></button>
+    <button onClick={ctx.toggleCamera} className="absolute top-12 right-6 z-20 p-3 bg-black/50 text-white rounded-full border border-white/10 hover:bg-[#D4AF37] hover:text-black transition-colors"><RefreshCw className="w-6 h-6" /></button>
+    <video ref={ctx.videoRef} autoPlay playsInline className="min-w-full min-h-full object-cover flex-1" />
+    <div className="absolute bottom-0 w-full h-32 bg-black/90 flex items-center justify-center pb-8 z-20">
+      <button onClick={ctx.capturePhoto} className="w-20 h-20 bg-white/10 border border-white/20 rounded-full flex items-center justify-center"><div className="w-14 h-14 bg-[#D4AF37] rounded-full shadow-lg"></div></button>
+    </div>
+    <canvas ref={ctx.canvasRef} className="hidden" />
+  </div>
+);
+
+const AnalyzingView = () => (
+  <div className="flex flex-col items-center justify-center h-full bg-[#0a0a0a] select-none relative overflow-hidden">
+    <div className="relative z-10 text-center space-y-3">
+      <div className="w-16 h-16 mx-auto bg-[#1a1a1a] rounded-full flex items-center justify-center border border-[#D4AF37]/30 animate-spin border-t-transparent"></div>
+      <h2 className="text-xl font-serif font-bold text-white">Analyse oenologique...</h2>
+    </div>
+  </div>
+);
+
+const PaywallView = ({ ctx }) => (
+  <div className="flex flex-col h-full bg-[#0a0a0a] justify-center p-6 text-center select-none relative overflow-y-auto">
+    <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl"></div>
+    <div className="relative z-10 space-y-6 pb-10">
+      <div className="w-20 h-20 bg-[#1a1a1a] border-2 border-[#D4AF37] rounded-full flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(212,175,55,0.2)]"><Sparkles className="w-10 h-10 text-[#D4AF37] animate-pulse" /></div>
+      <h2 className="text-3xl font-serif font-black text-white">Passez au niveau supérieur</h2>
+      <p className="text-sm text-slate-400 mx-auto pb-4">Débloquez la pleine puissance de votre sommelier de poche.</p>
+
+      <div className="space-y-4">
+        <div className="bg-[#1A1A1A] border border-[#333] p-5 rounded-3xl text-left relative">
+          <div className="flex justify-between items-center mb-4">
+            <div><h4 className="font-bold text-white text-xl">Amateur</h4><p className="text-xs text-slate-500">L'essentiel pour passionnés</p></div>
+            <div className="text-right"><span className="font-black text-white text-xl">3,99 €</span><span className="text-xs text-slate-500"> / mois</span></div>
+          </div>
+          <ul className="text-xs text-slate-300 space-y-2 mb-5">
+            <li>✅ Scans IA & Sommelier illimités</li><li>✅ Menus au restaurant (4/mois)</li><li>✅ Comparateur au rayon (4/mois)</li><li>✅ 5 Scans API Expert / mois</li>
+          </ul>
+          <button onClick={() => ctx.showToast("Paiement sécurisé en cours...")} className="w-full bg-[#333] text-white font-bold py-3 rounded-xl hover:bg-[#444] transition-colors">Choisir ce forfait</button>
+        </div>
+
+        <div className="bg-[#1A1A1A] border-2 border-[#D4AF37] p-5 rounded-3xl text-left relative shadow-[0_0_15px_rgba(212,175,55,0.15)]">
+          <span className="absolute -top-3 right-6 bg-[#D4AF37] text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Le choix Ultime</span>
+          <div className="flex justify-between items-center mb-4">
+            <div><h4 className="font-bold text-[#D4AF37] text-xl">Collectionneur</h4><p className="text-xs text-slate-400">Pour les vrais puristes</p></div>
+            <div className="text-right"><span className="font-black text-[#D4AF37] text-xl">29,99 €</span><span className="text-xs text-slate-500"> / an</span></div>
+          </div>
+          <ul className="text-xs text-slate-300 space-y-2 mb-5">
+            <li>⚡ <b className="text-white">Tout l'abonnement Amateur</b></li><li>⚡ Scan de factures illimité</li><li>⚡ Comparateur au rayon illimité</li><li>⚡ Scans API Expert illimités</li>
+          </ul>
+          <button onClick={() => ctx.showToast("Paiement sécurisé en cours...")} className="w-full bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-black font-black py-3 rounded-xl shadow-lg hover:scale-[1.02] transition-transform">Devenir Collectionneur</button>
+        </div>
+      </div>
+
+      <button onClick={() => ctx.setView(ctx.previousView !== 'paywall' ? ctx.previousView : 'home')} className="text-xs text-slate-500 font-bold uppercase tracking-wider hover:text-white pt-4">Plus tard, rester en gratuit</button>
+    </div>
+  </div>
+);
+
+// =========================================================================
+// APPLICATION PRINCIPALE
+// =========================================================================
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -408,10 +1398,7 @@ export default function App() {
   const [imageSrc, setImageSrc] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [scanHistory, setScanHistory] = useState(() => {
-    const localData = localStorage.getItem('vinoscan_history');
-    return localData ? JSON.parse(localData) : [];
-  });
+  const [scanHistory, setScanHistory] = useState([]);
   const [scanAction, setScanAction] = useState(null); 
   const [recommendationList, setRecommendationList] = useState(null); 
   const [toastMsg, setToastMsg] = useState('');
@@ -421,101 +1408,58 @@ export default function App() {
   const [valueHistory, setValueHistory] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [facingMode, setFacingMode] = useState('environment');
-  const [isPremium, setIsPremium] = useState(false);
-  const [menuAnalysisResult, setMenuAnalysisResult] = useState(null);
+  
   const [compareBasket, setCompareBasket] = useState([]);
   const [compareContext, setCompareContext] = useState('');
   const [compareResult, setCompareResult] = useState(null);
-  const [currentBarcode, setCurrentBarcode] = useState(null);
 
   const handleAddCompareImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
-    // Blocage selon le palier
     if (userTier === 'FREE' && compareBasket.length >= 2) { showToast("Gratuit : 2 bouteilles max."); return; }
     if (userTier === 'AMATEUR' && compareBasket.length >= 4) { showToast("Amateur : 4 bouteilles max."); return; }
-
     const reader = new FileReader();
     reader.onload = (event) => setCompareBasket([...compareBasket, event.target.result]);
     reader.readAsDataURL(file);
   };
 
-  const removeCompareImage = (index) => {
-    setCompareBasket(compareBasket.filter((_, i) => i !== index));
-  };
+  const removeCompareImage = (index) => setCompareBasket(compareBasket.filter((_, i) => i !== index));
 
   const launchComparison = async () => {
     if (!checkUsageLimit('rayon')) return;
     if (compareBasket.length < 2) { showToast("Ajoutez au moins 2 vins."); return; }
-    
-    setView('analyzing');
-    setPreviousView('compare');
-    
+    setView('analyzing'); setPreviousView('compare');
     try {
       const prompt = `Sommelier expert. Voici ${compareBasket.length} photos de bouteilles. Contexte/Repas : "${compareContext || 'Général'}". Analyse-les et choisis la meilleure option. Réponds UNIQUEMENT en JSON pur : {"gagnant":"Nom du vin","justification":"Pourquoi (max 20 mots)","alternatives":[{"nom":"Nom autre vin", "avis":"Avis (max 15 mots)"}]}`;
-
-      // On retire l'en-tête "data:image/jpeg;base64," de chaque image de la galerie
       const cleanImages = compareBasket.map(img => img.split(',')[1]);
-      
-      // Appel propre de ta fonction
       const res = await callGemini(prompt, cleanImages);
-      
       let cleanText = res.candidates[0].content.parts[0].text;
       cleanText = cleanText.replace(/```json/g, '').replace(/```/g, ''); 
-      
       setCompareResult(JSON.parse(cleanText));
-      incrementUsage('rayon');
-      setView('compare'); 
-    } catch (e) {
-      console.error("Erreur IA Comparateur :", e);
-      setErrorMsg("Erreur d'analyse des bouteilles.");
-      setView('error');
-    }
+      incrementUsage('rayon'); setView('compare'); 
+    } catch (e) { setErrorMsg("Erreur d'analyse des bouteilles."); setView('error'); }
   };
-  // -----------------------------
-  
-  // --- NOUVEAU SYSTÈME DE PALIERS ET LIMITES ---
-  // userTier peut être : 'FREE', 'AMATEUR', ou 'COLLECTIONNEUR'
+
   const [userTier, setUserTier] = useState('FREE');
 
   const requireTier = (minimumTier) => {
     const tiers = { 'FREE': 0, 'AMATEUR': 1, 'COLLECTIONNEUR': 2 };
-    if (tiers[userTier] < tiers[minimumTier]) {
-      setPreviousView(view);
-      setView('paywall');
-      return true;
-    }
+    if (tiers[userTier] < tiers[minimumTier]) { setPreviousView(view); setView('paywall'); return true; }
     return false;
   };
 
   const checkUsageLimit = (type) => {
-    // Définition de tes règles d'accès selon la conversation
     const limits = {
       FREE: { photo: 3, sommelier: 2, menu: 0, facture: 0, rayon: 0, expert: 0 },
       AMATEUR: { photo: Infinity, sommelier: Infinity, menu: 4, facture: 0, rayon: Infinity, expert: 5 },
       COLLECTIONNEUR: { photo: Infinity, sommelier: Infinity, menu: Infinity, facture: Infinity, rayon: Infinity, expert: Infinity }
     };
-
     const maxLimit = limits[userTier][type];
-    
-    // Si c'est bloqué (0) ou illimité (Infinity)
     if (maxLimit === Infinity) return true;
-    if (maxLimit === 0) { 
-      setPreviousView(view); 
-      setView('paywall'); 
-      return false; 
-    }
-
-    // Gestion du compteur mensuel
+    if (maxLimit === 0) { setPreviousView(view); setView('paywall'); return false; }
     const key = `vs_usage_${type}_${new Date().getMonth()}`;
     const current = parseInt(localStorage.getItem(key) || '0');
-    
-    if (current >= maxLimit) { 
-      setPreviousView(view); 
-      setView('paywall'); 
-      return false; 
-    }
+    if (current >= maxLimit) { setPreviousView(view); setView('paywall'); return false; }
     return true;
   };
 
@@ -524,83 +1468,41 @@ export default function App() {
     const current = parseInt(localStorage.getItem(key) || '0');
     localStorage.setItem(key, current + 1);
   };
-  // ----------------------------------------------
 
   const videoRef = useRef(null); 
   const canvasRef = useRef(null); 
   const streamRef = useRef(null);
 
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setIsAuthLoading(false);
-  
+    const unsubAuth = onAuthStateChanged(auth, (u) => { 
+      setUser(u); setIsAuthLoading(false); 
       if (u) {
-        // Écoute le champ "tier" dans le document de l'utilisateur
         const userDocRef = doc(db, 'artifacts', appId, 'users', u.uid);
-        onSnapshot(userDocRef, (docSnap) => {
-          if (docSnap.exists() && docSnap.data().tier) {
-            setUserTier(docSnap.data().tier);
-          }
-        });
-      } else {
-        // NETTOYAGE DU CACHE À LA DÉCONNEXION
-        localStorage.removeItem('vinoscan_history');
-        setScanHistory([]);
-      }
+        onSnapshot(userDocRef, (docSnap) => { if (docSnap.exists() && docSnap.data().tier) { setUserTier(docSnap.data().tier); } else { setUserTier('FREE'); } });
+      } else { setUserTier('FREE'); }
     });
-  
     return () => unsubAuth();
   }, []);
 
   useEffect(() => {
-    if (!user) { 
-      setScanHistory([]); 
-      setValueHistory([]); 
-      setAlerts([]); 
-      return; 
-    }
+    if (!user) { setScanHistory([]); setValueHistory([]); setAlerts([]); return; }
+    const unsubScans = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'scans'), (s) => {
+      let sc = []; let totalV = 0;
+      s.forEach(d => { 
+        if(d.data().data) {
+          const norm = normalizeData(d.data().data);
+          sc.push({id: String(d.id), ...d.data(), data: norm}); 
+          if (d.data().stock > 0) totalV += (norm.prix_unitaire_nombre * d.data().stock);
+        }
+      });
+      sc.sort((a, b) => b.timestamp - a.timestamp); setScanHistory(sc);
+      if (totalV > 0) saveCellarValueSnapshot(user, totalV);
+    }, (error) => { console.error("Firebase read blocked: " + error.message); });
+
+    const unsubValue = onSnapshot(firestoreQuery(collection(db, 'artifacts', appId, 'users', user.uid, 'value_history'), orderBy('timestamp', 'asc')), (s) => { let vh = []; s.forEach(d => vh.push(d.data())); setValueHistory(vh); });
+    const unsubAlerts = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'alerts'), (s) => { let al = []; s.forEach(d => al.push(d.data())); al.sort((a, b) => b.timestamp - a.timestamp); setAlerts(al); });
     
-    const fetchInitialData = async () => {
-      try {
-        // 1. Chargement de la cave (Scans) avec requête unique
-        const scansSnap = await getDocs(collection(db, 'artifacts', appId, 'users', user.uid, 'scans'));
-        let sc = []; let totalV = 0;
-        scansSnap.forEach(d => { 
-          if(d.data().data) {
-            const norm = normalizeData(d.data().data);
-            sc.push({id: String(d.id), ...d.data(), data: norm}); 
-            if (d.data().stock > 0) totalV += (norm.prix_unitaire_nombre * d.data().stock);
-          }
-        });
-        sc.sort((a, b) => b.timestamp - a.timestamp); 
-        setScanHistory(sc);
-        
-        // Mise à jour du cache local
-        localStorage.setItem('vinoscan_history', JSON.stringify(sc));
-        
-        if (totalV > 0) saveCellarValueSnapshot(user, totalV);
-  
-        // 2. Chargement de l'historique de valeur
-        const qValue = firestoreQuery(collection(db, 'artifacts', appId, 'users', user.uid, 'value_history'), orderBy('timestamp', 'asc'));
-        const valueSnap = await getDocs(qValue);
-        let vh = []; 
-        valueSnap.forEach(d => vh.push(d.data())); 
-        setValueHistory(vh);
-  
-        // 3. Chargement des alertes
-        const alertsSnap = await getDocs(collection(db, 'artifacts', appId, 'users', user.uid, 'alerts'));
-        let al = []; 
-        alertsSnap.forEach(d => al.push(d.data())); 
-        al.sort((a, b) => b.timestamp - a.timestamp); 
-        setAlerts(al);
-  
-      } catch (error) {
-        console.error("🚨 Lecture Firebase bloquée : ", error.message);
-      }
-    };
-  
-    fetchInitialData();
+    return () => { unsubScans(); unsubValue(); unsubAlerts(); };
   }, [user]);
 
   useEffect(() => { if (user && scanHistory.length > 0) checkAndGenerateAlerts(user, scanHistory, alerts); }, [scanHistory, user]);
@@ -608,145 +1510,68 @@ export default function App() {
   const showToast = (m) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3000); };
   
   const startCamera = async (mode = cameraMode, face = facingMode) => {
-    // Blocages Freemium
     if (mode === 'bottle' && !checkUsageLimit('photo', 5)) return;
     if (mode === 'receipt' && !checkUsageLimit('facture')) return;
-
     if (!navigator.mediaDevices?.getUserMedia) { setErrorMsg("Caméra indisponible."); setView('error'); return; }
     try { 
-      setCameraMode(mode); 
-      setFacingMode(face);
+      setCameraMode(mode); setFacingMode(face);
       const s = await navigator.mediaDevices.getUserMedia({video:{facingMode: face}}); 
-      streamRef.current = s; 
-      setView('camera'); 
+      streamRef.current = s; setView('camera'); 
       setTimeout(()=>{if(videoRef.current)videoRef.current.srcObject=s;},100); 
-    } 
-    catch(e){ setErrorMsg("Erreur d'accès à la caméra."); setView('error'); }
+    } catch(e){ setErrorMsg("Erreur d'accès à la caméra."); setView('error'); }
   };
   
   const stopCamera = () => { if(streamRef.current){ streamRef.current.getTracks().forEach(t=>t.stop()); streamRef.current=null; } };
-  
-  const toggleCamera = () => {
-    const newFace = facingMode === 'environment' ? 'user' : 'environment';
-    stopCamera();
-    startCamera(cameraMode, newFace);
-  };
+  const toggleCamera = () => { const newFace = facingMode === 'environment' ? 'user' : 'environment'; stopCamera(); startCamera(cameraMode, newFace); };
   
   const capturePhoto = async () => {
     if(videoRef.current && canvasRef.current) {
-      const c = canvasRef.current; 
-      c.width = videoRef.current.videoWidth; 
-      c.height = videoRef.current.videoHeight;
-      c.getContext('2d').drawImage(videoRef.current,0,0); 
-      const d = c.toDataURL('image/jpeg',0.8); 
-      
-      stopCamera();
-      const img = await compressImage(d); 
-      setImageSrc(img); 
-      
-      // Le nouveau routage de l'image selon le mode
-      if (cameraMode === 'receipt') {
-        analyzeReceipt(img); 
-      } else if (cameraMode === 'menu') {
-        analyzeMenu(img); 
-      } else if (cameraMode === 'compare') {
-        setCompareBasket(prev => [...prev, img]);
-        setView('compare'); // On retourne direct sur le comparateur
-      } else {
-        analyzeImage(img);
-      }
+      const c = canvasRef.current; c.width = videoRef.current.videoWidth; c.height = videoRef.current.videoHeight;
+      c.getContext('2d').drawImage(videoRef.current,0,0); const d = c.toDataURL('image/jpeg',0.8); stopCamera();
+      const img = await compressImage(d); setImageSrc(img); 
+      if (cameraMode === 'receipt') analyzeReceipt(img); else if (cameraMode === 'menu') analyzeMenu(img); else analyzeImage(img);
     }
   };
 
   const handleFileUpload = async (e) => { 
     const f = e.target.files[0]; 
-    if (f) { 
-      const r = new FileReader(); 
-      r.onloadend = async () => { 
-        // 1. On coupe la caméra si elle tournait
-        stopCamera(); 
-  
-        // 2. On compresse l'image de la galerie
-        const img = await compressImage(r.result); 
-        setImageSrc(img); 
-  
-        // 3. On route vers le bon module d'analyse
-        if (cameraMode === 'receipt') {
-          analyzeReceipt(img); 
-        } else if (cameraMode === 'menu') {
-          analyzeMenu(img); 
-        } else if (cameraMode === 'compare') {
-          setCompareBasket(prev => [...prev, img]);
-          setView('compare');
-        } else {
-          analyzeImage(img);
-        }
-      }; 
-      r.readAsDataURL(f); 
-    } 
+    if(f) { const r = new FileReader(); r.onloadend = async () => { const img = await compressImage(r.result); setImageSrc(img); analyzeImage(img); }; r.readAsDataURL(f); } 
   };
 
-  const processAIResult = async (aiText, b64Image) => {
+  const uploadImageToStorage = async (base64Str, userId) => {
+    if (!base64Str || !base64Str.startsWith('data:image')) return base64Str;
+    try {
+      const fileName = `users/${userId}/wines/${Date.now()}.jpg`;
+      const storageRefObj = ref(storage, fileName);
+      await uploadString(storageRefObj, base64Str, 'data_url');
+      return await getDownloadURL(storageRefObj);
+    } catch (e) { console.error("Upload error:", e); return null; }
+  };
+
+  const processAIResult = async (aiText, sourceImage) => {
     const data = normalizeData(extractJSON(aiText)); 
     setAnalysisResult(data);
     
     const scanId = Date.now().toString();
-    
-    // 1. Affichage immédiat (optimiste) pour l'utilisateur
-    const localImg = b64Image || getGenericImageForType(data.type_simplifie); 
-    setImageSrc(localImg);
-    
-    const objLocal = { 
-      id: scanId, 
-      image: localImg, // B64 gardé temporairement pour le visuel immédiat
-      data, 
-      stock: 0, 
-      in_history: true, 
-      wishlist: false, 
-      location: '', 
-      notes: '', 
-      rating: 0, 
-      sensory_dna: null, 
-      timestamp: Date.now(), 
-      dateStr: new Date().toLocaleDateString('fr-FR') 
-    };
-    
-    setScanHistory(p => [objLocal, ...p]); 
-    setCurrentScanId(scanId); 
-    setPreviousView('home'); 
-    setView('results');
-    
     const activeUser = auth.currentUser;
+    
+    let secureImageUrl = getGenericImageForType(data.type_simplifie);
+    if (activeUser && sourceImage) {
+      const uploadedUrl = await uploadImageToStorage(sourceImage, activeUser.uid);
+      if (uploadedUrl) secureImageUrl = uploadedUrl;
+    } else if (sourceImage) {
+      secureImageUrl = sourceImage;
+    }
+
+    setImageSrc(secureImageUrl);
+    
+    const objLocal = { id: scanId, image: secureImageUrl, data, stock: 0, in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR') };
+    
+    setScanHistory(p=>[objLocal,...p]); setCurrentScanId(scanId); setPreviousView('home'); setView('results');
+    
     if (activeUser) { 
-      try { 
-        // 2. ENVOI CLOUD : On upload le Base64 sur le Storage Firebase
-        let finalImageUrl = getGenericImageForType(data.type_simplifie);
-        
-        if (b64Image && b64Image.startsWith('data:image')) {
-          const cloudUrl = await uploadWineImage(b64Image, activeUser.uid, scanId);
-          if (cloudUrl) finalImageUrl = cloudUrl; // On récupère l'URL propre
-        }
-        
-        // 3. SAUVEGARDE LÉGÈRE : On remplace le B64 par l'URL cloud
-        const objFirebase = { ...objLocal, image: finalImageUrl };
-        
-        const docRef = doc(db, 'artifacts', appId, 'users', activeUser.uid, 'scans', scanId);
-        await setDoc(docRef, objFirebase); 
-        
-        // 👇 ENRICHISSEMENT DU CATALOGUE PUBLIC
-        if (currentBarcode) {
-        await setDoc(doc(db, 'catalogue_public', currentBarcode), {
-        data: data,
-        image: finalImageUrl
-        });
-       setCurrentBarcode(null); // On vide la mémoire du code-barres
-       }
-        // 4. (Optionnel) Met à jour le cache local avec l'URL définitive
-        setScanHistory(p => p.map(item => item.id === scanId ? objFirebase : item));
-  
-      } catch(e) {
-        console.error(`🚨 Erreur Firebase : ${e.message}`);
-      } 
+      try { await setDoc(doc(db, 'artifacts', appId, 'users', activeUser.uid, 'scans', scanId), objLocal); } 
+      catch(e) { alert(`🚨 Erreur Firebase : ${e.message}`); } 
     }
   };
 
@@ -754,33 +1579,21 @@ export default function App() {
     setView('analyzing');
     try {
       const prompt = `Expert Sommelier. Identifie le vin. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE|BLANC|ROSE|PETILLANT","annee":"","region":"","description":"max 20 mots","prix_unitaire_nombre":20,"garde_min":2,"garde_max":10,"accord_parfait":"viande"}. IMPORTANT: 'garde_min' et 'garde_max' doivent être des entiers stricts.`;
-      
-      // Extraction sécurisée du base64
       const cleanB64 = b64.includes(',') ? b64.split(',')[1] : b64;
-      
       const p1 = await callGemini(prompt, cleanB64);
       incrementUsage('photo'); 
-      
-      if (!p1.candidates?.[0]?.content?.parts?.[0]?.text) {
-        throw new Error("Réponse vide du serveur Gemini.");
-      }
-      
+      if (!p1.candidates?.[0]?.content?.parts?.[0]?.text) throw new Error("Réponse vide du serveur Gemini.");
       await processAIResult(p1.candidates[0].content.parts[0].text, b64);
-    } catch(e) {
-      console.error("Détail Erreur IA:", e);
-      // Affiche la vraie cause sur l'écran d'erreur
-      setErrorMsg(`Détail : ${e.message}`); 
-      setView('error'); 
-    }
+    } catch(e) { setErrorMsg(`Détail : ${e.message}`); setView('error'); }
   };
 
   const searchWineText = async (textQuery) => {
-    if (!checkUsageLimit('manual', 10)) return; // Limite de 10
+    if (!checkUsageLimit('manual', 10)) return;
     setView('analyzing'); setPreviousView('home');
     try {
       const prompt = `Recherche le vin : "${textQuery}". JSON strict: {"nom":"${textQuery}","type_simplifie":"ROUGE","annee":"2020","region":"","description":"","prix_unitaire_nombre":15,"garde_min":2,"garde_max":10,"accord_parfait":""}`;
       const result = await callGemini(prompt);
-      incrementUsage('manual'); // On compte +1 recherche
+      incrementUsage('manual');
       await processAIResult(result.candidates[0].content.parts[0].text, null);
     } catch (err) { setErrorMsg("Erreur de recherche."); setView('error'); }
   };
@@ -788,334 +1601,106 @@ export default function App() {
   const analyzeMenu = async (b64) => {
     setView('analyzing');
     try {
-      let contraintes = "";
-      if (menuPrefs.plat) contraintes += ` Plat choisi: "${menuPrefs.plat}".`;
-      if (menuPrefs.budget) contraintes += ` Budget max: ${menuPrefs.budget}€.`;
-  
-      const prompt = `Agis comme un Sommelier expert. Lis cette carte des vins.${contraintes}
-      Choisis LE MEILLEUR vin (Accord Excellent) et 2 alternatives pertinentes.
-      Réponds UNIQUEMENT en JSON strict avec ce format exact :
-      {
-        "recommandations": [
-          {
-            "nom": "Nom du vin 1",
-            "type": "ROUGE",
-            "annee": "2020",
-            "region": "Bourgogne",
-            "prix": 35,
-            "accord": "Excellent",
-            "commentaire": "Pourquoi c'est le meilleur choix..."
-          },
-          {
-            "nom": "Nom du vin 2",
-            "type": "BLANC",
-            "annee": "2021",
-            "region": "Loire",
-            "prix": 25,
-            "accord": "Très bon",
-            "commentaire": "Alternative intéressante car..."
-          }
-        ]
-      }`;
-  
-      const cleanB64 = b64.includes(',') ? b64.split(',')[1] : b64;
-      const result = await callGemini(prompt, cleanB64);
-      
-      let cleanText = result.candidates[0].content.parts[0].text;
-      cleanText = cleanText.replace(/```json/g, '').replace(/```/g, '');
-      
-      setMenuAnalysisResult(JSON.parse(cleanText));
-      setPreviousView('scanSelector');
-      setView('recommendationList');
-    } catch(err) { 
-      setErrorMsg("Lecture du menu impossible ou aucun vin ne correspond."); 
-      setView('error'); 
-    }
+      const prompt = `Sommelier. Choisis le MEILLEUR vin sur cette carte pour accompagner un repas. JSON strict: {"nom":"NOM","type_simplifie":"ROUGE","annee":"","region":"","description":"","prix_unitaire_nombre":30,"potentiel_garde":"","accord_parfait":""}`;
+      const result = await callGemini(prompt, b64.split(',')[1]);
+      await processAIResult(result.candidates[0].content.parts[0].text, null);
+    } catch(err) { setErrorMsg("Lecture du menu impossible."); setView('error'); }
   };
 
   const analyzeReceipt = async (b64) => {
     setView('analyzing');
     try {
-      const prompt = `Analyse cette facture ou ticket de caisse d'achat de vin. Repère tous les vins achetés. Renvoie un JSON strict: {"vins": [{"nom":"","annee":"","prix":15,"quantite":1}]}`;
-      
-      const cleanB64 = b64.includes(',') ? b64.split(',')[1] : b64;
-      const result = await callGemini(prompt, cleanB64);
-      const parsed = JSON.parse(result.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, ''));
-  
-      // Pour chaque vin trouvé sur la facture, on crée une fiche légère (sans image unique, ou avec image du ticket)
-      for (const v of parsed.vins) {
-        const id = Math.random().toString(36).substring(2, 9);
-        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'wines', id), {
-          id: id,
-          image: "", // Pas d'image d'étiquette pour l'import sur facture
-          stock: parseInt(v.quantite) || 1,
-          rating: 0,
-          notes: "Importé via facture",
-          location: "",
-          data: {
-            nom: v.nom,
-            annee: v.annee || "N.M.",
-            type_simplifie: "ROUGE", // Par défaut
-            prix_unitaire_nombre: parseFloat(v.prix) || 0,
-            region: "Inconnue",
-            apogee: "Prêt à boire"
-          }
-        });
-      }
-  
-      showToast(`${parsed.vins.length} vins ajoutés depuis la facture !`);
-      setView('home');
-    } catch (err) {
-      showToast("Erreur de lecture de la facture.");
-      setView('home');
-    }
+      const prompt = `Extrait les vins de ce ticket. JSON: [{"nom":"Nom","annee":"2020","prix_unitaire_nombre":15,"type_simplifie":"ROUGE","region":""}]`;
+      const result = await callGemini(prompt, b64.split(',')[1]);
+      let parsed = extractJSON(result.candidates[0].content.parts[0].text);
+      if(parsed && parsed[0]) { await processAIResult(JSON.stringify(parsed[0]), null); setView('home'); } else throw new Error();
+    } catch(err) { setErrorMsg("Lecture de la facture impossible."); setView('error'); }
   };
 
   const fetchAIRecommendation = async (type='ALL', apogee='ALL', food='ALL', price='ALL') => {
     if (typeof type === 'function') type = 'ALL'; 
     setView('analyzing'); setPreviousView('recommendation');
     try {
-      // CORRECTION ICI : Traduction du budget en Euros pour l'IA
       let budgetStr = "Peu importe";
       if (price === 'BUDGET') budgetStr = "Maximum 15€";
       else if (price === 'MEDIUM') budgetStr = "Entre 15€ et 35€";
       else if (price === 'PREMIUM') budgetStr = "Plus de 35€";
-
       const prompt = `Trouve 3 suggestions de grands vins réels. Format JSON avec clé racine "vins": {"vins": [{"nom":"Vin","type_simplifie":"ROUGE","annee":"2019","region":"","description":"","prix_unitaire_nombre":25,"potentiel_garde":"","accord_parfait":""}]}. Contraintes obligatoires -> Type: ${type}, Repas: ${food}, Budget: ${budgetStr}.`;
-      
       const result = await callGemini(prompt);
       let parsed = extractJSON(result.candidates[0].content.parts[0].text);
       setRecommendationList((parsed.vins || parsed).map(v => normalizeData(v))); 
       setView('recommendationList');
-    } catch (err) { 
-      setErrorMsg("Erreur oenologique de l'IA."); 
-      setView('error'); 
-    }
+    } catch (err) { setErrorMsg("Erreur oenologique de l'IA."); setView('error'); }
   };
 
   const genericUpdate = async (id, f) => {
     setScanHistory(p=>p.map(i=>i.id===id?{...i,...f}:i));
     if(user && !id.startsWith('temp_')){ try{ await updateDoc(doc(db,'artifacts',appId,'users',user.uid,'scans',id), f); }catch(e){} }
   };
-  const updateStock = async (id, currentStock, change) => {
-    const newStock = Math.max(0, currentStock + change);
-    
-    // Sécurité : on vérifie que l'utilisateur est connecté
-    if (!user) {
-      console.error("Utilisateur non connecté");
-      return;
-    }
-
-    try {
-      // On envoie le nouveau stock directement à Firebase
-      const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'scans', id);
-      await updateDoc(docRef, { stock: newStock });
-    } catch (e) {
-      console.error("Erreur lors de la modification du stock :", e);
-    }
-  };
-  const updateDataField = async (id, fieldName, value) => {
-    const currentItem = scanHistory.find(item => item.id === id); if (!currentItem) return;
-    const newData = { ...currentItem.data, [fieldName]: value };
-    setScanHistory(prev => prev.map(item => item.id === id ? { ...item, data: newData } : item));
-    if (user && !id.startsWith('temp_')) { try { await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', id), { [`data.${fieldName}`]: value }); } catch(e) {} }
-  };
-
-  const handleKeyDown = (e) => { if(e.key==='Enter') e.target.blur(); };
 
   const ctx = { 
     user, view, setView, previousView, setPreviousView, imageSrc, analysisResult, errorMsg, setErrorMsg, 
     scanHistory, setScanHistory, scanAction, setScanAction, recommendationList, currentScanId, setCurrentScanId, 
     toastMsg, showToast, startCamera, stopCamera, capturePhoto, handleFileUpload, analyzeImage, searchWineText, 
-    analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, updateDataField, requireTier, userTier, menuAnalysisResult, setMenuAnalysisResult,
+    analyzeMenu, analyzeReceipt, fetchAIRecommendation, menuPrefs, setMenuPrefs, requireTier, userTier, alerts,
+    compareBasket, setCompareBasket, compareContext, setCompareContext, handleAddCompareImage, removeCompareImage, launchComparison, compareResult, setCompareResult, callGemini, analyzeSensoryDNA, valueHistory, videoRef, canvasRef, toggleCamera, goBack: () => setView(previousView),
 
-    handleBarcodeScanned: async (barcode) => {
-      setView('analyzing');
-      try {
-        // 1. Cherche dans la base de données gratuite et globale
-        const docRef = doc(db, 'catalogue_public', barcode);
-        const docSnap = await getDoc(docRef);
-    
-        if (docSnap.exists()) {
-          // 🍷 CAS A : Le vin est connu (0€, instantané)
-          const wineData = docSnap.data();
-          const scanId = Date.now().toString();
-    
-          const objLocal = {
-            id: scanId,
-            image: wineData.image || getGenericImageForType(wineData.data?.type_simplifie),
-            data: wineData.data,
-            stock: 0,
-            in_history: true, wishlist: false, location: '', notes: '', rating: 0, sensory_dna: null,
-            timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR')
-          };
-    
-          setScanHistory(p => [objLocal, ...p]);
-          setCurrentScanId(scanId);
-          setPreviousView('home');
-          setView('results');
-    
-          if (user) await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', scanId), objLocal);
-          showToast("Trouvé dans le catalogue !");
-          
-        } else {
-          // 📷 CAS B : Inconnu. On mémorise le code et on lance la caméra pour l'IA
-          setCurrentBarcode(barcode);
-          setCameraMode('bottle');
-          startCamera('bottle', 'environment');
-          showToast("Nouveau vin ! Prenez l'étiquette en photo.");
-        }
-      } catch (e) {
-        console.error(e);
-        setView('scanSelector');
-        showToast("Erreur de recherche.");
-      }
-    },
-
-    processRecommendationSelection: async (wine) => {
-      if (!user) return;
-      setView('analyzing'); // Affiche l'écran de chargement pendant l'upload
-      
-      try {
-        // 1. Génération d'un identifiant unique pour le vin
-        const newWineId = wine.id || Date.now().toString();
-        
-        // 2. Envoi de l'image vers Firebase Storage et récupération de l'URL absolue
-        const imageUrl = await uploadWineImage(imageSrc, user.uid, newWineId);
-        
-        // 3. Préparation des données propres sans texte Base64 lourd
-        const wineData = {
-          id: newWineId,
-          image: imageUrl || "", // Utilise l'URL stockée ou vide si échec
-          stock: parseInt(wine.stock) || 1,
-          rating: 0,
-          notes: wine.description || "",
-          location: "",
-          data: {
-            nom: wine.nom || "Vin inconnu",
-            annee: wine.annee || "N.M.",
-            region: wine.region || "Inconnue",
-            type_simplifie: wine.type_simplifie || "ROUGE",
-            prix_unitaire_nombre: parseFloat(wine.prix_unitaire_nombre) || parseFloat(wine.prix) || 0,
-            apogee: wine.apogee || "Prêt à boire",
-            description: wine.description || ""
-          }
-        };
-    
-        // 4. Sauvegarde finale légère dans Firestore
-        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'wines', newWineId), wineData);
-        
-        // 5. Réinitialisation des états de scan et retour à l'accueil
-        setImageSrc(null);
-        setAnalysisResult(null);
-        showToast("Vin ajouté à la cave !");
-        setView('home');
-        
-      } catch (error) {
-        console.error("Erreur lors de l'ajout du vin :", error);
-        showToast("Erreur lors de l'enregistrement.");
-        setView('home');
-      }
-    },
-    
     processManualEntry: async (manualData, customImage) => {
       if (!user) { ctx.showToast("Connectez-vous pour ajouter."); return; }
-      
-      // Optionnel : afficher l'écran de chargement si une grosse image est en cours d'upload
-      if (customImage) setView('analyzing'); 
-      
       const scanId = Date.now().toString();
-    
+
+      const typeSimp = manualData.type_simplifie || 'ROUGE';
+      let gMin = 2, gMax = 5;
+      if (typeSimp === 'ROUGE') { gMin = 3; gMax = 10; }
+      else if (typeSimp === 'BLANC') { gMin = 2; gMax = 6; }
+      else if (typeSimp === 'PETILLANT') { gMin = 1; gMax = 5; }
+      else if (typeSimp === 'ROSE') { gMin = 1; gMax = 3; }
+
+      const updatedData = normalizeData({ ...manualData, garde_min: gMin, garde_max: gMax });
+
+      let secureImageUrl = getGenericImageForType(typeSimp);
+      if (customImage) {
+        const uploadedUrl = await uploadImageToStorage(customImage, user.uid);
+        if (uploadedUrl) secureImageUrl = uploadedUrl;
+      }
+
+      const newItem = {
+        id: scanId, image: secureImageUrl, data: updatedData, stock: 1, in_history: true, wishlist: false,
+        location: '', notes: '', rating: 0, sensory_dna: null, timestamp: Date.now(), dateStr: new Date().toLocaleDateString('fr-FR')
+      };
+
+      setScanHistory(p => [newItem, ...p]);
       try {
-        const typeSimp = manualData.type_simplifie || 'ROUGE';
-        
-        // 1. GESTION DE L'IMAGE CLOUD (Storage)
-        let finalImageUrl = getGenericImageForType(typeSimp);
-        // Si une image a été uploadée et que c'est un Base64, on l'envoie sur le Storage
-        if (customImage && customImage.startsWith('data:image')) {
-          const cloudUrl = await uploadWineImage(customImage, user.uid, scanId);
-          if (cloudUrl) finalImageUrl = cloudUrl; 
-        }
-    
-        let gMin = 2, gMax = 5;
-        if (typeSimp === 'ROUGE') { gMin = 3; gMax = 10; }
-        else if (typeSimp === 'BLANC') { gMin = 2; gMax = 6; }
-        else if (typeSimp === 'PETILLANT') { gMin = 1; gMax = 5; }
-        else if (typeSimp === 'ROSE') { gMin = 1; gMax = 3; }
-    
-        const updatedData = normalizeData({ ...manualData, garde_min: gMin, garde_max: gMax });
-    
-        const newItem = {
-          id: scanId,
-          image: finalImageUrl, // <-- Contient maintenant une URL légère ou l'image par défaut
-          data: updatedData,
-          stock: 1, 
-          in_history: true,
-          wishlist: false,
-          location: '', notes: '', rating: 0, sensory_dna: null,
-          timestamp: Date.now(),
-          dateStr: new Date().toLocaleDateString('fr-FR')
-        };
-    
-        setScanHistory(p => [newItem, ...p]);
-        
-        // Sauvegarde Firestore
         await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', scanId), newItem);
         ctx.showToast("Bouteille ajoutée à la cave !");
         setView('home');
-      } catch (e) {
-        console.error(e);
-        ctx.showToast("Erreur lors de la sauvegarde.");
-        setView('home');
-      }
+      } catch (e) { ctx.showToast("Erreur lors de la sauvegarde."); }
     },
 
-    // 2. Mise à jour fluide du stock (+ / -)
+    processRecommendationSelection: async (w) => {
+      if (!user) { ctx.showToast("Connectez-vous pour ajouter à la cave."); return; }
+      const scanId = Date.now().toString();
+      const newItem = { data: w, stock: 0, image: getGenericImageForType(w.type_simplifie), in_history: true, wishlist: false, timestamp: Date.now() };
+      try {
+        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', scanId), newItem);
+        setCurrentScanId(scanId); setPreviousView(view); setView('results');
+      } catch (e) { ctx.showToast("Erreur lors de la sauvegarde."); }
+    },
+
     updateStock: async (id, currentStock, change) => {
       const newStock = Math.max(0, currentStock + change);
-      
-      setScanHistory(prev => prev.map(item => 
-        item.id === id ? { ...item, stock: newStock } : item
-      ));
-
-      if (user) {
-        try {
-          const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'scans', id);
-          await updateDoc(docRef, { stock: newStock });
-        } catch (e) {
-          console.error("Erreur de sauvegarde Firebase :", e);
-        }
-      }
+      setScanHistory(prev => prev.map(item => item.id === id ? { ...item, stock: newStock } : item));
+      if (user) { try { await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', id), { stock: newStock }); } catch (e) {} }
     },
 
-    // 3. Mise à jour fluide des textes (Année, Notes, Emplacement)
     genericUpdate: async (id, fieldsToUpdate) => {
-      setScanHistory(prev => prev.map(item => 
-        item.id === id ? { ...item, ...fieldsToUpdate } : item
-      ));
-
-      if (user) {
-        try {
-          const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'scans', id);
-          await updateDoc(docRef, fieldsToUpdate);
-        } catch (e) {
-          console.error("Erreur de sauvegarde Firebase :", e);
-        }
-      }
+      setScanHistory(prev => prev.map(item => item.id === id ? { ...item, ...fieldsToUpdate } : item));
+      if (user) { try { await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'scans', id), fieldsToUpdate); } catch (e) {} }
     },
-
-    goBack: () => setView(previousView), 
     
     openExistingWine: (i, o) => {
-      setImageSrc(i.image);
-      setAnalysisResult(i.data);
-      setCurrentScanId(i.id);
-      setPreviousView(o);
-      setView('results');
-    }, 
-    
-    videoRef, canvasRef, cameraMode, handleKeyDown, callGemini, valueHistory, alerts, analyzeSensoryDNA, generateAndShareInstagramImage,
-    toggleCamera, userTier, setUserTier, requireTier, compareBasket, setCompareBasket, compareContext, setCompareContext, handleAddCompareImage, removeCompareImage, launchComparison, compareResult, setCompareResult
+      setImageSrc(i.image); setAnalysisResult(i.data); setCurrentScanId(i.id); setPreviousView(o); setView('results');
+    }
   };
 
   if (isAuthLoading) return <div className="h-[100dvh] bg-[#0a0a0a] flex items-center justify-center"><Wine className="w-12 h-12 text-[#D4AF37] animate-pulse" /></div>;
@@ -1127,12 +1712,9 @@ export default function App() {
     <ErrorBoundary onReset={() => setView('home')}>
       <div className="w-full max-w-md mx-auto h-[100dvh] bg-[#0a0a0a] sm:border-x sm:border-[#333] flex flex-col relative text-[#F5F5F5] font-sans select-none overflow-hidden" style={{'--gold-primary': '#D4AF37'}}>
         
-        {/* EN-TÊTE FIXE UNIFIÉ */}
-        {['home', 'cellar', 'history', 'account', 'recommendation'].includes(view) && (
+        {['home', 'history', 'account', 'recommendation'].includes(view) && (
           <div className="w-full h-16 shrink-0 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-[#333] flex items-center justify-between px-5 z-30">
-            <h1 className="text-2xl font-extrabold text-[#F5F5F5]">
-              Vino<span className="text-[#D4AF37]">Scan</span>
-            </h1>
+            <h1 className="text-2xl font-extrabold text-[#F5F5F5]">Vino<span className="text-[#D4AF37]">Scan</span></h1>
             <div className="flex items-center space-x-3">
               <button onClick={() => setView('alerts')} className="relative p-2 bg-[#1a1a1a] rounded-full border border-[#333] text-slate-400 hover:text-[#D4AF37] transition-all">
                 <Bell className="w-5 h-5" />
@@ -1145,14 +1727,12 @@ export default function App() {
           </div>
         )}
 
-        {/* CONTENU QUI SCROLL LIBREMENT */}
         <div className="flex-1 overflow-y-auto pb-20">
           {view === 'home' && <HomeView ctx={ctx} />}
           {view === 'account' && <AccountView ctx={ctx} />}
           {view === 'paywall' && <PaywallView ctx={ctx} />}
           {view === 'compare' && <CompareView ctx={ctx} />}
           {view === 'history' && <HistoryView ctx={ctx} />}
-          {view === 'cellar' && <CellarView ctx={ctx} />}
           {view === 'recommendation' && <RecommendationView ctx={ctx} />}
           {view === 'recommendationList' && <RecommendationListView ctx={ctx} />}
           {view === 'results' && <ResultsView ctx={ctx} />}
@@ -1164,13 +1744,11 @@ export default function App() {
           {view === 'quiz' && <QuizView ctx={ctx} />}
           {view === 'alerts' && <AlertsView ctx={ctx} />}
           {view === 'scanSelector' && <ScanSelectorView ctx={ctx} />}
-          {view === 'barcode' && <BarcodeScannerView ctx={ctx} />}
           {view === 'error' && (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#0a0a0a] pt-20"><AlertTriangle className="w-16 h-16 text-red-500 mb-4" /><h2 className="text-xl font-bold text-white mb-2">Erreur technique</h2><p className="text-sm text-slate-400 mb-6">{errorMsg}</p><button onClick={()=>setView('home')} className="px-6 py-3 bg-[#D4AF37] text-black font-bold rounded-xl shadow-lg">Retour</button></div>
           )}
         </div>
         
-        {/* POPUPS ET TOASTS */}
         {scanAction && (
           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"><div className="bg-[#1a1a1a] border border-[#333] rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl"><h3 className="text-xl font-bold text-white mb-2">Supprimer ?</h3><div className="flex space-x-3 mt-6"><button onClick={()=>setScanAction(null)} className="flex-1 py-3 bg-[#333] rounded-xl font-bold">Annuler</button><button onClick={()=>{ ctx.genericUpdate(scanAction.id, { in_history: false, stock: 0 }); setScanAction(null); setView('home'); ctx.showToast("Supprimé."); }} className="flex-1 py-3 bg-red-600/20 text-red-400 border border-red-600/40 rounded-xl font-bold">Supprimer</button></div></div></div>
         )}
@@ -1178,7 +1756,6 @@ export default function App() {
           <div className="absolute top-20 left-0 w-full flex justify-center z-[200] animate-in slide-in-from-top-4"><div className="bg-[#D4AF37] text-black font-bold px-5 py-3 rounded-full shadow-lg border border-[#AA7C11] flex items-center space-x-2"><CheckCircle className="w-4 h-4" /><span>{toastMsg}</span></div></div>
         )}
 
-        {/* BARRE DE NAVIGATION EN BAS */}
         {view !== 'camera' && view !== 'analyzing' && <BottomNavigation ctx={ctx} />}
       </div>
     </ErrorBoundary>
